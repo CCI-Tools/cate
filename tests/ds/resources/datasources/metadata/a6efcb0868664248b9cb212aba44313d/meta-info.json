@@ -1,0 +1,29 @@
+{
+  "ecv": "AEROSOL",
+  "time_frequency": "satellite orbit frequency",
+  "institute": "multi-institution",
+  "processing_level": "L2P",
+  "product_string": "MERIS_ENVISAT",
+  "product_version": "2.2",
+  "data_type": "AOD",
+  "sensor_id": "MERIS",
+  "platform_id": "Envisat",
+  "file_formats": [
+    ".nc",
+    ".txt"
+  ],
+  "drs_id": "esacci.AEROSOL.satellite-orbit-frequency.L2P.AOD.MERIS.Envisat.MERIS_ENVISAT.2-2.r1",
+  "abstract": "The ESA Climate Change Initiative Aerosol project has produced a number of global aerosol Essential Climate Variable (ECV) products from a set of European satellite instruments with different characteristics. \n\nThis dataset comprises the Level 2 aerosol products from MERIS for 2008, using the ALAMO algorithm, version 2.2.   The data have been provided by Hygeos.\n\nFor further details about these data products please see the linked documentation.",
+  "title": "ESA Aerosol Climate Change Initiative (Aerosol CCI): Level 2 aerosol products from MERIS (ALAMO algorithm), Version 2.2",
+  "licences": "Use of these data is covered by the following licence: http://licences.ceda.ac.uk/image/data_access_condition/esacci_aerosol_terms_and_conditions.pdf . When using these data you must cite them correctly using the citation given on the CEDA Data Catalogue record.",
+  "bbox_minx": "-180.0",
+  "bbox_miny": "-90.0",
+  "bbox_maxx": "180.0",
+  "bbox_maxy": "90.0",
+  "temporal_coverage_start": "2008-01-01T00:00:00",
+  "temporal_coverage_end": "2008-12-31T23:59:59",
+  "publication_date": "2016-07-28T14:39:08",
+  "creation_date": "2016-07-28T14:39:08",
+  "dimensions": {},
+  "variable_infos": {}
+}

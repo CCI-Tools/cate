@@ -1,0 +1,29 @@
+{
+  "ecv": "SOILMOISTURE",
+  "time_frequency": "day",
+  "institute": "Vienna University of Technology",
+  "processing_level": "L3S",
+  "product_string": "ACTIVE",
+  "product_version": "04.5",
+  "data_type": "SSMS",
+  "sensor_id": "multi-sensor",
+  "platform_id": "multi-platform",
+  "file_formats": [
+    ".nc",
+    ".txt"
+  ],
+  "drs_id": "esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.04-5.r1",
+  "abstract": "The Soil Moisture CCI ACTIVE dataset is one of the three datasets created as part of the European Space Agency's (ESA) Soil Moisture Essential Climate Variable (ECV) Climate Change Initiative (CCI) project. The product has been created by fusing scatterometer soil moisture products, derived from the instruments AMI-WS and ASCAT.  PASSIVE and COMBINED products have also been created. \n\nThe v04.5 ACTIVE product, provided as global daily images in NetCDF-4 classic file format, presents a global coverage of surface soil moisture at a spatial resolution of 0.25 degrees. It covers the period 1991-08-05 to 2018-12-31 and is expressed in percent of saturation [%]. For information regarding the theoretical and algorithmic base of the product, please see the Algorithm Theoretical Baseline Document. Other additional reference documents and information relating to the dataset can also be found on the CCI Soil Moisture project web site or within the Product Specification Document.\n\nThe data set should be cited using all three of the following references:\n\n1. Gruber, A., Scanlon, T., van der Schalie, R., Wagner, W., and Dorigo, W. (2019). Evolution of the ESA CCI Soil Moisture climate data records and their underlying merging methodology, Earth Syst. Sci. Data, 11, 717\u2013739, https://doi.org/10.5194/essd-11-717-2019\n\n2. Dorigo, W.A., Wagner, W., Albergel, C., Albrecht, F., Balsamo, G., Brocca, L., Chung, D., Ertl, M., Forkel, M., Gruber, A., Haas, E., Hamer, D. P. Hirschi, M., Ikonen, J., De Jeu, R. Kidd, R. Lahoz, W., Liu, Y.Y., Miralles, D., Lecomte, P. (2017). ESA CCI Soil Moisture for improved Earth system understanding: State-of-the art and future directions. In Remote Sensing of Environment, 2017, ISSN 0034-4257, https://doi.org/10.1016/j.rse.2017.07.001\n\n3. Gruber, A., Dorigo, W. A., Crow, W., Wagner W. (2017). Triple Collocation-Based Merging of Satellite Soil Moisture Retrievals. IEEE Transactions on Geoscience and Remote Sensing. PP. 1-13. 10.1109/TGRS.2017.2734070",
+  "title": "ESA Soil Moisture Climate Change Initiative (Soil_Moisture_cci): ACTIVE Product, Version 04.5",
+  "licences": "Use of these data is covered by the following licence: http://licences.ceda.ac.uk/image/data_access_condition/esacci_soilmoisture_terms_and_conditions.pdf . When using these data you must cite them correctly using the citation given on the CEDA Data Catalogue record.",
+  "bbox_minx": "-180.0",
+  "bbox_miny": "-90.0",
+  "bbox_maxx": "180.0",
+  "bbox_maxy": "90.0",
+  "temporal_coverage_start": "1991-08-04T23:00:00",
+  "temporal_coverage_end": "2018-12-31T23:59:59",
+  "publication_date": "2019-12-19T18:06:17",
+  "creation_date": "2019-12-19T18:06:17",
+  "dimensions": {},
+  "variable_infos": {}
+}

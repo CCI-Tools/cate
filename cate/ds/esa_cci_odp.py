@@ -40,6 +40,7 @@ Components
 import aiofiles
 import aiohttp
 import asyncio
+import itertools
 import json
 import logging
 import os
@@ -65,7 +66,7 @@ from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, Var
 from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
 from cate.util.monitor import Cancellation, Monitor
 
-ESA_CCI_ODP_DATA_STORE_ID = 'esa_cci_odp'
+ESA_CCI_ODP_DATA_STORE_ID = 'esa_cci_odp_os'
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Tonio Fincke (Brockmann Consult GmbH), " \
@@ -161,7 +162,8 @@ def _extract_metadata_from_odd(odd_xml: etree.XML) -> dict:
                       'productString': ['product_string', 'product_strings'],
                       'productVersion': ['product_version', 'product_versions'],
                       'dataType': ['data_type', 'data_types'], 'sensor': ['sensor_id', 'sensor_ids'],
-                      'platform': ['platform_id', 'platform_ids'], 'fileFormat': ['file_format', 'file_formats']}
+                      'platform': ['platform_id', 'platform_ids'], 'fileFormat': ['file_format', 'file_formats'],
+                      'drsId': ['drs_id', 'drs_ids']}
     for param_elem in odd_xml.findall('os:Url/param:Parameter', namespaces=ODD_NS):
         if param_elem.attrib['name'] in metadata_names:
             param_content = _get_from_param_elem(param_elem)
@@ -243,30 +245,6 @@ def _extract_metadata_from_descxml(descxml: etree.XML) -> dict:
         content = _get_linked_content_from_descxml_elem(descxml, metadata_linked_elems[identifier])
         if content:
             metadata[identifier] = content
-
-    anchor_elem_path = 'gmd:identificationInfo/gmd:MD_DataIdentification/' \
-                       'gmd:descriptiveKeywords/gmd:MD_Keywords/gmd:keyword/gmx:Anchor'
-    anchor_collect_elems = {
-        'http://vocab-test.ceda.ac.uk/collection/cci/platform/': ['platform_id', 'platform_ids'],
-        'http://vocab-test.ceda.ac.uk/collection/cci/sensor/': ['sensor_id', 'sensor_ids'],
-        'http://vocab-test.ceda.ac.uk/collection/cci/procLev/': ['processing_level', 'processing_levels'],
-        'http://vocab-test.ceda.ac.uk/collection/cci/freq/': ['time_frequency', 'time_frequencies']
-    }
-    metadata_collect = {}
-    for anchor_collect_elem in anchor_collect_elems:
-        metadata_collect[anchor_collect_elem] = []
-    anchor_elems = descxml.findall(anchor_elem_path, namespaces=DESC_NS)
-    for anchor_elem in anchor_elems:
-        href_attrib = anchor_elem.xpath('@xlink:href', namespaces=DESC_NS)
-        if href_attrib:
-            for identifier in anchor_collect_elems:
-                if str(href_attrib[0]).startswith(identifier):
-                    metadata_collect[identifier].append(anchor_elem.text)
-    for identifier in metadata_collect:
-        if len(metadata_collect[identifier]) == 1:
-            metadata[anchor_collect_elems[identifier][0]] = metadata_collect[identifier][0]
-        elif len(metadata_collect[identifier]) > 0:
-            metadata[anchor_collect_elems[identifier][1]] = metadata_collect[identifier]
     return metadata
 
 
@@ -366,7 +344,7 @@ async def _load_or_fetch_json(fetch_json_function,
                               cache_dir: str = None,
                               cache_json_filename: str = None,
                               cache_timestamp_filename: str = None,
-                              cache_expiration_days: float = 1.0) -> Sequence:
+                              cache_expiration_days: float = 1.0) -> Union[Sequence, Dict]:
     """
     Return (JSON) value of fetch_json_function or return value of a cached JSON file.
     """
@@ -432,27 +410,26 @@ async def _fetch_data_source_list_json(base_url, query_args, monitor: Monitor = 
         fc_id = fc_props.get("identifier", None)
         if not fc_id:
             continue
-        data_source_id = f'esacci.{fc_id}'
-        catalogue[data_source_id] = {}
-        catalogue[data_source_id]['title'] = fc_props.get("title", "")
+        catalogue[fc_id] = {}
+        catalogue[fc_id]['title'] = fc_props.get("title", "")
         variables = _get_variables_from_feature(fc)
-        catalogue[data_source_id]['variables'] = variables
+        catalogue[fc_id]['variables'] = variables
         fc_props_links = fc_props.get("links", None)
         if fc_props_links:
             search = fc_props_links.get("search", None)
             if search:
                 odd_url = search[0].get('href', None)
                 if odd_url:
-                    catalogue[data_source_id]['odd_url'] = odd_url
+                    catalogue[fc_id]['odd_url'] = odd_url
             described_by = fc_props_links.get("describedby", None)
             if described_by:
                 metadata_url = described_by[0].get("href", None)
                 if metadata_url:
-                    catalogue[data_source_id]['metadata_url'] = metadata_url
+                    catalogue[fc_id]['metadata_url'] = metadata_url
             # todo consider including this at time of data store reading
             # catalogue[data_source_id]['metadata'] = await _fetch_meta_info(fc_id, odd_url, metadata_url, variables,
             # False)
-        _LOG.info(f'Added data source {data_source_id}')
+        _LOG.info(f'Read meta info from {fc_id}')
     return catalogue
 
 
@@ -515,10 +492,7 @@ async def _fetch_meta_info(dataset_id: str, odd_url: str, metadata_url: str, var
         if metadata_url:
             desc_metadata = await _extract_metadata_from_descxml_url(session, metadata_url)
             for item in desc_metadata:
-                if item in meta_info_dict and type(meta_info_dict[item]) == list:
-                    meta_info_dict[item].extend(desc_metadata[item])
-                    meta_info_dict[item] = list(dict.fromkeys(meta_info_dict[item]))
-                else:
+                if not item in meta_info_dict:
                     meta_info_dict[item] = desc_metadata[item]
         meta_info_dict['dimensions'] = {}
         meta_info_dict['variable_infos'] = {}
@@ -529,16 +503,25 @@ async def _fetch_meta_info(dataset_id: str, odd_url: str, metadata_url: str, var
                 meta_info_dict['dimensions'] = feature_dimensions
                 meta_info_dict['variable_infos'] = feature_variable_infos
         _harmonize_info_field_names(meta_info_dict, 'file_format', 'file_formats')
-        _harmonize_info_field_names(meta_info_dict, 'platform_id', 'platform_ids', 'multi-platform')
-        _harmonize_info_field_names(meta_info_dict, 'sensor_id', 'sensor_ids', 'multi-sensor')
+        _harmonize_info_field_names(meta_info_dict, 'platform_id', 'platform_ids')
+        _harmonize_info_field_names(meta_info_dict, 'sensor_id', 'sensor_ids')
         _harmonize_info_field_names(meta_info_dict, 'processing_level', 'processing_levels')
         _harmonize_info_field_names(meta_info_dict, 'time_frequency', 'time_frequencies')
         return meta_info_dict
 
 
-async def _fetch_file_list_json(dataset_id: str, monitor: Monitor = Monitor.NONE) -> Sequence:
+async def _fetch_file_list_json(dataset_id: str, time_frequency: str, processing_level: str, data_type: str,
+                                sensor_id: str, platform_id: str, product_string: str, product_version: str,
+                                monitor: Monitor = Monitor.NONE) -> Sequence:
     feature_list = await _fetch_opensearch_feature_list(_OPENSEARCH_CEDA_URL,
                                                         dict(parentIdentifier=dataset_id,
+                                                             frequency=time_frequency,
+                                                             processingLevel=processing_level,
+                                                             dataType=data_type,
+                                                             sensor=sensor_id,
+                                                             platform=platform_id,
+                                                             productString=product_string,
+                                                             productVersion=product_version,
                                                              fileFormat='.nc'),
                                                         monitor=monitor)
     file_list = []
@@ -586,12 +569,15 @@ class EsaCciOdpDataStore(DataStore):
                  index_cache_used: bool = True,
                  index_cache_expiration_days: float = 1.0,
                  index_cache_json_dict: dict = None,
-                 index_cache_update_tag: str = None):
+                 index_cache_update_tag: str = None,
+                 meta_data_store_path: str = get_metadata_store_path()
+                 ):
         super().__init__(id, title=title, is_local=False)
         self._index_cache_used = index_cache_used
         self._index_cache_expiration_days = index_cache_expiration_days
         self._catalogue = index_cache_json_dict
         self._index_cache_update_tag = index_cache_update_tag
+        self._metadata_store_path = meta_data_store_path
         self._data_sources = []
 
     @property
@@ -664,7 +650,7 @@ class EsaCciOdpDataStore(DataStore):
 
     @property
     def data_store_path(self) -> str:
-        return get_metadata_store_path()
+        return self._metadata_store_path
 
     def query(self, ds_id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) \
             -> Sequence['DataSource']:
@@ -690,7 +676,7 @@ class EsaCciOdpDataStore(DataStore):
                  new: a list of new dataset entry
                  del: a list of removed dataset
         """
-        diff_file = os.path.join(get_metadata_store_path(), self._get_update_tag() + '-diff.json')
+        diff_file = os.path.join(self._metadata_store_path, self._get_update_tag() + '-diff.json')
 
         if os.path.isfile(diff_file):
             with open(diff_file, 'r') as json_in:
@@ -706,7 +692,7 @@ class EsaCciOdpDataStore(DataStore):
         if reset:
             if os.path.isfile(diff_file):
                 os.remove(diff_file)
-            frozen_file = os.path.join(get_metadata_store_path(), self._get_update_tag() + '-freeze.json')
+            frozen_file = os.path.join(self._metadata_store_path, self._get_update_tag() + '-freeze.json')
             if os.path.isfile(frozen_file):
                 os.remove(frozen_file)
         return report
@@ -725,7 +711,7 @@ class EsaCciOdpDataStore(DataStore):
         return "EsaCciOdpDataStore (%s)" % self.id
 
     async def _init_data_sources(self):
-        os.makedirs(get_metadata_store_path(), exist_ok=True)
+        os.makedirs(self._metadata_store_path, exist_ok=True)
         if self._data_sources:
             return
         if self._catalogue is None:
@@ -740,9 +726,88 @@ class EsaCciOdpDataStore(DataStore):
         self._freeze_source()
 
     async def _create_data_source(self, json_dict: dict, datasource_id: str):
-        data_source = EsaCciOdpDataSource(self, json_dict, datasource_id)
-        await data_source.ensure_meta_info_set()
-        self._data_sources.append(data_source)
+        local_metadata_dataset_dir = os.path.join(self._metadata_store_path, datasource_id)
+        # todo set True when dimensions shall be read during meta data fetching
+        meta_info = await _load_or_fetch_json(_fetch_meta_info,
+                                              fetch_json_args=[datasource_id,
+                                                               json_dict['odd_url'],
+                                                               json_dict['metadata_url'],
+                                                               json_dict['variables'],
+                                                               # True],
+                                                               False],
+                                              fetch_json_kwargs=dict(),
+                                              cache_used=self.index_cache_used,
+                                              cache_dir=local_metadata_dataset_dir,
+                                              cache_json_filename='meta-info.json',
+                                              cache_timestamp_filename='meta-info-timestamp.txt',
+                                              cache_expiration_days=self.index_cache_expiration_days)
+        time_frequencies = self._get_as_list(meta_info, 'time_frequency', 'time_frequencies')
+        processing_levels = self._get_as_list(meta_info, 'processing_level', 'processing_levels')
+        data_types = self._get_as_list(meta_info, 'data_type', 'data_types')
+        sensor_ids = self._get_as_list(meta_info, 'sensor_id', 'sensor_ids')
+        platform_ids = self._get_as_list(meta_info, 'platform_id', 'platform_ids')
+        product_strings = self._get_as_list(meta_info, 'product_string', 'product_strings')
+        product_versions = self._get_as_list(meta_info, 'product_version', 'product_versions')
+        drs_ids = self._get_as_list(meta_info, 'drs_id', 'drs_ids')
+        if not time_frequencies or not processing_levels or not data_types or not sensor_ids or not platform_ids \
+                or not product_strings or not product_versions or not drs_ids:
+            return
+        drs_id = drs_ids[0].split('.')[-1]
+        it = itertools.product(time_frequencies, processing_levels, data_types, sensor_ids, platform_ids,
+                               product_strings, product_versions)
+        value_tuples = list(it)
+        with open(os.path.join(os.path.dirname(__file__), 'data/excluded_data_sources')) as fp:
+            excluded_data_sources = fp.read().split('\n')
+            for value_tuple in value_tuples:
+                pretty_id = self._get_pretty_id(meta_info, value_tuple, drs_id)
+                if pretty_id in excluded_data_sources:
+                    continue
+                if pretty_id in set([ds.id for ds in self._data_sources]):
+                    _LOG.warning(f'Data source {pretty_id} already included. Will omit this one.')
+                    continue
+                meta_info = meta_info.copy()
+                meta_info.update(json_dict)
+                self._adjust_json_dict(meta_info, value_tuple)
+                meta_info['cci_project'] = meta_info['ecv']
+                data_source = EsaCciOdpDataSource(self, meta_info, datasource_id, pretty_id, value_tuple)
+                self._data_sources.append(data_source)
+
+    def _adjust_json_dict(self, json_dict: dict, value_tuple: tuple):
+        self._adjust_json_dict_for_param(json_dict, 'time_frequency', 'time_frequencies', value_tuple[0])
+        self._adjust_json_dict_for_param(json_dict, 'processing_level', 'processing_levels', value_tuple[1])
+        self._adjust_json_dict_for_param(json_dict, 'data_type', 'data_types', value_tuple[2])
+        self._adjust_json_dict_for_param(json_dict, 'sensor_id', 'sensor_ids', value_tuple[3])
+        self._adjust_json_dict_for_param(json_dict, 'platform_id', 'platform_ids', value_tuple[4])
+        self._adjust_json_dict_for_param(json_dict, 'product_string', 'product_strings', value_tuple[5])
+        self._adjust_json_dict_for_param(json_dict, 'product_version', 'product_versions', value_tuple[6])
+
+    def _adjust_json_dict_for_param(self, json_dict: dict, single_name: str, list_name: str, param_value: str):
+        json_dict[single_name] = param_value
+        if list_name in json_dict:
+            json_dict.pop(list_name)
+
+    def _get_pretty_id(self, json_dict: dict, value_tuple: Tuple, drs_id: str) -> str:
+        pretty_values = []
+        for value in value_tuple:
+            pretty_values.append(self._make_string_pretty(value))
+        return f'esacci2.{json_dict["ecv"]}.{".".join(pretty_values)}.{drs_id}'
+
+    def _make_string_pretty(self, string: str):
+        string = string.replace(" ", "-")
+        if string.startswith("."):
+            string = string[1:]
+        if string.endswith("."):
+            string = string[:-1]
+        if "." in string:
+            string = string.replace(".", "-")
+        return string
+
+    def _get_as_list(self, meta_info: dict, single_name: str, list_name: str) -> List:
+        if single_name in meta_info:
+            return [meta_info[single_name]]
+        if list_name in meta_info:
+            return meta_info[list_name]
+        return None
 
     def _get_update_tag(self):
         """
@@ -769,8 +834,8 @@ class EsaCciOdpDataStore(DataStore):
         frozen dataset is updated too.
         :return:
         """
-        frozen_file = os.path.join(get_metadata_store_path(), self._get_update_tag() + '-freeze.json')
-        diff_file = os.path.join(get_metadata_store_path(), self._get_update_tag() + '-diff.json')
+        frozen_file = os.path.join(self._metadata_store_path, self._get_update_tag() + '-freeze.json')
+        diff_file = os.path.join(self._metadata_store_path, self._get_update_tag() + '-diff.json')
         deleted = []
         added = []
 
@@ -806,7 +871,7 @@ class EsaCciOdpDataStore(DataStore):
         'dataset-list-freeze.json'
         :return:
         """
-        frozen_file = os.path.join(get_metadata_store_path(), self._get_update_tag() + '-freeze.json')
+        frozen_file = os.path.join(self._metadata_store_path, self._get_update_tag() + '-freeze.json')
         save_it = True
         now = datetime.now()
         if os.path.isfile(frozen_file):
@@ -829,7 +894,7 @@ class EsaCciOdpDataStore(DataStore):
                                                         dict(parentIdentifier='cci')
                                                     ],
                                                     cache_used=self._index_cache_used,
-                                                    cache_dir=get_metadata_store_path(),
+                                                    cache_dir=self._metadata_store_path,
                                                     cache_json_filename='dataset-list.json',
                                                     cache_timestamp_filename='dataset-list-timestamp.json',
                                                     cache_expiration_days=self._index_cache_expiration_days
@@ -865,7 +930,8 @@ INFO_FIELD_NAMES = sorted(["title",
                            "product_version",
                            "product_versions",
                            "data_type",
-                           "data_types"
+                           "data_types",
+                           "cci_project"
                            ])
 
 
@@ -873,16 +939,17 @@ class EsaCciOdpDataSource(DataSource):
     def __init__(self,
                  data_store: EsaCciOdpDataStore,
                  json_dict: dict,
+                 raw_datasource_id: str,
                  datasource_id: str,
+                 value_tuple: Tuple,
                  schema: Schema = None):
         super(EsaCciOdpDataSource, self).__init__()
+        self._raw_id = raw_datasource_id
+        self._time_frequency, self._processing_level, self._data_type, self._sensor_id, self._platform_id, \
+        self._product_string, self._product_version = value_tuple
         self._datasource_id = datasource_id
-        self._raw_id = datasource_id.split('.')[-1]
         self._data_store = data_store
         self._json_dict = json_dict
-        self._meta_info_dict = None
-        if 'metadata' in self._json_dict:
-            self._meta_info_dict = self._json_dict['metadata']
         self._schema = schema
         self._file_list = None
         self._meta_info = None
@@ -898,21 +965,21 @@ class EsaCciOdpDataSource(DataSource):
 
     @property
     def spatial_coverage(self) -> Optional[PolygonLike]:
-        if self._meta_info_dict \
-                and self._meta_info_dict.get('bbox_minx', None) and self._meta_info_dict.get('bbox_miny', None) \
-                and self._meta_info_dict.get('bbox_maxx', None) and self._meta_info_dict.get('bbox_maxy', None):
+        if self._json_dict \
+                and self._json_dict.get('bbox_minx', None) and self._json_dict.get('bbox_miny', None) \
+                and self._json_dict.get('bbox_maxx', None) and self._json_dict.get('bbox_maxy', None):
             return PolygonLike.convert([
-                self._meta_info_dict.get('bbox_minx'),
-                self._meta_info_dict.get('bbox_miny'),
-                self._meta_info_dict.get('bbox_maxx'),
-                self._meta_info_dict.get('bbox_maxy')
+                self._json_dict.get('bbox_minx'),
+                self._json_dict.get('bbox_miny'),
+                self._json_dict.get('bbox_maxx'),
+                self._json_dict.get('bbox_maxy')
             ])
         return None
 
     def temporal_coverage(self, monitor: Monitor = Monitor.NONE) -> Optional[TimeRange]:
         if not self._temporal_coverage:
-            temp_coverage_start = self._meta_info_dict.get('temporal_coverage_start', None)
-            temp_coverage_end = self._meta_info_dict.get('temporal_coverage_end', None)
+            temp_coverage_start = self._json_dict.get('temporal_coverage_start', None)
+            temp_coverage_end = self._json_dict.get('temporal_coverage_end', None)
             if temp_coverage_start and temp_coverage_end:
                 self._temporal_coverage = TimeRangeLike.convert("{},{}".format(temp_coverage_start, temp_coverage_end))
             else:
@@ -949,7 +1016,7 @@ class EsaCciOdpDataSource(DataSource):
         if not self._meta_info:
             self._meta_info = OrderedDict()
             for name in INFO_FIELD_NAMES:
-                value = self._meta_info_dict.get(name, None)
+                value = self._json_dict.get(name, None)
                 # Many values in the index JSON are one-element lists: turn them into scalars
                 if isinstance(value, list) and len(value) == 1:
                     value = value[0]
@@ -984,10 +1051,10 @@ class EsaCciOdpDataSource(DataSource):
         asyncio.run(self._init_file_list(monitor))
 
     def local_dataset_dir(self):
-        return os.path.join(get_data_store_path(), self._datasource_id)
+        return os.path.join(get_data_store_path(), self._raw_id, self._datasource_id)
 
     def local_metadata_dataset_dir(self):
-        return os.path.join(get_metadata_store_path(), self._datasource_id)
+        return os.path.join(get_metadata_store_path(), self._raw_id, self._datasource_id)
 
     def _find_files(self, time_range):
         requested_start_date, requested_end_date = time_range if time_range else (None, None)
@@ -1262,10 +1329,10 @@ class EsaCciOdpDataSource(DataSource):
             return None
 
     async def ensure_meta_info_set(self):
-        if self._meta_info_dict:
+        if self._json_dict:
             return
         # todo set True when dimensions shall be read during meta data fetching
-        self._meta_info_dict = await _load_or_fetch_json(_fetch_meta_info,
+        self._json_dict = await _load_or_fetch_json(_fetch_meta_info,
                                                          fetch_json_args=[self._raw_id,
                                                                           self._json_dict['odd_url'],
                                                                           self._json_dict['metadata_url'],
@@ -1284,7 +1351,10 @@ class EsaCciOdpDataSource(DataSource):
         if self._file_list:
             return
         file_list = await _load_or_fetch_json(_fetch_file_list_json,
-                                              fetch_json_args=[self._raw_id],
+                                              fetch_json_args=[self._raw_id, self._time_frequency,
+                                                               self._processing_level, self._data_type,
+                                                               self._sensor_id, self._platform_id,
+                                                               self._product_string, self._product_version],
                                               fetch_json_kwargs=dict(monitor=monitor),
                                               cache_used=self._data_store.index_cache_used,
                                               cache_dir=self.local_metadata_dataset_dir(),
@@ -1292,9 +1362,9 @@ class EsaCciOdpDataSource(DataSource):
                                               cache_timestamp_filename='file-list-timestamp.txt',
                                               cache_expiration_days=self._data_store.index_cache_expiration_days)
 
-        time_frequency = self._meta_info_dict.get('time_frequency', None)
-        if time_frequency is None and 'time_frequencies' in self._meta_info_dict:
-            time_frequency = self._meta_info_dict.get('time_frequencies')[0]
+        time_frequency = self._json_dict.get('time_frequency', None)
+        if time_frequency is None and 'time_frequencies' in self._json_dict:
+            time_frequency = self._json_dict.get('time_frequencies')[0]
         if time_frequency:
             time_delta = _TIME_FREQUENCY_TO_TIME_DELTA.get(time_frequency, timedelta(days=0))
         else:
