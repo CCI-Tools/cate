@@ -323,12 +323,16 @@ class OperationCommandTest(CliTestCase):
 
 class DataSourceCommandTest(CliTestCase):
     def test_ds_info(self):
-        self.assert_main(['ds', 'info', 'esacci.20babc8f4dc449eaac11f47708e9f721'],
+        self.assert_main(['ds', 'info',
+                          'esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.04-5.r1'],
                          expected_status=0,
-                         expected_stdout=['Data source esacci.20babc8f4dc449eaac11f47708e9f721'])
-        self.assert_main(['ds', 'info', 'esacci.20babc8f4dc449eaac11f47708e9f721', '--var'],
+                         expected_stdout=[
+                             'Data source esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.04-5.r1'])
+        self.assert_main(['ds', 'info',
+                          'esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.04-5.r1', '--var'],
                          expected_status=0,
-                         expected_stdout=['Data source esacci.20babc8f4dc449eaac11f47708e9f721',
+                         expected_stdout=[
+                             'Data source esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.04-5.r1',
                                           'dnflag ():'])
         self.assert_main(['ds', 'info', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'],
                          expected_status=1,
@@ -336,9 +340,9 @@ class DataSourceCommandTest(CliTestCase):
 
     def test_ds_list(self):
         self.assert_main(['ds', 'list'],
-                         expected_stdout=['6 data sources found'])
-        self.assert_main(['ds', 'list', '--name', 'ef'],
-                         expected_stdout=['2 data sources found'])
+                         expected_stdout=['5 data sources found'])
+        self.assert_main(['ds', 'list', '--name', 'SOILMOISTURE'],
+                         expected_stdout=['One data source found'])
 
     def test_ds_update(self):
         self.assert_main(['ds', 'list', '-u'],
