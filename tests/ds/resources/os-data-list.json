@@ -1,5 +1,5 @@
 {
-  "esacci.4eb4e801424a47f7b77434291921f889": {
+  "4eb4e801424a47f7b77434291921f889": {
     "title": "ESA Ozone Climate Change Initiative (Ozone CCI): Level 3 Nadir Ozone Profile Merged Data Product, version 2",
     "variables": [
       {
@@ -76,7 +76,7 @@
     "odd_url": "http://opensearch-test.ceda.ac.uk/opensearch/description.xml?parentIdentifier=4eb4e801424a47f7b77434291921f889",
     "metadata_url": "https://catalogue.ceda.ac.uk/export/xml/4eb4e801424a47f7b77434291921f889.xml"
   },
-  "esacci.915d2340b178494f987a6942e263a2eb": {
+  "915d2340b178494f987a6942e263a2eb": {
     "title": "ESA Ocean Colour Climate Change Initiative (Ocean_Colour_cci): Global chlorophyll-a data products gridded on a sinusoidal projection, Version 3.1",
     "variables": [
       {
@@ -143,7 +143,7 @@
     "odd_url": "http://opensearch-test.ceda.ac.uk/opensearch/description.xml?parentIdentifier=915d2340b178494f987a6942e263a2eb",
     "metadata_url": "https://catalogue.ceda.ac.uk/export/xml/915d2340b178494f987a6942e263a2eb.xml"
   },
-  "esacci.3ef6a5a66e9947d39b356251909dc12b": {
+  "3ef6a5a66e9947d39b356251909dc12b": {
     "title": "ESA Sea State Climate Change Initiative (Sea_State_cci) : Global remote sensing daily merged multi-mission along-track significant wave height, L3 product, version 1.1",
     "variables": [
       {
@@ -225,7 +225,7 @@
     "odd_url": "http://opensearch-test.ceda.ac.uk/opensearch/description.xml?parentIdentifier=3ef6a5a66e9947d39b356251909dc12b",
     "metadata_url": "https://catalogue.ceda.ac.uk/export/xml/3ef6a5a66e9947d39b356251909dc12b.xml"
   },
-  "esacci.83e51cf29821434ea14db56c564946d5": {
+  "83e51cf29821434ea14db56c564946d5": {
     "title": "ESA Sea Surface Temperature Climate Change Initiative (SST_cci): Climatology Climate Data Record, version 2.1",
     "variables": [
       {
@@ -277,7 +277,7 @@
     "odd_url": "http://opensearch-test.ceda.ac.uk/opensearch/description.xml?parentIdentifier=83e51cf29821434ea14db56c564946d5",
     "metadata_url": "https://catalogue.ceda.ac.uk/export/xml/83e51cf29821434ea14db56c564946d5.xml"
   },
-  "esacci.a6efcb0868664248b9cb212aba44313d": {
+  "a6efcb0868664248b9cb212aba44313d": {
     "title": "ESA Aerosol Climate Change Initiative (Aerosol CCI): Level 2 aerosol products from MERIS (ALAMO algorithm), Version 2.2",
     "variables": [
       {
@@ -409,7 +409,7 @@
     "odd_url": "http://opensearch-test.ceda.ac.uk/opensearch/description.xml?parentIdentifier=a6efcb0868664248b9cb212aba44313d",
     "metadata_url": "https://catalogue.ceda.ac.uk/export/xml/a6efcb0868664248b9cb212aba44313d.xml"
   },
-  "esacci.20babc8f4dc449eaac11f47708e9f721": {
+  "20babc8f4dc449eaac11f47708e9f721": {
     "title": "ESA Soil Moisture Climate Change Initiative (Soil_Moisture_cci): ACTIVE Product, Version 04.5",
     "variables": [
       {

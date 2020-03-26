@@ -902,13 +902,29 @@ class EsaCciOdpDataSource(DataSource):
         self._raw_id = raw_datasource_id
         self._time_frequency, self._processing_level, self._data_type, self._sensor_id, self._platform_id, \
         self._product_string, self._product_version = value_tuple
-        self._datasource_id = f'esacci.{json_dict["ecv"]}.{".".join(value_tuple)}.r1'
+        self._datasource_id = self._get_pretty_title(json_dict, value_tuple)
         self._data_store = data_store
         self._json_dict = json_dict
         self._schema = schema
         self._file_list = None
         self._meta_info = None
         self._temporal_coverage = None
+
+    def _get_pretty_title(self, json_dict: dict, value_tuple: Tuple) -> str:
+        pretty_values = []
+        for value in value_tuple:
+            pretty_values.append(self._make_string_pretty(value))
+        return f'esacci.{json_dict["ecv"]}.{".".join(pretty_values)}.r1'
+
+    def _make_string_pretty(self, string: str):
+        string = string.replace(" ", "-")
+        if string.startswith("."):
+            string = string[1:]
+        if string.endswith("."):
+            string = string[:-1]
+        if "." in string:
+            string = string.replace(".", "-")
+        return string
 
     @property
     def id(self) -> str:
