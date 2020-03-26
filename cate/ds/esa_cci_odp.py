@@ -753,11 +753,47 @@ class EsaCciOdpDataStore(DataStore):
         it = itertools.product(time_frequencies, processing_levels, data_types, sensor_ids, platform_ids,
                                product_strings, product_versions)
         value_tuples = list(it)
-        for value_tuple in value_tuples:
-            meta_info.update(json_dict)
-            data_source = EsaCciOdpDataSource(self, meta_info, datasource_id, value_tuple)
-            self._data_sources.append(data_source)
+        with open(os.path.join(os.path.dirname(__file__), 'data/excluded_data_sources')) as fp:
+            excluded_data_sources = fp.read().split('\n')
+            for value_tuple in value_tuples:
+                pretty_id = self._get_pretty_id(meta_info, value_tuple)
+                if pretty_id in excluded_data_sources:
+                    continue
+                meta_info = meta_info.copy()
+                meta_info.update(json_dict)
+                self._adjust_json_dict(meta_info, value_tuple)
+                data_source = EsaCciOdpDataSource(self, meta_info, datasource_id, pretty_id, value_tuple)
+                self._data_sources.append(data_source)
 
+    def _adjust_json_dict(self, json_dict: dict, value_tuple: tuple):
+        self._adjust_json_dict_for_param(json_dict, 'time_frequency', 'time_frequencies', value_tuple[0])
+        self._adjust_json_dict_for_param(json_dict, 'processing_level', 'processing_levels', value_tuple[1])
+        self._adjust_json_dict_for_param(json_dict, 'data_type', 'data_types', value_tuple[2])
+        self._adjust_json_dict_for_param(json_dict, 'sensor_id', 'sensor_ids', value_tuple[3])
+        self._adjust_json_dict_for_param(json_dict, 'platform_id', 'platform_ids', value_tuple[4])
+        self._adjust_json_dict_for_param(json_dict, 'product_string', 'product_strings', value_tuple[5])
+        self._adjust_json_dict_for_param(json_dict, 'product_version', 'product_versions', value_tuple[6])
+
+    def _adjust_json_dict_for_param(self, json_dict: dict, single_name: str, list_name: str, param_value: str):
+        json_dict[single_name] = param_value
+        if list_name in json_dict:
+            json_dict.pop(list_name)
+
+    def _get_pretty_id(self, json_dict: dict, value_tuple: Tuple) -> str:
+        pretty_values = []
+        for value in value_tuple:
+            pretty_values.append(self._make_string_pretty(value))
+        return f'esacci.{json_dict["ecv"]}.{".".join(pretty_values)}.r1'
+
+    def _make_string_pretty(self, string: str):
+        string = string.replace(" ", "-")
+        if string.startswith("."):
+            string = string[1:]
+        if string.endswith("."):
+            string = string[:-1]
+        if "." in string:
+            string = string.replace(".", "-")
+        return string
 
     def _get_as_list(self, meta_info: dict, single_name: str, list_name: str) -> List:
         if single_name in meta_info:
@@ -896,35 +932,20 @@ class EsaCciOdpDataSource(DataSource):
                  data_store: EsaCciOdpDataStore,
                  json_dict: dict,
                  raw_datasource_id: str,
+                 datasource_id: str,
                  value_tuple: Tuple,
                  schema: Schema = None):
         super(EsaCciOdpDataSource, self).__init__()
         self._raw_id = raw_datasource_id
         self._time_frequency, self._processing_level, self._data_type, self._sensor_id, self._platform_id, \
         self._product_string, self._product_version = value_tuple
-        self._datasource_id = self._get_pretty_title(json_dict, value_tuple)
+        self._datasource_id = datasource_id
         self._data_store = data_store
         self._json_dict = json_dict
         self._schema = schema
         self._file_list = None
         self._meta_info = None
         self._temporal_coverage = None
-
-    def _get_pretty_title(self, json_dict: dict, value_tuple: Tuple) -> str:
-        pretty_values = []
-        for value in value_tuple:
-            pretty_values.append(self._make_string_pretty(value))
-        return f'esacci.{json_dict["ecv"]}.{".".join(pretty_values)}.r1'
-
-    def _make_string_pretty(self, string: str):
-        string = string.replace(" ", "-")
-        if string.startswith("."):
-            string = string[1:]
-        if string.endswith("."):
-            string = string[:-1]
-        if "." in string:
-            string = string.replace(".", "-")
-        return string
 
     @property
     def id(self) -> str:
@@ -938,7 +959,7 @@ class EsaCciOdpDataSource(DataSource):
     def spatial_coverage(self) -> Optional[PolygonLike]:
         if self._json_dict \
                 and self._json_dict.get('bbox_minx', None) and self._json_dict.get('bbox_miny', None) \
-                and self._json_dict.get('bbox_maxx', None) and self._json_dict._meta_info_dict.get('bbox_maxy', None):
+                and self._json_dict.get('bbox_maxx', None) and self._json_dict.get('bbox_maxy', None):
             return PolygonLike.convert([
                 self._json_dict.get('bbox_minx'),
                 self._json_dict.get('bbox_miny'),
