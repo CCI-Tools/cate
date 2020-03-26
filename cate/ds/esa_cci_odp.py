@@ -66,7 +66,7 @@ from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, Var
 from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
 from cate.util.monitor import Cancellation, Monitor
 
-ESA_CCI_ODP_DATA_STORE_ID = 'esa_cci_odp'
+ESA_CCI_ODP_DATA_STORE_ID = 'esa_cci_odp_os'
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Tonio Fincke (Brockmann Consult GmbH), " \
@@ -783,7 +783,7 @@ class EsaCciOdpDataStore(DataStore):
         pretty_values = []
         for value in value_tuple:
             pretty_values.append(self._make_string_pretty(value))
-        return f'esacci.{json_dict["ecv"]}.{".".join(pretty_values)}.r1'
+        return f'esacci2.{json_dict["ecv"]}.{".".join(pretty_values)}.r1'
 
     def _make_string_pretty(self, string: str):
         string = string.replace(" ", "-")
