@@ -162,7 +162,8 @@ def _extract_metadata_from_odd(odd_xml: etree.XML) -> dict:
                       'productString': ['product_string', 'product_strings'],
                       'productVersion': ['product_version', 'product_versions'],
                       'dataType': ['data_type', 'data_types'], 'sensor': ['sensor_id', 'sensor_ids'],
-                      'platform': ['platform_id', 'platform_ids'], 'fileFormat': ['file_format', 'file_formats']}
+                      'platform': ['platform_id', 'platform_ids'], 'fileFormat': ['file_format', 'file_formats'],
+                      'drsId': ['drs_id', 'drs_ids']}
     for param_elem in odd_xml.findall('os:Url/param:Parameter', namespaces=ODD_NS):
         if param_elem.attrib['name'] in metadata_names:
             param_content = _get_from_param_elem(param_elem)
@@ -428,7 +429,7 @@ async def _fetch_data_source_list_json(base_url, query_args, monitor: Monitor = 
             # todo consider including this at time of data store reading
             # catalogue[data_source_id]['metadata'] = await _fetch_meta_info(fc_id, odd_url, metadata_url, variables,
             # False)
-        _LOG.info(f'Added data source {fc_id}')
+        _LOG.info(f'Read meta info from {fc_id}')
     return catalogue
 
 
@@ -747,22 +748,24 @@ class EsaCciOdpDataStore(DataStore):
         platform_ids = self._get_as_list(meta_info, 'platform_id', 'platform_ids')
         product_strings = self._get_as_list(meta_info, 'product_string', 'product_strings')
         product_versions = self._get_as_list(meta_info, 'product_version', 'product_versions')
+        drs_ids = self._get_as_list(meta_info, 'drs_id', 'drs_ids')
         if not time_frequencies or not processing_levels or not data_types or not sensor_ids or not platform_ids \
-                or not product_strings or not product_versions:
+                or not product_strings or not product_versions or not drs_ids:
             return
+        drs_id = drs_ids[0].split('.')[-1]
         it = itertools.product(time_frequencies, processing_levels, data_types, sensor_ids, platform_ids,
                                product_strings, product_versions)
         value_tuples = list(it)
         with open(os.path.join(os.path.dirname(__file__), 'data/excluded_data_sources')) as fp:
             excluded_data_sources = fp.read().split('\n')
             for value_tuple in value_tuples:
-                pretty_id = self._get_pretty_id(meta_info, value_tuple)
+                pretty_id = self._get_pretty_id(meta_info, value_tuple, drs_id)
                 if pretty_id in excluded_data_sources:
                     continue
                 meta_info = meta_info.copy()
                 meta_info.update(json_dict)
                 self._adjust_json_dict(meta_info, value_tuple)
-                meta_info['cci_project'] = 'cci_project'
+                meta_info['cci_project'] = meta_info['ecv']
                 data_source = EsaCciOdpDataSource(self, meta_info, datasource_id, pretty_id, value_tuple)
                 self._data_sources.append(data_source)
 
@@ -780,11 +783,11 @@ class EsaCciOdpDataStore(DataStore):
         if list_name in json_dict:
             json_dict.pop(list_name)
 
-    def _get_pretty_id(self, json_dict: dict, value_tuple: Tuple) -> str:
+    def _get_pretty_id(self, json_dict: dict, value_tuple: Tuple, drs_id: str) -> str:
         pretty_values = []
         for value in value_tuple:
             pretty_values.append(self._make_string_pretty(value))
-        return f'esacci2.{json_dict["ecv"]}.{".".join(pretty_values)}.r1'
+        return f'esacci2.{json_dict["ecv"]}.{".".join(pretty_values)}.{drs_id}'
 
     def _make_string_pretty(self, string: str):
         string = string.replace(" ", "-")
@@ -924,7 +927,8 @@ INFO_FIELD_NAMES = sorted(["title",
                            "product_version",
                            "product_versions",
                            "data_type",
-                           "data_types"
+                           "data_types",
+                           "cci_project"
                            ])
 
 
