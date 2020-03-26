@@ -26,9 +26,13 @@ def _create_test_data_store():
     with open(os.path.join(os.path.dirname(__file__), '..', 'ds', 'resources', 'os-data-list.json')) as fp:
         json_text = fp.read()
     json_dict = json.loads(json_text)
+    metadata_path = os.path.join(os.path.dirname(__file__), '..', 'ds', 'resources', 'datasources', 'metadata')
 
+    # The EsaCciOdpDataStore created with an initial json_dict and a metadata dir avoids fetching from remote
+    return EsaCciOdpDataStore('test-odp', index_cache_json_dict=json_dict, index_cache_update_tag='test2',
+                              meta_data_store_path=metadata_path)
     # The EsaCciOdpDataStore created with an initial json_dict avoids fetching it from remote
-    return EsaCciOdpDataStore('test-odp', index_cache_json_dict=json_dict, index_cache_update_tag='test2')
+    # return EsaCciOdpDataStore('test-odp', index_cache_json_dict=json_dict, index_cache_update_tag='test2')
 
 
 class CliTestCase(unittest.TestCase):
@@ -333,7 +337,7 @@ class DataSourceCommandTest(CliTestCase):
                          expected_status=0,
                          expected_stdout=[
                              'Data source esacci2.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.04-5.r1',
-                                          'dnflag ():'])
+                             'dnflag ():'])
         self.assert_main(['ds', 'info', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'],
                          expected_status=1,
                          expected_stderr=['data source "SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2" not found'])
