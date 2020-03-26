@@ -762,6 +762,7 @@ class EsaCciOdpDataStore(DataStore):
                 meta_info = meta_info.copy()
                 meta_info.update(json_dict)
                 self._adjust_json_dict(meta_info, value_tuple)
+                meta_info['cci_project'] = 'cci_project'
                 data_source = EsaCciOdpDataSource(self, meta_info, datasource_id, pretty_id, value_tuple)
                 self._data_sources.append(data_source)
 
