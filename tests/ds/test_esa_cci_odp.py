@@ -188,14 +188,6 @@ class EsaCciOdpOsTest(unittest.TestCase):
         self.assertTrue('publication_date' in json_obj)
         self.assertTrue('creation_date' in json_obj)
         self.assertEquals('2016-12-12T17:08:42', json_obj['creation_date'])
-        self.assertTrue('platform_ids' in json_obj)
-        self.assertEquals(['Aqua', 'Envisat', 'Orbview-2'], json_obj['platform_ids'])
-        self.assertTrue('sensor_ids' in json_obj)
-        self.assertEquals(['MODIS', 'SeaWiFS', 'MERIS'], json_obj['sensor_ids'])
-        self.assertTrue('processing_levels' in json_obj)
-        self.assertEquals(['Level 3', 'Level 3S'], json_obj['processing_levels'])
-        self.assertTrue('time_frequencies' in json_obj)
-        self.assertEquals(['day', 'month', '8 days'], json_obj['time_frequencies'])
 
     def test_harmonize_info_field_names(self):
         test_catalogue = {'file_format': '.tiff', 'platform_ids': ['dfjh', 'ftrzg6'], 'sensor_id': 'hxfb75z',
@@ -252,8 +244,10 @@ def _create_test_data_store():
     json_dict = json.loads(json_text)
     for d in DATA_STORE_REGISTRY.get_data_stores():
         d.get_updates(reset=True)
-    # The EsaCciOdpDataStore created with an initial json_dict avoids fetching it from remote
-    data_store = EsaCciOdpDataStore('test-odp', index_cache_json_dict=json_dict, index_cache_update_tag='test1')
+    metadata_path = os.path.join(os.path.dirname(__file__), 'resources/metadata')
+    # The EsaCciOdpDataStore created with an initial json_dict and a metadata dir avoids fetching from remote
+    data_store = EsaCciOdpDataStore('test-odp', index_cache_json_dict=json_dict, index_cache_update_tag='test1',
+                                    meta_data_store_path=metadata_path)
     DATA_STORE_REGISTRY.add_data_store(data_store)
     return data_store
 
@@ -297,7 +291,7 @@ class EsaCciOdpDataStoreTest(unittest.TestCase):
     def test_query(self):
         data_sources = self.data_store.query()
         self.assertIsNotNone(data_sources)
-        self.assertEqual(len(data_sources), 6)
+        self.assertEqual(len(data_sources), 5)
 
     def test_query_with_string(self):
         data_sources = self.data_store.query(query_expr='OC')
@@ -325,7 +319,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
 
     def test_make_local_and_update(self):
         soil_moisture_data_sources = self.data_store.query(
-            query_expr='esacci.20babc8f4dc449eaac11f47708e9f721')
+            query_expr='esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.04.5.r1')
         soilmoisture_data_source = soil_moisture_data_sources[0]
 
         reference_path = os.path.join(os.path.dirname(__file__),
@@ -499,7 +493,8 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                       self.data_store)
 
     def test_id(self):
-        self.assertEqual(self.first_oc_data_source.id, 'esacci.915d2340b178494f987a6942e263a2eb')
+        self.assertEqual('esacci.OC.day.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.3.1.r1',
+                         self.first_oc_data_source.id)
 
     def test_schema(self):
         self.assertEqual(self.first_oc_data_source.schema,
@@ -596,7 +591,7 @@ class SpatialSubsetTest(unittest.TestCase):
     @unittest.skip(reason='Requires variable access which is not integrated yet.')
     def test_make_local_spatial(self):
         data_store = EsaCciOdpDataStore()
-        data_source = data_store.query(ds_id='esacci.5db2099606b94e63879d841c87e654ae')[0]
+        data_source = data_store.query(ds_id='esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.COMBINED.04.5.r1')[0]
         # The following always worked fine:
         ds = data_source.open_dataset(time_range=['2004-01-01', '2004-01-14'], region='-10,40,20,70')
         self.assertIsNotNone(ds)
