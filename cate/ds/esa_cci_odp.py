@@ -762,6 +762,9 @@ class EsaCciOdpDataStore(DataStore):
                 pretty_id = self._get_pretty_id(meta_info, value_tuple, drs_id)
                 if pretty_id in excluded_data_sources:
                     continue
+                if pretty_id in set([ds.id for ds in self._data_sources]):
+                    _LOG.warning(f'Data source {pretty_id} already included. Will omit this one.')
+                    continue
                 meta_info = meta_info.copy()
                 meta_info.update(json_dict)
                 self._adjust_json_dict(meta_info, value_tuple)
