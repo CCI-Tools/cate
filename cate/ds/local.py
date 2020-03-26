@@ -568,7 +568,7 @@ class LocalDataSource(DataSource):
 
 class LocalDataStore(DataStore):
     def __init__(self, ds_id: str, store_dir: str):
-        super().__init__(ds_id, title='Local Data Sources', is_local=True)
+        super().__init__(ds_id, title='File Data Sources', is_local=True)
         self._store_dir = store_dir
         self._data_sources = None
 
@@ -579,10 +579,9 @@ class LocalDataStore(DataStore):
 
         The text may use Markdown formatting.
         """
-        return ("The local data store represents "
-                "all the data sources in your local file system known by Cate. "
-                "It contains any downloaded remote data sources or files in your file system "
-                "manually added.")
+        return ("The file data store represents "
+                "all the data sources in the file system made known to Cate. "
+                "It contains any downloaded remote data sources or manually added files.")
 
     @property
     def notices(self) -> Optional[List[DataStoreNotice]]:
@@ -592,8 +591,8 @@ class LocalDataStore(DataStore):
         """
         return [
             DataStoreNotice("localDataStorage",
-                            "Local Data Storage",
-                            "The local data store is currently configured to synchronize remote data in the "
+                            "File Data Storage",
+                            "The file data store is currently configured to synchronize remote data in the "
                             f"`{get_data_stores_path()}`.\n"
                             "You can change this location either "
                             f"in Cate's configuration file `{GLOBAL_CONF_FILE}` "

@@ -183,7 +183,7 @@ class WebSocketService:
         data_store = DATA_STORE_REGISTRY.get_data_store('local')
         if data_store is None:
             raise ValueError('Unknown data store: "%s"' % 'local')
-        with monitor.starting('Adding local data source', 100):
+        with monitor.starting('Adding file data source', 100):
             # TODO use monitor, while extracting metadata
             data_store.add_pattern(data_source_id=data_source_id, files=file_path_pattern)
             return self.get_data_sources('local', monitor=monitor.child(100))

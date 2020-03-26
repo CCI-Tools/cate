@@ -1166,14 +1166,14 @@ class DataSourceCommand(SubCommandCommand):
 
         info_parser.set_defaults(sub_command_function=cls._execute_info)
 
-        add_parser = subparsers.add_parser('add', help='Add a new local data source using a file pattern.')
+        add_parser = subparsers.add_parser('add', help='Add a new file data source using a file path pattern.')
         add_parser.add_argument('ds_name', metavar='DS', help='A name for the data source.')
         add_parser.add_argument('file', metavar='FILE', nargs="+",
                                 help='A list of files comprising this data source. '
                                      'The files can contain the wildcard characters "*" and "?".')
         add_parser.set_defaults(sub_command_function=cls._execute_add)
 
-        del_parser = subparsers.add_parser('del', help='Removes a data source from local data store.')
+        del_parser = subparsers.add_parser('del', help='Removes a data source from file data store.')
         del_parser.add_argument('ds_name', metavar='DS', help='A name for the data source.')
         del_parser.add_argument('-k', '--keep_files', dest='keep_files', action='store_true', default=False,
                                 help='Do not ask for confirmation.')
@@ -1181,7 +1181,7 @@ class DataSourceCommand(SubCommandCommand):
                                 help='Do not ask for confirmation.')
         del_parser.set_defaults(sub_command_function=cls._execute_del)
 
-        copy_parser = subparsers.add_parser('copy', help='Makes a local copy of any other data source. '
+        copy_parser = subparsers.add_parser('copy', help='Makes a file copy of any other data source. '
                                                          'The copy may be limited to a subset by optional constraints.')
         copy_parser.add_argument('ref_ds', metavar='REF_DS', help='A name of origin data source.')
         copy_parser.add_argument('--name', '-n', metavar='NAME',
@@ -1262,12 +1262,12 @@ class DataSourceCommand(SubCommandCommand):
 
         local_store = DATA_STORE_REGISTRY.get_data_store('local')
         if local_store is None:
-            raise RuntimeError('internal error: no local data store found')
+            raise RuntimeError('internal error: no file data store found')
 
         ds_name = command_args.ds_name
         files = command_args.file
         ds = local_store.add_pattern(ds_name, files)
-        print("Local data source with name '%s' added." % ds.id)
+        print("File data source with name '%s' added." % ds.id)
 
     @classmethod
     def _execute_del(cls, command_args):
@@ -1275,17 +1275,17 @@ class DataSourceCommand(SubCommandCommand):
 
         local_store = DATA_STORE_REGISTRY.get_data_store('local')
         if local_store is None:
-            raise RuntimeError('internal error: no local data store found')
+            raise RuntimeError('internal error: no file data store found')
         ds_name = command_args.ds_name
         if command_args.yes:
             answer = 'y'
         else:
-            prompt = 'Do you really want to delete local data source "%s" ([y]/n)? ' % ds_name
+            prompt = 'Do you really want to delete file data source "%s" ([y]/n)? ' % ds_name
             answer = input(prompt)
         if not answer or answer.lower() == 'y':
             keep_files = command_args.keep_files
             local_store.remove_data_source(ds_name, not keep_files)
-            print("Local data source with name '%s' has been removed successfully." % ds_name)
+            print("File data source with name '%s' has been removed successfully." % ds_name)
 
     @classmethod
     def _execute_copy(cls, command_args):
@@ -1294,12 +1294,12 @@ class DataSourceCommand(SubCommandCommand):
 
         local_store = DATA_STORE_REGISTRY.get_data_store('local')
         if local_store is None:
-            raise RuntimeError('internal error: no local data store found')
+            raise RuntimeError('internal error: no file data store found')
 
         ds_name = command_args.ref_ds
         data_source = next(iter(find_data_sources(ds_id=ds_name)), None)
         if data_source is None:
-            raise RuntimeError('internal error: no local data source found: %s' % ds_name)
+            raise RuntimeError('internal error: no file data source found: %s' % ds_name)
 
         local_name = command_args.name if command_args.name else None
 
@@ -1310,9 +1310,9 @@ class DataSourceCommand(SubCommandCommand):
         ds = data_source.make_local(local_name, time_range=time_range, region=region, var_names=var_names,
                                     monitor=cls.new_monitor())
         if ds:
-            print("Local data source with name '%s' has been created." % ds.id)
+            print("File data source with name '%s' has been created." % ds.id)
         else:
-            print("Local data source not created. It would have been empty. Please check constraint.")
+            print("File data source not created. It would have been empty. Please check constraint.")
 
 
 class UpdateCommand(Command):

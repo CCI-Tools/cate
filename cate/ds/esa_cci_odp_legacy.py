@@ -349,7 +349,7 @@ class EsaCciOdpLegacyDataStore(DataStore):
                 "(gridded data stored as NetCDF files). "
                 "The store will be extended shortly to also provide TIFF and Shapefile Data, see usage "
                 "notes.\n"
-                "Remote data downloaded to your computer is made available through the *Local Data Store*.")
+                "Remote data downloaded to your computer is made available through the *File Data Store*.")
 
     @property
     def notices(self) -> Optional[List[DataStoreNotice]]:

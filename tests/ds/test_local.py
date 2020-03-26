@@ -33,7 +33,7 @@ class LocalDataStoreTest(unittest.TestCase):
 
     def test_name_title_and_is_local(self):
         self.assertEqual(self.data_store.id, 'test')
-        self.assertEqual(self.data_store.title, 'Local Data Sources')
+        self.assertEqual(self.data_store.title, 'File Data Sources')
         self.assertEqual(self.data_store.is_local, True)
 
     def test_description(self):
@@ -47,7 +47,7 @@ class LocalDataStoreTest(unittest.TestCase):
         notice0 = self.data_store.notices[0]
         self.assertIsInstance(notice0, DataStoreNotice)
         self.assertEqual(notice0.id, "localDataStorage")
-        self.assertEqual(notice0.title, "Local Data Storage")
+        self.assertEqual(notice0.title, "File Data Storage")
         self.assertEqual(notice0.icon, "info-sign")
         self.assertEqual(notice0.intent, "primary")
         self.assertTrue(len(notice0.content) > 20)

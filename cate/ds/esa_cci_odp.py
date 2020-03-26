@@ -603,10 +603,10 @@ class EsaCciOdpDataStore(DataStore):
         """
         return ("This data store represents the [ESA CCI Open Data Portal](http://cci.esa.int/data)"
                 " in the CCI Toolbox.\n"
-                "It currently provides all CCI data that are published through an Opensearch Interface. "
+                "It currently provides all CCI data that are published through an OpenSearch interface. "
                 "The store will be extended shortly to also provide TIFF and Shapefile Data, see usage "
                 "notes.\n"
-                "Remote data downloaded to your computer is made available through the *Local Data Store*.")
+                "Remote data downloaded to your computer is made available through the *File Data Store*.")
 
     @property
     def notices(self) -> Optional[List[DataStoreNotice]]:
