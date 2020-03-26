@@ -50,6 +50,7 @@ import urllib.parse
 import urllib.request
 from collections import OrderedDict
 from datetime import datetime, timedelta
+from itertools import product
 import lxml.etree as etree
 from typing import Sequence, Tuple, Optional, Any, Dict, List, Union
 from urllib.error import URLError, HTTPError
@@ -968,12 +969,9 @@ class EsaCciOdpDataSource(DataSource):
         if self._json_dict \
                 and self._json_dict.get('bbox_minx', None) and self._json_dict.get('bbox_miny', None) \
                 and self._json_dict.get('bbox_maxx', None) and self._json_dict.get('bbox_maxy', None):
-            return PolygonLike.convert([
-                self._json_dict.get('bbox_minx'),
-                self._json_dict.get('bbox_miny'),
-                self._json_dict.get('bbox_maxx'),
-                self._json_dict.get('bbox_maxy')
-            ])
+            bounds = product([self._json_dict.get('bbox_minx'),self._json_dict.get('bbox_maxx')],
+                             [self._json_dict.get('bbox_miny'),self._json_dict.get('bbox_maxy')])
+            return PolygonLike.convert(bounds)
         return None
 
     def temporal_coverage(self, monitor: Monitor = Monitor.NONE) -> Optional[TimeRange]:
