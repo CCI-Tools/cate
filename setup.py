@@ -49,6 +49,7 @@ setup(
     package_data={
         'cate.ds': ['esa_cci_ftp.json'],
         'cate.ds.data.countries': ['countries.geojson'],
+        'cate.ds.data': ['excluded_data_sources'],
         'cate.util.im.ds.NaturalEarth2': ['*/*/*.jpg'],
     },
     entry_points={

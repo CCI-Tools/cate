@@ -745,14 +745,15 @@ def open_xarray_dataset(paths,
     with monitor.starting('Opening dataset', len(files)):
         # autoclose ensures that we can open datasets consisting of a number of
         # files that exceeds OS open file limit.
+        # todo: investigate and do this better
         ds = xr.open_mfdataset(files,
-                               concat_dim=concat_dim,
+                               #concat_dim=concat_dim,
                                coords='minimal',
-                               chunks=chunks,
+                               #chunks=chunks,
                                preprocess=preprocess,
                                # Future behaviour will be
-                               combine='nested',
-                               compat='override',
+                               combine='by_coords',
+                               #compat='override',
                                **kwargs)
 
     if var_names:
