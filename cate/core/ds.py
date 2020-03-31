@@ -745,15 +745,22 @@ def open_xarray_dataset(paths,
     with monitor.starting('Opening dataset', len(files)):
         # autoclose ensures that we can open datasets consisting of a number of
         # files that exceeds OS open file limit.
-        # todo: investigate and do this better
+        # TODO (Suvi): - might need 2 versions ( one with combine=nested, coords=concat_dim and
+        #  other with combine='by_coords' to support opening most datasets
+        #  - we can eleminate unnecessary preprocess on datasets that already have time coordinate,
+        #  this can be when creating datasource.
+        #  - enable parallel=True to open files parallely to preprocess only when number of files
+        #  are more, otherwise it is determental to perforamnce.
+
         ds = xr.open_mfdataset(files,
-                               #concat_dim=concat_dim,
                                coords='minimal',
-                               #chunks=chunks,
+                               chunks=chunks,
                                preprocess=preprocess,
                                # Future behaviour will be
                                combine='by_coords',
-                               #compat='override',
+                               #combine='nested',
+                               #parallel=True,
+                               compat='override',
                                **kwargs)
 
     if var_names:
