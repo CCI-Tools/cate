@@ -319,7 +319,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
 
     def test_make_local_and_update(self):
         soil_moisture_data_sources = self.data_store.query(
-            query_expr='esacci2.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.04-5.r1')
+            query_expr='esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.04-5.r1')
         soilmoisture_data_source = soil_moisture_data_sources[0]
 
         reference_path = os.path.join(os.path.dirname(__file__),
@@ -493,7 +493,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                       self.data_store)
 
     def test_id(self):
-        self.assertEqual('esacci2.OC.day.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.3-1.sinusoidal',
+        self.assertEqual('esacci.OC.day.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.3-1.sinusoidal',
                          self.first_oc_data_source.id)
 
     def test_schema(self):
