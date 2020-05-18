@@ -328,15 +328,15 @@ class OperationCommandTest(CliTestCase):
 class DataSourceCommandTest(CliTestCase):
     def test_ds_info(self):
         self.assert_main(['ds', 'info',
-                          'esacci2.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.04-5.r1'],
+                          'esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.04-5.r1'],
                          expected_status=0,
                          expected_stdout=[
-                             'Data source esacci2.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.04-5.r1'])
+                             'Data source esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.04-5.r1'])
         self.assert_main(['ds', 'info',
-                          'esacci2.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.04-5.r1', '--var'],
+                          'esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.04-5.r1', '--var'],
                          expected_status=0,
                          expected_stdout=[
-                             'Data source esacci2.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.04-5.r1',
+                             'Data source esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.04-5.r1',
                              'dnflag ():'])
         self.assert_main(['ds', 'info', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'],
                          expected_status=1,
