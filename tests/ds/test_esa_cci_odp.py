@@ -298,6 +298,34 @@ class EsaCciOdpDataStoreTest(unittest.TestCase):
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 1)
 
+    def test_adjust_json_dict(self):
+        test_dict = dict(
+            time_frequencies=['day', 'month'],
+            processing_level='L1C',
+            data_types=['abc', 'xyz', 'tfg'],
+            platform_id='platt',
+            product_version='1'
+        )
+        drs_id = 'esacci.SOILMOISTURE.day.L3S.SSMS.multi - sensor.multi - platform.ACTIVE.04 - 5.r1'
+        self.data_store._adjust_json_dict(test_dict, drs_id)
+        self.assertEqual(test_dict['time_frequency'], 'day')
+        self.assertFalse('time_frequencies' in test_dict)
+        self.assertEqual(test_dict['processing_level'], 'L3S')
+        self.assertEqual(test_dict['data_type'], 'SSMS')
+        self.assertFalse('data_types' in test_dict)
+        self.assertEqual(test_dict['sensor_id'], 'multi - sensor')
+        self.assertEqual(test_dict['platform_id'], 'multi - platform')
+        self.assertEqual(test_dict['product_string'], 'ACTIVE')
+        self.assertEqual(test_dict['product_version'], '04 - 5')
+
+    def test_convert_time_from_drs_id(self):
+        self.assertEqual('month', self.data_store._convert_time_from_drs_id('mon'))
+        self.assertEqual('year', self.data_store._convert_time_from_drs_id('yr'))
+        self.assertEqual('16 years', self.data_store._convert_time_from_drs_id('16-yrs'))
+        self.assertEqual('32 days', self.data_store._convert_time_from_drs_id('32-days'))
+        self.assertEqual('satellite-orbit-frequency',
+                         self.data_store._convert_time_from_drs_id('satellite-orbit-frequency'))
+
 
 class EsaCciOdpDataSourceTest(unittest.TestCase):
     def setUp(self):
@@ -585,16 +613,33 @@ class DownloadStatisticsTest(unittest.TestCase):
         self.assertEqual(str(download_stats), '64 of 64 MB @ 0.000 MB/s, 100.0% complete')
 
 
-@unittest.skip(reason='Used for debugging to fix Cate issues #823, #822, #818, #816, #783')
+# @unittest.skip(reason='Used for debugging to fix Cate issues #823, #822, #818, #816, #783')
 class SpatialSubsetTest(unittest.TestCase):
 
     @unittest.skip(reason='Requires variable access which is not integrated yet.')
     def test_make_local_spatial(self):
         data_store = EsaCciOdpDataStore()
-        data_source = data_store.query(ds_id='esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.COMBINED.04.5.r1')[0]
+        # data_source = data_store.query(ds_id='esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.COMBINED.04-5.r1')[0]
+        data_source = data_store.query(ds_id='esacci.CLOUD.mon.L3C.CLD_PRODUCTS.multi-sensor.Envisat.MERIS-AATSR.2-0.r1')[0]
         # The following always worked fine:
         ds = data_source.open_dataset(time_range=['2004-01-01', '2004-01-14'], region='-10,40,20,70')
         self.assertIsNotNone(ds)
         # The following reproduced Cate issues #823, #822, #818, #816, #783:
         ds = data_source.make_local('local_name', time_range=['2004-01-01', '2004-01-14'], region='-10,40,20,70')
         self.assertIsNotNone(ds)
+
+    # def test_time_problem(self):
+        # import xarray as xr
+        # xr.open_dataset(
+        #     'http://cci-odp-data2.ceda.ac.uk/thredds/dodsC/esacci/sst/data/CDR_v2/AVHRR/L3C/v2.1/AVHRR19_G/2009/02/23/20090223120000-ESACCI-L3C_GHRSST-SSTskin-AVHRR19_G-CDR2.1_night-v02.0-fv01.0.nc')
+        #     'http://cci-odp-data2.ceda.ac.uk/thredds/dodsC/esacci/sst/data/CDR_v2/AVHRR/L3C/v2.1/AVHRR19_G/2009/02/23/20090223120000-ESACCI-L3C_GHRSST-SSTskin-AVHRR19_G-CDR2.1_day-v02.0-fv01.0.nc')
+
+        # import cate.core.ds as cate_ds
+        # data_store = EsaCciOdpDataStore()
+        # data_source = data_store.query(ds_id='esacci.SST.day.L3C.SSTskin.AVHRR-3.NOAA-19.AVHRR19_G.2-1.r1')[0]
+        # t_range = (datetime(2009, 2, 23, 12, 0), datetime(2009, 2, 23, 12, 0))
+        # time_range = tuple(t.strftime('%Y-%m-%d') for t in t_range)
+        # ds = data_source.make_local('local_name_4', time_range=time_range)
+        # ds2 = cate_ds.open_dataset(ds)
+        ds = data_source.open_dataset(time_range=time_range, region='-10,40,20,70')
+        # self.assertIsNotNone(ds2)

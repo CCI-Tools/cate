@@ -761,25 +761,15 @@ class EsaCciOdpDataStore(DataStore):
         self._adjust_json_dict_for_param(json_dict, 'product_string', 'product_strings', values[7])
         self._adjust_json_dict_for_param(json_dict, 'product_version', 'product_versions', values[8])
 
-    def _convert_time_from_drs_id(self, time_value: str) -> str:
-        if time_value == 'mon' or time_value == 'month':
-            return 'month'
-        if time_value == 'yr' or time_value == 'year':
-            return 'year'
-        if time_value == 'day':
-            return 'day'
-        if time_value == 'satellite-orbit-frequency':
-            return 'satellite-orbit-frequency'
-        if time_value == '5-days':
-            return '5 days'
-        if time_value == '8-days':
-            return '8 days'
-        if time_value == '15-days':
-            return '15 days'
-        if time_value == '13-yrs':
-            return '13 years'
-        if time_value == 'climatology':
-            return 'climatology'
+    @staticmethod
+    def _convert_time_from_drs_id(time_value: str) -> str:
+        time_value_lookup = {'mon': 'month', 'month': 'month', 'yr': 'year', 'year': 'year', 'day': 'day',
+                             'satellite-orbit-frequency': 'satellite-orbit-frequency', 'climatology': 'climatology'}
+        if time_value in time_value_lookup:
+            return time_value_lookup[time_value]
+        if re.match('[0-9]+-[days|yrs]', time_value):
+            split_time_value = time_value.split('-')
+            return f'{split_time_value[0]} {split_time_value[1].replace("yrs", "years")}'
         raise ValueError('Unknown time frequency format')
 
     def _adjust_json_dict_for_param(self, json_dict: dict, single_name: str, list_name: str, param_value: str):
@@ -952,27 +942,6 @@ class EsaCciOdpDataSource(DataSource):
         self._file_list = None
         self._meta_info = None
         self._temporal_coverage = None
-
-    def _convert_time_from_drs_id(self, time_value: str) -> str:
-        if time_value == 'mon' or time_value == 'month':
-            return 'month'
-        if time_value == 'yr' or time_value == 'year':
-            return 'year'
-        if time_value == 'day':
-            return 'day'
-        if time_value == 'satellite-orbit-frequency':
-            return 'satellite-orbit-frequency'
-        if time_value == '5-days':
-            return '5 days'
-        if time_value == '8-days':
-            return '8 days'
-        if time_value == '15-days':
-            return '15 days'
-        if time_value == '13-yrs':
-            return '13 years'
-        if time_value == 'climatology':
-            return 'climatology'
-        raise ValueError('Unknown time frequency format')
 
     @property
     def id(self) -> str:
