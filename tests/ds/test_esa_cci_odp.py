@@ -613,7 +613,7 @@ class DownloadStatisticsTest(unittest.TestCase):
         self.assertEqual(str(download_stats), '64 of 64 MB @ 0.000 MB/s, 100.0% complete')
 
 
-# @unittest.skip(reason='Used for debugging to fix Cate issues #823, #822, #818, #816, #783')
+@unittest.skip(reason='Used for debugging to fix Cate issues #823, #822, #818, #816, #783')
 class SpatialSubsetTest(unittest.TestCase):
 
     @unittest.skip(reason='Requires variable access which is not integrated yet.')
@@ -627,19 +627,3 @@ class SpatialSubsetTest(unittest.TestCase):
         # The following reproduced Cate issues #823, #822, #818, #816, #783:
         ds = data_source.make_local('local_name', time_range=['2004-01-01', '2004-01-14'], region='-10,40,20,70')
         self.assertIsNotNone(ds)
-
-    # def test_time_problem(self):
-        # import xarray as xr
-        # xr.open_dataset(
-        #     'http://cci-odp-data2.ceda.ac.uk/thredds/dodsC/esacci/sst/data/CDR_v2/AVHRR/L3C/v2.1/AVHRR19_G/2009/02/23/20090223120000-ESACCI-L3C_GHRSST-SSTskin-AVHRR19_G-CDR2.1_night-v02.0-fv01.0.nc')
-        #     'http://cci-odp-data2.ceda.ac.uk/thredds/dodsC/esacci/sst/data/CDR_v2/AVHRR/L3C/v2.1/AVHRR19_G/2009/02/23/20090223120000-ESACCI-L3C_GHRSST-SSTskin-AVHRR19_G-CDR2.1_day-v02.0-fv01.0.nc')
-
-        # import cate.core.ds as cate_ds
-        # data_store = EsaCciOdpDataStore()
-        # data_source = data_store.query(ds_id='esacci.SST.day.L3C.SSTskin.AVHRR-3.NOAA-19.AVHRR19_G.2-1.r1')[0]
-        # t_range = (datetime(2009, 2, 23, 12, 0), datetime(2009, 2, 23, 12, 0))
-        # time_range = tuple(t.strftime('%Y-%m-%d') for t in t_range)
-        # ds = data_source.make_local('local_name_4', time_range=time_range)
-        # ds2 = cate_ds.open_dataset(ds)
-        ds = data_source.open_dataset(time_range=time_range, region='-10,40,20,70')
-        # self.assertIsNotNone(ds2)
