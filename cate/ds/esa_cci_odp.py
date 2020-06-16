@@ -191,10 +191,11 @@ async def _extract_metadata_from_descxml_url(session=None, descxml_url: str = No
         return {}
     resp = await session.request(method='GET', url=descxml_url)
     resp.raise_for_status()
-    descxml = etree.XML(await resp.read())
+    content = await resp.read()
     try:
+        descxml = etree.XML(content)
         return _extract_metadata_from_descxml(descxml)
-    except etree.ParseError:
+    except etree.XMLSyntaxError:
         _LOG.info(f'Cannot read metadata from {descxml_url} due to parsing error.')
         return {}
 
