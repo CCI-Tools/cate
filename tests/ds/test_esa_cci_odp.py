@@ -115,6 +115,12 @@ class EsaCciOdpOsTest(unittest.TestCase):
             json_obj = _extract_metadata_from_descxml(XML(desc.read()))
             self.assert_json_obj_from_desc_xml(json_obj)
 
+    def test_extract_metadata_from_descxml_faulty_url(self):
+        desc_url = 'https://catalogue.ceda.ac.uk'
+        json_obj = asyncio.run(_extract_metadata_from_descxml_url(None, desc_url))
+        self.assertIsNotNone(json_obj)
+        self.assertEqual(0, len(json_obj.keys()))
+
     @unittest.skip(reason='Requires web access')
     def test_retrieve_dimensions_from_dds_url(self):
         dds_url = "http://dap.ceda.ac.uk/thredds/dodsC/dap//neodc/esacci/soil_moisture/data/daily_files/" \
