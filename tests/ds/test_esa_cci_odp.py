@@ -116,7 +116,7 @@ class EsaCciOdpOsTest(unittest.TestCase):
             self.assert_json_obj_from_desc_xml(json_obj)
 
     def test_extract_metadata_from_descxml_faulty_url(self):
-        desc_url = 'https://catalogue.ceda.ac.uk'
+        desc_url = 'http://brockmann-consult.de'
         json_obj = asyncio.run(_extract_metadata_from_descxml_url(None, desc_url))
         self.assertIsNotNone(json_obj)
         self.assertEqual(0, len(json_obj.keys()))
