@@ -18,7 +18,7 @@ from cate.ds.local import LocalDataStore
 
 class EsaCciOdpOsTest(unittest.TestCase):
 
-    @unittest.skip(reason='Requires web access')
+    @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
     def test_fetch_opensearch_json_1(self):
         file_list = asyncio.run(_fetch_file_list_json('49bcb6f29c824ae49e41d2d3656f11be'))
         self.assertEqual("ESACCI-OC-L3S-K_490-MERGED-8D_DAILY_4km_GEO_PML_KD490_Lee-19970829-fv2.0.nc", file_list[0][0])
@@ -36,9 +36,18 @@ class EsaCciOdpOsTest(unittest.TestCase):
                          "ESACCI-OC-L3S-K_490-MERGED-8D_DAILY_4km_GEO_PML_KD490_Lee-19970829-fv2.0.nc",
                          file_list[0][4].get("Opendap"))
 
-    @unittest.skip(reason='Requires web access. Also, we are getting an error 500 currently')
+    @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
     def test_fetch_opensearch_json_2(self):
-        file_list = asyncio.run(_fetch_file_list_json('b382ebe6679d44b8b0e68ea4ef4b701c'))
+        file_list = asyncio.run(_fetch_file_list_json(
+            dataset_id='b382ebe6679d44b8b0e68ea4ef4b701c',
+            time_frequency='year',
+            processing_level='L4',
+            data_type='LCCS',
+            sensor_id='multi-sensor',
+            platform_id='multi-platform',
+            product_string='Map',
+            product_version='2.0.7'
+        ))
         self.assertEqual(54, len(file_list))
         self.assertEqual("ESACCI-LC-L4-LCCS-Map-300m-P1Y-1992-v2.0.7b.nc", file_list[1][0])
         self.assertEqual("1992-01-01T00:00:00", file_list[1][1])
@@ -77,11 +86,11 @@ class EsaCciOdpOsTest(unittest.TestCase):
             self.assertTrue('file_format' in json_obj)
             self.assertEqual('.nc', json_obj['file_format'])
 
-    @unittest.skip(reason='Requires web access')
+    @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
     def test_extract_metadata_from_odd_url(self):
         odd_url = 'http://opensearch-test.ceda.ac.uk/opensearch/description.xml?' \
                   'parentIdentifier=7c7a38b2d2ce448b99194bff85a85248'
-        json_obj = _extract_metadata_from_odd_url(odd_url)
+        json_obj = asyncio.run(_extract_metadata_from_odd_url(odd_url=odd_url))
         self.assertFalse('query' in json_obj)
         self.assertTrue('ecv' in json_obj)
         self.assertEqual('SOILMOISTURE', json_obj['ecv'])
@@ -103,7 +112,7 @@ class EsaCciOdpOsTest(unittest.TestCase):
         self.assertTrue('file_format' in json_obj)
         self.assertEqual('.nc', json_obj['file_format'])
 
-    @unittest.skip(reason='Requires web access')
+    @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
     def test_extract_metadata_from_descxml_url(self):
         desc_url = 'https://catalogue.ceda.ac.uk/export/xml/49bcb6f29c824ae49e41d2d3656f11be.xml'
         json_obj = asyncio.run(_extract_metadata_from_descxml_url(None, desc_url))
@@ -115,7 +124,7 @@ class EsaCciOdpOsTest(unittest.TestCase):
             json_obj = _extract_metadata_from_descxml(XML(desc.read()))
             self.assert_json_obj_from_desc_xml(json_obj)
 
-    @unittest.skip(reason='Requires web access')
+    @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
     def test_retrieve_dimensions_from_dds_url(self):
         dds_url = "http://dap.ceda.ac.uk/thredds/dodsC/dap//neodc/esacci/soil_moisture/data/daily_files/" \
                   "COMBINED/v04.4/1986/ESACCI-SOILMOISTURE-L3S-SSMV-COMBINED-19861125000000-fv04.4.nc.dds"
