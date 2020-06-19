@@ -293,6 +293,12 @@ class EsaCciOdpDataStoreTest(unittest.TestCase):
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 5)
 
+    @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
+    def test_query_web_access(self):
+        store = EsaCciOdpDataStore()
+        all_data_sources = store.query()
+        self.assertIsNotNone(all_data_sources)
+
     def test_query_with_string(self):
         data_sources = self.data_store.query(query_expr='OC')
         self.assertIsNotNone(data_sources)
