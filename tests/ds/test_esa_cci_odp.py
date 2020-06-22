@@ -304,6 +304,34 @@ class EsaCciOdpDataStoreTest(unittest.TestCase):
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 1)
 
+    def test_adjust_json_dict(self):
+        test_dict = dict(
+            time_frequencies=['day', 'month'],
+            processing_level='L1C',
+            data_types=['abc', 'xyz', 'tfg'],
+            platform_id='platt',
+            product_version='1'
+        )
+        drs_id = 'esacci.SOILMOISTURE.day.L3S.SSMS.multi - sensor.multi - platform.ACTIVE.04 - 5.r1'
+        self.data_store._adjust_json_dict(test_dict, drs_id)
+        self.assertEqual(test_dict['time_frequency'], 'day')
+        self.assertFalse('time_frequencies' in test_dict)
+        self.assertEqual(test_dict['processing_level'], 'L3S')
+        self.assertEqual(test_dict['data_type'], 'SSMS')
+        self.assertFalse('data_types' in test_dict)
+        self.assertEqual(test_dict['sensor_id'], 'multi - sensor')
+        self.assertEqual(test_dict['platform_id'], 'multi - platform')
+        self.assertEqual(test_dict['product_string'], 'ACTIVE')
+        self.assertEqual(test_dict['product_version'], '04 - 5')
+
+    def test_convert_time_from_drs_id(self):
+        self.assertEqual('month', self.data_store._convert_time_from_drs_id('mon'))
+        self.assertEqual('year', self.data_store._convert_time_from_drs_id('yr'))
+        self.assertEqual('16 years', self.data_store._convert_time_from_drs_id('16-yrs'))
+        self.assertEqual('32 days', self.data_store._convert_time_from_drs_id('32-days'))
+        self.assertEqual('satellite-orbit-frequency',
+                         self.data_store._convert_time_from_drs_id('satellite-orbit-frequency'))
+
 
 class EsaCciOdpDataSourceTest(unittest.TestCase):
     def setUp(self):
@@ -325,7 +353,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
 
     def test_make_local_and_update(self):
         soil_moisture_data_sources = self.data_store.query(
-            query_expr='esacci2.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.04-5.r1')
+            query_expr='esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.04-5.r1')
         soilmoisture_data_source = soil_moisture_data_sources[0]
 
         reference_path = os.path.join(os.path.dirname(__file__),
@@ -499,7 +527,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                       self.data_store)
 
     def test_id(self):
-        self.assertEqual('esacci2.OC.day.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.3-1.sinusoidal',
+        self.assertEqual('esacci.OC.day.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.3-1.sinusoidal',
                          self.first_oc_data_source.id)
 
     def test_schema(self):
@@ -597,7 +625,8 @@ class SpatialSubsetTest(unittest.TestCase):
     @unittest.skip(reason='Requires variable access which is not integrated yet.')
     def test_make_local_spatial(self):
         data_store = EsaCciOdpDataStore()
-        data_source = data_store.query(ds_id='esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.COMBINED.04.5.r1')[0]
+        # data_source = data_store.query(ds_id='esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.COMBINED.04-5.r1')[0]
+        data_source = data_store.query(ds_id='esacci.CLOUD.mon.L3C.CLD_PRODUCTS.multi-sensor.Envisat.MERIS-AATSR.2-0.r1')[0]
         # The following always worked fine:
         ds = data_source.open_dataset(time_range=['2004-01-01', '2004-01-14'], region='-10,40,20,70')
         self.assertIsNotNone(ds)

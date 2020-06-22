@@ -511,18 +511,10 @@ async def _fetch_meta_info(dataset_id: str, odd_url: str, metadata_url: str, var
         return meta_info_dict
 
 
-async def _fetch_file_list_json(dataset_id: str, time_frequency: str, processing_level: str, data_type: str,
-                                sensor_id: str, platform_id: str, product_string: str, product_version: str,
-                                monitor: Monitor = Monitor.NONE) -> Sequence:
+async def _fetch_file_list_json(dataset_id: str, drs_id: str, monitor: Monitor = Monitor.NONE) -> Sequence:
     feature_list = await _fetch_opensearch_feature_list(_OPENSEARCH_CEDA_URL,
                                                         dict(parentIdentifier=dataset_id,
-                                                             frequency=time_frequency,
-                                                             processingLevel=processing_level,
-                                                             dataType=data_type,
-                                                             sensor=sensor_id,
-                                                             platform=platform_id,
-                                                             productString=product_string,
-                                                             productVersion=product_version,
+                                                             drsId=drs_id,
                                                              fileFormat='.nc'),
                                                         monitor=monitor)
     file_list = []
@@ -742,45 +734,44 @@ class EsaCciOdpDataStore(DataStore):
                                               cache_json_filename='meta-info.json',
                                               cache_timestamp_filename='meta-info-timestamp.txt',
                                               cache_expiration_days=self.index_cache_expiration_days)
-        time_frequencies = self._get_as_list(meta_info, 'time_frequency', 'time_frequencies')
-        processing_levels = self._get_as_list(meta_info, 'processing_level', 'processing_levels')
-        data_types = self._get_as_list(meta_info, 'data_type', 'data_types')
-        sensor_ids = self._get_as_list(meta_info, 'sensor_id', 'sensor_ids')
-        platform_ids = self._get_as_list(meta_info, 'platform_id', 'platform_ids')
-        product_strings = self._get_as_list(meta_info, 'product_string', 'product_strings')
-        product_versions = self._get_as_list(meta_info, 'product_version', 'product_versions')
         drs_ids = self._get_as_list(meta_info, 'drs_id', 'drs_ids')
-        if not time_frequencies or not processing_levels or not data_types or not sensor_ids or not platform_ids \
-                or not product_strings or not product_versions or not drs_ids:
-            return
-        drs_id = drs_ids[0].split('.')[-1]
-        it = itertools.product(time_frequencies, processing_levels, data_types, sensor_ids, platform_ids,
-                               product_strings, product_versions)
-        value_tuples = list(it)
         with open(os.path.join(os.path.dirname(__file__), 'data/excluded_data_sources')) as fp:
             excluded_data_sources = fp.read().split('\n')
-            for value_tuple in value_tuples:
-                pretty_id = self._get_pretty_id(meta_info, value_tuple, drs_id)
-                if pretty_id in excluded_data_sources:
+            for drs_id in drs_ids:
+                if drs_id in excluded_data_sources:
                     continue
-                if pretty_id in set([ds.id for ds in self._data_sources]):
-                    _LOG.warning(f'Data source {pretty_id} already included. Will omit this one.')
+                if drs_id in set([ds.id for ds in self._data_sources]):
+                    _LOG.warning(f'Data source {drs_id} already included. Will omit this one.')
                     continue
                 meta_info = meta_info.copy()
                 meta_info.update(json_dict)
-                self._adjust_json_dict(meta_info, value_tuple)
+                self._adjust_json_dict(meta_info, drs_id)
                 meta_info['cci_project'] = meta_info['ecv']
-                data_source = EsaCciOdpDataSource(self, meta_info, datasource_id, pretty_id, value_tuple)
+                meta_info['fid'] = datasource_id
+                data_source = EsaCciOdpDataSource(self, meta_info, datasource_id, drs_id)
                 self._data_sources.append(data_source)
 
-    def _adjust_json_dict(self, json_dict: dict, value_tuple: tuple):
-        self._adjust_json_dict_for_param(json_dict, 'time_frequency', 'time_frequencies', value_tuple[0])
-        self._adjust_json_dict_for_param(json_dict, 'processing_level', 'processing_levels', value_tuple[1])
-        self._adjust_json_dict_for_param(json_dict, 'data_type', 'data_types', value_tuple[2])
-        self._adjust_json_dict_for_param(json_dict, 'sensor_id', 'sensor_ids', value_tuple[3])
-        self._adjust_json_dict_for_param(json_dict, 'platform_id', 'platform_ids', value_tuple[4])
-        self._adjust_json_dict_for_param(json_dict, 'product_string', 'product_strings', value_tuple[5])
-        self._adjust_json_dict_for_param(json_dict, 'product_version', 'product_versions', value_tuple[6])
+    def _adjust_json_dict(self, json_dict: dict, drs_id: str):
+        values = drs_id.split('.')
+        self._adjust_json_dict_for_param(json_dict, 'time_frequency', 'time_frequencies',
+                                         self._convert_time_from_drs_id(values[2]))
+        self._adjust_json_dict_for_param(json_dict, 'processing_level', 'processing_levels', values[3])
+        self._adjust_json_dict_for_param(json_dict, 'data_type', 'data_types', values[4])
+        self._adjust_json_dict_for_param(json_dict, 'sensor_id', 'sensor_ids', values[5])
+        self._adjust_json_dict_for_param(json_dict, 'platform_id', 'platform_ids', values[6])
+        self._adjust_json_dict_for_param(json_dict, 'product_string', 'product_strings', values[7])
+        self._adjust_json_dict_for_param(json_dict, 'product_version', 'product_versions', values[8])
+
+    @staticmethod
+    def _convert_time_from_drs_id(time_value: str) -> str:
+        time_value_lookup = {'mon': 'month', 'month': 'month', 'yr': 'year', 'year': 'year', 'day': 'day',
+                             'satellite-orbit-frequency': 'satellite-orbit-frequency', 'climatology': 'climatology'}
+        if time_value in time_value_lookup:
+            return time_value_lookup[time_value]
+        if re.match('[0-9]+-[days|yrs]', time_value):
+            split_time_value = time_value.split('-')
+            return f'{split_time_value[0]} {split_time_value[1].replace("yrs", "years")}'
+        raise ValueError('Unknown time frequency format')
 
     def _adjust_json_dict_for_param(self, json_dict: dict, single_name: str, list_name: str, param_value: str):
         json_dict[single_name] = param_value
@@ -808,7 +799,7 @@ class EsaCciOdpDataStore(DataStore):
             return [meta_info[single_name]]
         if list_name in meta_info:
             return meta_info[list_name]
-        return None
+        return []
 
     def _get_update_tag(self):
         """
@@ -942,12 +933,9 @@ class EsaCciOdpDataSource(DataSource):
                  json_dict: dict,
                  raw_datasource_id: str,
                  datasource_id: str,
-                 value_tuple: Tuple,
                  schema: Schema = None):
         super(EsaCciOdpDataSource, self).__init__()
         self._raw_id = raw_datasource_id
-        self._time_frequency, self._processing_level, self._data_type, self._sensor_id, self._platform_id, \
-        self._product_string, self._product_version = value_tuple
         self._datasource_id = datasource_id
         self._data_store = data_store
         self._json_dict = json_dict
@@ -1352,10 +1340,7 @@ class EsaCciOdpDataSource(DataSource):
         if self._file_list:
             return
         file_list = await _load_or_fetch_json(_fetch_file_list_json,
-                                              fetch_json_args=[self._raw_id, self._time_frequency,
-                                                               self._processing_level, self._data_type,
-                                                               self._sensor_id, self._platform_id,
-                                                               self._product_string, self._product_version],
+                                              fetch_json_args=[self._raw_id, self._datasource_id],
                                               fetch_json_kwargs=dict(monitor=monitor),
                                               cache_used=self._data_store.index_cache_used,
                                               cache_dir=self.local_metadata_dataset_dir(),
