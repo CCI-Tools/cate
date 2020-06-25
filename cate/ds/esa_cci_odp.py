@@ -723,10 +723,9 @@ class EsaCciOdpDataStore(DataStore):
         # todo set True when dimensions shall be read during meta data fetching
         meta_info = await _load_or_fetch_json(_fetch_meta_info,
                                               fetch_json_args=[datasource_id,
-                                                               json_dict['odd_url'],
-                                                               json_dict['metadata_url'],
-                                                               json_dict['variables'],
-                                                               # True],
+                                                               json_dict.get('odd_url', None),
+                                                               json_dict.get('metadata_url', None),
+                                                               json_dict.get('variables', []),
                                                                False],
                                               fetch_json_kwargs=dict(),
                                               cache_used=self.index_cache_used,

@@ -18,40 +18,24 @@ from cate.ds.local import LocalDataStore
 
 class EsaCciOdpOsTest(unittest.TestCase):
 
-    @unittest.skip(reason='Requires web access')
-    def test_fetch_opensearch_json_1(self):
-        file_list = asyncio.run(_fetch_file_list_json('49bcb6f29c824ae49e41d2d3656f11be'))
-        self.assertEqual("ESACCI-OC-L3S-K_490-MERGED-8D_DAILY_4km_GEO_PML_KD490_Lee-19970829-fv2.0.nc", file_list[0][0])
-        self.assertEqual("1997-09-04T00:00:00", file_list[0][1])
-        self.assertEqual("1997-09-04T00:00:00", file_list[0][2])
-        self.assertEqual(5924361, file_list[0][3])
+    @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
+    def test_fetch_opensearch_json(self):
+        file_list = asyncio.run(_fetch_file_list_json(
+            dataset_id='4eb4e801424a47f7b77434291921f889',
+            drs_id='esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1'
+        ))
+        self.assertEqual('ESACCI-OZONE-L3-NP-MERGED-KNMI-199701-fv0002.nc', file_list[0][0])
+        self.assertEqual("1997-01-04T00:00:00", file_list[0][1])
+        self.assertEqual("1997-01-04T00:00:00", file_list[0][2])
+        self.assertEqual(14417751, file_list[0][3])
         self.assertEqual(2, len(file_list[0][4]))
         self.assertTrue("Download" in file_list[0][4])
-        self.assertEqual("http://dap.ceda.ac.uk/thredds/fileServer/neodc/esacci/ocean_colour/data/v2-release/"
-                         "geographic/netcdf/kd/8day/v2.0/1997/"
-                         "ESACCI-OC-L3S-K_490-MERGED-8D_DAILY_4km_GEO_PML_KD490_Lee-19970829-fv2.0.nc",
+        self.assertEqual('http://cci-odp-data2.ceda.ac.uk/thredds/fileServer/esacci/ozone/data/nadir_profiles/l3/'
+                         'merged/v0002/1997/ESACCI-OZONE-L3-NP-MERGED-KNMI-199701-fv0002.nc',
                          file_list[0][4].get("Download"))
-        self.assertEqual("http://dap.ceda.ac.uk/thredds/dodsC/dap//neodc/esacci/ocean_colour/data/v2-release/"
-                         "geographic/netcdf/kd/8day/v2.0/1997/"
-                         "ESACCI-OC-L3S-K_490-MERGED-8D_DAILY_4km_GEO_PML_KD490_Lee-19970829-fv2.0.nc",
+        self.assertEqual('http://cci-odp-data2.ceda.ac.uk/thredds/dodsC/esacci/ozone/data/nadir_profiles/l3/merged/'
+                         'v0002/1997/ESACCI-OZONE-L3-NP-MERGED-KNMI-199701-fv0002.nc',
                          file_list[0][4].get("Opendap"))
-
-    @unittest.skip(reason='Requires web access. Also, we are getting an error 500 currently')
-    def test_fetch_opensearch_json_2(self):
-        file_list = asyncio.run(_fetch_file_list_json('b382ebe6679d44b8b0e68ea4ef4b701c'))
-        self.assertEqual(54, len(file_list))
-        self.assertEqual("ESACCI-LC-L4-LCCS-Map-300m-P1Y-1992-v2.0.7b.nc", file_list[1][0])
-        self.assertEqual("1992-01-01T00:00:00", file_list[1][1])
-        self.assertEqual("1992-01-01T00:00:00", file_list[1][2])
-        self.assertEqual(2543742078, file_list[1][3])
-        self.assertEqual(2, len(file_list[1][4]))
-        self.assertTrue("Download" in file_list[1][4])
-        self.assertEqual("http://cci-odp-data2.ceda.ac.uk/thredds/fileServer/esacci/land_cover/data/land_cover_maps/"
-                         "v2.0.7/ESACCI-LC-L4-LCCS-Map-300m-P1Y-1992-v2.0.7b.nc",
-                         file_list[1][4].get("Download"))
-        self.assertEqual('http://cci-odp-data2.ceda.ac.uk/thredds/dodsC/esacci/land_cover/data/land_cover_maps/'
-                         'v2.0.7/ESACCI-LC-L4-LCCS-Map-300m-P1Y-1992-v2.0.7b.nc',
-                         file_list[1][4].get("Opendap"))
 
     def test_extract_metadata_from_odd_file(self):
         odd_file = os.path.join(os.path.dirname(__file__), 'resources/odd.xml')
@@ -77,33 +61,36 @@ class EsaCciOdpOsTest(unittest.TestCase):
             self.assertTrue('file_format' in json_obj)
             self.assertEqual('.nc', json_obj['file_format'])
 
-    @unittest.skip(reason='Requires web access')
+    @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
     def test_extract_metadata_from_odd_url(self):
         odd_url = 'http://opensearch-test.ceda.ac.uk/opensearch/description.xml?' \
-                  'parentIdentifier=7c7a38b2d2ce448b99194bff85a85248'
-        json_obj = _extract_metadata_from_odd_url(odd_url)
+                  'parentIdentifier=4eb4e801424a47f7b77434291921f889'
+        json_obj = asyncio.run(_extract_metadata_from_odd_url(odd_url=odd_url))
         self.assertFalse('query' in json_obj)
         self.assertTrue('ecv' in json_obj)
-        self.assertEqual('SOILMOISTURE', json_obj['ecv'])
+        self.assertEqual('OZONE', json_obj['ecv'])
         self.assertTrue('time_frequency' in json_obj)
-        self.assertEqual('day', json_obj['time_frequency'])
-        self.assertFalse('institute' in json_obj)
+        self.assertEqual('month', json_obj['time_frequency'])
+        self.assertTrue('institute' in json_obj)
+        self.assertEqual('Royal Netherlands Meteorological Institute', json_obj['institute'])
         self.assertTrue('processing_level' in json_obj)
-        self.assertEqual('L3S', json_obj['processing_level'])
+        self.assertEqual('L3', json_obj['processing_level'])
         self.assertTrue('product_string' in json_obj)
-        self.assertEqual('COMBINED', json_obj['product_string'])
+        self.assertEqual('MERGED', json_obj['product_string'])
         self.assertTrue('product_version' in json_obj)
-        self.assertEqual('03.2', json_obj['product_version'])
+        self.assertEqual('fv0002', json_obj['product_version'])
         self.assertTrue('data_type' in json_obj)
-        self.assertEqual('SSMV', json_obj['data_type'])
-        self.assertTrue('sensor_id' in json_obj)
-        self.assertEqual('multi-sensor', json_obj['sensor_id'])
-        self.assertTrue('platform_id' in json_obj)
-        self.assertEqual('multi-platform', json_obj['platform_id'])
-        self.assertTrue('file_format' in json_obj)
-        self.assertEqual('.nc', json_obj['file_format'])
+        self.assertEqual('NP', json_obj['data_type'])
+        self.assertTrue('sensor_ids' in json_obj)
+        self.assertEqual(['GOME', 'GOME-2', 'OMI', 'SCIAMACHY'], json_obj['sensor_ids'])
+        self.assertTrue('platform_ids' in json_obj)
+        self.assertEqual(['Aura', 'ERS-2', 'Envisat', 'Metop-A'], json_obj['platform_ids'])
+        self.assertTrue('file_formats' in json_obj)
+        self.assertEqual(['.nc', '.txt'], json_obj['file_formats'])
+        self.assertTrue('drs_id' in json_obj)
+        self.assertEqual('esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1', json_obj['drs_id'])
 
-    @unittest.skip(reason='Requires web access')
+    @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
     def test_extract_metadata_from_descxml_url(self):
         desc_url = 'https://catalogue.ceda.ac.uk/export/xml/49bcb6f29c824ae49e41d2d3656f11be.xml'
         json_obj = asyncio.run(_extract_metadata_from_descxml_url(None, desc_url))
@@ -121,7 +108,7 @@ class EsaCciOdpOsTest(unittest.TestCase):
         self.assertIsNotNone(json_obj)
         self.assertEqual(0, len(json_obj.keys()))
 
-    @unittest.skip(reason='Requires web access')
+    @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
     def test_retrieve_dimensions_from_dds_url(self):
         dds_url = "http://dap.ceda.ac.uk/thredds/dodsC/dap//neodc/esacci/soil_moisture/data/daily_files/" \
                   "COMBINED/v04.4/1986/ESACCI-SOILMOISTURE-L3S-SSMV-COMBINED-19861125000000-fv04.4.nc.dds"
@@ -298,6 +285,12 @@ class EsaCciOdpDataStoreTest(unittest.TestCase):
         data_sources = self.data_store.query()
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 5)
+
+    @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
+    def test_query_web_access(self):
+        store = EsaCciOdpDataStore()
+        all_data_sources = store.query()
+        self.assertIsNotNone(all_data_sources)
 
     def test_query_with_string(self):
         data_sources = self.data_store.query(query_expr='OC')
@@ -625,8 +618,7 @@ class SpatialSubsetTest(unittest.TestCase):
     @unittest.skip(reason='Requires variable access which is not integrated yet.')
     def test_make_local_spatial(self):
         data_store = EsaCciOdpDataStore()
-        # data_source = data_store.query(ds_id='esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.COMBINED.04-5.r1')[0]
-        data_source = data_store.query(ds_id='esacci.CLOUD.mon.L3C.CLD_PRODUCTS.multi-sensor.Envisat.MERIS-AATSR.2-0.r1')[0]
+        data_source = data_store.query(ds_id='esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.COMBINED.04.5.r1')[0]
         # The following always worked fine:
         ds = data_source.open_dataset(time_range=['2004-01-01', '2004-01-14'], region='-10,40,20,70')
         self.assertIsNotNone(ds)
