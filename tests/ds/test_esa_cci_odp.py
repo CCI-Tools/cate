@@ -124,6 +124,12 @@ class EsaCciOdpOsTest(unittest.TestCase):
             json_obj = _extract_metadata_from_descxml(XML(desc.read()))
             self.assert_json_obj_from_desc_xml(json_obj)
 
+    def test_extract_metadata_from_descxml_faulty_url(self):
+        desc_url = 'http://brockmann-consult.de'
+        json_obj = asyncio.run(_extract_metadata_from_descxml_url(None, desc_url))
+        self.assertIsNotNone(json_obj)
+        self.assertEqual(0, len(json_obj.keys()))
+
     @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
     def test_retrieve_dimensions_from_dds_url(self):
         dds_url = "http://dap.ceda.ac.uk/thredds/dodsC/dap//neodc/esacci/soil_moisture/data/daily_files/" \
@@ -313,6 +319,34 @@ class EsaCciOdpDataStoreTest(unittest.TestCase):
         self.assertIsNotNone(data_sources)
         self.assertEqual(len(data_sources), 1)
 
+    def test_adjust_json_dict(self):
+        test_dict = dict(
+            time_frequencies=['day', 'month'],
+            processing_level='L1C',
+            data_types=['abc', 'xyz', 'tfg'],
+            platform_id='platt',
+            product_version='1'
+        )
+        drs_id = 'esacci.SOILMOISTURE.day.L3S.SSMS.multi - sensor.multi - platform.ACTIVE.04 - 5.r1'
+        self.data_store._adjust_json_dict(test_dict, drs_id)
+        self.assertEqual(test_dict['time_frequency'], 'day')
+        self.assertFalse('time_frequencies' in test_dict)
+        self.assertEqual(test_dict['processing_level'], 'L3S')
+        self.assertEqual(test_dict['data_type'], 'SSMS')
+        self.assertFalse('data_types' in test_dict)
+        self.assertEqual(test_dict['sensor_id'], 'multi - sensor')
+        self.assertEqual(test_dict['platform_id'], 'multi - platform')
+        self.assertEqual(test_dict['product_string'], 'ACTIVE')
+        self.assertEqual(test_dict['product_version'], '04 - 5')
+
+    def test_convert_time_from_drs_id(self):
+        self.assertEqual('month', self.data_store._convert_time_from_drs_id('mon'))
+        self.assertEqual('year', self.data_store._convert_time_from_drs_id('yr'))
+        self.assertEqual('16 years', self.data_store._convert_time_from_drs_id('16-yrs'))
+        self.assertEqual('32 days', self.data_store._convert_time_from_drs_id('32-days'))
+        self.assertEqual('satellite-orbit-frequency',
+                         self.data_store._convert_time_from_drs_id('satellite-orbit-frequency'))
+
 
 class EsaCciOdpDataSourceTest(unittest.TestCase):
     def setUp(self):
@@ -334,7 +368,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
 
     def test_make_local_and_update(self):
         soil_moisture_data_sources = self.data_store.query(
-            query_expr='esacci2.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.04-5.r1')
+            query_expr='esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.04-5.r1')
         soilmoisture_data_source = soil_moisture_data_sources[0]
 
         reference_path = os.path.join(os.path.dirname(__file__),
@@ -508,7 +542,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                       self.data_store)
 
     def test_id(self):
-        self.assertEqual('esacci2.OC.day.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.3-1.sinusoidal',
+        self.assertEqual('esacci.OC.day.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.3-1.sinusoidal',
                          self.first_oc_data_source.id)
 
     def test_schema(self):
