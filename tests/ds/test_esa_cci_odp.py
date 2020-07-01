@@ -612,8 +612,17 @@ class DownloadStatisticsTest(unittest.TestCase):
         self.assertEqual(str(download_stats), '64 of 64 MB @ 0.000 MB/s, 100.0% complete')
 
 
-@unittest.skip(reason='Used for debugging to fix Cate issues #823, #822, #818, #816, #783')
+@unittest.skip(reason='Used for debugging to fix Cate issues #823, #822, #818, #816, #783, #892')
 class SpatialSubsetTest(unittest.TestCase):
+
+    def test_open_dataset(self):
+        data_store = EsaCciOdpDataStore()
+        data_source_ozone = \
+            data_store.query(ds_id='esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1')[0]
+        ds_from_remote_source_ozone = data_source_ozone.open_dataset(time_range=['1997-01-04', '1997-02-01'],
+                                                                     var_names=['O3e_du_tot', 'O3e_du'],
+                                                                     region='-166.2, 61.0,-166.1, 61.1')
+        self.assertIsNotNone(ds_from_remote_source_ozone)
 
     @unittest.skip(reason='Requires variable access which is not integrated yet.')
     def test_make_local_spatial(self):

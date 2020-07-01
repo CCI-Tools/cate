@@ -1079,6 +1079,8 @@ class EsaCciOdpDataSource(DataSource):
             raise self._empty_error(time_range)
 
         files = self._get_urls_list(selected_file_list, _ODP_PROTOCOL_OPENDAP)
+        # we need to add this very ugly part so that netcdf works with all files
+        files = [f + '#fillmismatch' for f in files]
         try:
             return open_xarray_dataset(files, region=region, var_names=var_names, monitor=monitor)
         except HTTPError as e:
