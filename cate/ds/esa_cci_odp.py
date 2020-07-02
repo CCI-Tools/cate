@@ -1144,6 +1144,8 @@ class EsaCciOdpDataSource(DataSource):
                 with child_monitor.starting(label=file_name, total_work=100):
                     attempts = 0
                     to_append = ''
+                    format = 'NETCDF4'
+                    engine = 'h5netcdf'
                     while attempts < 2:
                         try:
                             attempts += 1
@@ -1174,7 +1176,7 @@ class EsaCciOdpDataSource(DataSource):
                             # second time in this loop.
                             # Probably related to https://github.com/pydata/xarray/issues/2560.
                             # And probably fixes Cate issues #823, #822, #818, #816, #783.
-                            remote_dataset.to_netcdf(local_filepath, format='NETCDF4', engine='h5netcdf')
+                            remote_dataset.to_netcdf(local_filepath, format=format, engine=engine)
                             child_monitor.progress(work=75)
 
                             if do_update_of_variables_meta_info_once:
@@ -1196,12 +1198,16 @@ class EsaCciOdpDataSource(DataSource):
                         except HTTPError as e:
                             if attempts == 1:
                                 to_append = '#fillmismatch'
+                                format = 'NETCDF3_64BIT'
+                                engine = None
                                 continue
                             raise self._cannot_access_error(time_range, region, var_names,
                                                             verb="synchronize", cause=e) from e
                         except (URLError, socket.timeout) as e:
                             if attempts == 1:
                                 to_append = '#fillmismatch'
+                                format = 'NETCDF3_64BIT'
+                                engine = None
                                 continue
                             raise self._cannot_access_error(time_range, region, var_names,
                                                             verb="synchronize", cause=e,
@@ -1209,6 +1215,8 @@ class EsaCciOdpDataSource(DataSource):
                         except OSError as e:
                             if attempts == 1:
                                 to_append = '#fillmismatch'
+                                format = 'NETCDF3_64BIT'
+                                engine = None
                                 continue
                             raise self._cannot_access_error(time_range, region, var_names,
                                                             verb="synchronize", cause=e) from e

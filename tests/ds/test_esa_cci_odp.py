@@ -612,10 +612,25 @@ class DownloadStatisticsTest(unittest.TestCase):
         self.assertEqual(str(download_stats), '64 of 64 MB @ 0.000 MB/s, 100.0% complete')
 
 
-@unittest.skip(reason='Used for debugging to fix Cate issues #823, #822, #818, #816, #783, #892')
+@unittest.skip(reason='Used for debugging to fix Cate issues #823, #822, #818, #816, #783, #892, #900')
 class SpatialSubsetTest(unittest.TestCase):
 
-    def test_make_local_spatial(self):
+    def test_make_local_spatial_1(self):
+        data_store = EsaCciOdpDataStore()
+        # The following reproduces Cate issues #823, #822, #818, #816, #783, #892:
+
+        cci_dataset_collection = 'esacci.SST.satellite-orbit-frequency.L3U.SSTskin.AVHRR-3.Metop-A.AVHRRMTA_G.2-1.r1'
+        data_source = data_store.query(cci_dataset_collection)[0]
+        ds_from_remote_source = data_source.open_dataset(time_range=['2006-11-21', '2006-11-23'],
+                                                         var_names=['sst_dtime', 'sea_surface_temperature_depth'],
+                                                         region='-49.8, 13.1,-49.7, 13.2')
+        self.assertIsNotNone(ds_from_remote_source)
+        ds = data_source.make_local('local_name_4',
+                                    time_range=['2006-11-21', '2006-11-23'],
+                                    region='-49.8, 13.1,-49.7, 13.2')
+        self.assertIsNotNone(ds)
+
+    def test_make_local_spatial_2(self):
         data_store = EsaCciOdpDataStore()
         # The following reproduces Cate issues #823, #822, #818, #816, #783, #892:
         cci_dataset_collection = 'esacci.SST.day.L4.SSTdepth.multi-sensor.multi-platform.OSTIA.1-1.r1'
