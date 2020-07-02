@@ -617,17 +617,22 @@ class SpatialSubsetTest(unittest.TestCase):
 
     def test_open_dataset(self):
         data_store = EsaCciOdpDataStore()
-        data_source_ozone = \
-            data_store.query(ds_id='esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1')[0]
-        ds_from_remote_source_ozone = data_source_ozone.open_dataset(time_range=['1997-01-04', '1997-02-01'],
-                                                                     var_names=['O3e_du_tot', 'O3e_du'],
-                                                                     region='-166.2, 61.0,-166.1, 61.1')
-        self.assertIsNotNone(ds_from_remote_source_ozone)
+        # The following reproduced Cate issues #892:
+        cci_dataset_collection = 'esacci.SST.day.L4.SSTdepth.multi-sensor.multi-platform.OSTIA.1-1.r1'
+        data_source = data_store.query(cci_dataset_collection)[0]
+        ds_from_remote_source = data_source.open_dataset(time_range=['1991-09-01', '1991-09-03'],
+                                                         var_names=['sea_ice_fraction', 'analysed_sst'],
+                                                         region='-2.8, 70.6,-2.7, 70.7')
+        self.assertIsNotNone(ds_from_remote_source)
+        ds = data_source.make_local('local_name_2',
+                                    time_range=['1997-01-04', '1997-02-01'],
+                                    region='-166.2, 61.0,-166.1, 61.1')
+        self.assertIsNotNone(ds)
 
-    @unittest.skip(reason='Requires variable access which is not integrated yet.')
     def test_make_local_spatial(self):
         data_store = EsaCciOdpDataStore()
-        data_source = data_store.query(ds_id='esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.COMBINED.04.5.r1')[0]
+        data_source = data_store.query(
+            ds_id='esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.COMBINED.04.5.r1')[0]
         # The following always worked fine:
         ds = data_source.open_dataset(time_range=['2004-01-01', '2004-01-14'], region='-10,40,20,70')
         self.assertIsNotNone(ds)

@@ -1143,7 +1143,7 @@ class EsaCciOdpDataSource(DataSource):
                 time_coverage_end = selected_file_list[idx][2]
                 with child_monitor.starting(label=file_name, total_work=100):
                     try:
-                        remote_dataset = xr.open_dataset(dataset_uri)
+                        remote_dataset = xr.open_dataset(dataset_uri + '#fillmismatch')
                         remote_dataset_root = remote_dataset
                         child_monitor.progress(work=20)
                         if var_names:
