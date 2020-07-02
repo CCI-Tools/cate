@@ -1142,63 +1142,76 @@ class EsaCciOdpDataSource(DataSource):
                 time_coverage_start = selected_file_list[idx][1]
                 time_coverage_end = selected_file_list[idx][2]
                 with child_monitor.starting(label=file_name, total_work=100):
-                    try:
-                        remote_dataset = xr.open_dataset(dataset_uri + '#fillmismatch')
-                        remote_dataset_root = remote_dataset
-                        child_monitor.progress(work=20)
-                        if var_names:
-                            remote_dataset = remote_dataset.drop_vars(
-                                [var_name for var_name in remote_dataset.data_vars.keys()
-                                 if var_name not in var_names]
-                            )
-                        if region:
-                            remote_dataset = normalize_impl(remote_dataset)
-                            remote_dataset = subset_spatial_impl(remote_dataset, region)
-                            remote_dataset = adjust_spatial_attrs_impl(remote_dataset, allow_point=False)
-                            if do_update_of_region_meta_info_once:
-                                local_ds.meta_info['bbox_minx'] = remote_dataset.attrs['geospatial_lon_min']
-                                local_ds.meta_info['bbox_maxx'] = remote_dataset.attrs['geospatial_lon_max']
-                                local_ds.meta_info['bbox_maxy'] = remote_dataset.attrs['geospatial_lat_max']
-                                local_ds.meta_info['bbox_miny'] = remote_dataset.attrs['geospatial_lat_min']
-                                do_update_of_region_meta_info_once = False
-                        if compression_enabled:
-                            for sel_var_name in remote_dataset.variables.keys():
-                                remote_dataset.variables.get(sel_var_name).encoding.update(encoding_update)
-                        # Note: we are using engine='h5netcdf' here because the default engine='netcdf4'
-                        # causes crashes in file "netCDF4/_netCDF4.pyx" with currently used netcdf4-1.4.2 conda
-                        # package from conda-forge. This occurs whenever remote_dataset.to_netcdf() is called a
-                        # second time in this loop.
-                        # Probably related to https://github.com/pydata/xarray/issues/2560.
-                        # And probably fixes Cate issues #823, #822, #818, #816, #783.
-                        remote_dataset.to_netcdf(local_filepath, format='NETCDF4', engine='h5netcdf')
-                        child_monitor.progress(work=75)
+                    attempts = 0
+                    to_append = ''
+                    while attempts < 2:
+                        try:
+                            attempts += 1
+                            remote_dataset = xr.open_dataset(dataset_uri + to_append)
+                            remote_dataset_root = remote_dataset
+                            child_monitor.progress(work=20)
+                            if var_names:
+                                remote_dataset = remote_dataset.drop_vars(
+                                    [var_name for var_name in remote_dataset.data_vars.keys()
+                                     if var_name not in var_names]
+                                )
+                            if region:
+                                remote_dataset = normalize_impl(remote_dataset)
+                                remote_dataset = subset_spatial_impl(remote_dataset, region)
+                                remote_dataset = adjust_spatial_attrs_impl(remote_dataset, allow_point=False)
+                                if do_update_of_region_meta_info_once:
+                                    local_ds.meta_info['bbox_minx'] = remote_dataset.attrs['geospatial_lon_min']
+                                    local_ds.meta_info['bbox_maxx'] = remote_dataset.attrs['geospatial_lon_max']
+                                    local_ds.meta_info['bbox_maxy'] = remote_dataset.attrs['geospatial_lat_max']
+                                    local_ds.meta_info['bbox_miny'] = remote_dataset.attrs['geospatial_lat_min']
+                                    do_update_of_region_meta_info_once = False
+                            if compression_enabled:
+                                for sel_var_name in remote_dataset.variables.keys():
+                                    remote_dataset.variables.get(sel_var_name).encoding.update(encoding_update)
+                            # Note: we are using engine='h5netcdf' here because the default engine='netcdf4'
+                            # causes crashes in file "netCDF4/_netCDF4.pyx" with currently used netcdf4-1.4.2 conda
+                            # package from conda-forge. This occurs whenever remote_dataset.to_netcdf() is called a
+                            # second time in this loop.
+                            # Probably related to https://github.com/pydata/xarray/issues/2560.
+                            # And probably fixes Cate issues #823, #822, #818, #816, #783.
+                            remote_dataset.to_netcdf(local_filepath, format='NETCDF4', engine='h5netcdf')
+                            child_monitor.progress(work=75)
 
-                        if do_update_of_variables_meta_info_once:
-                            variables_info = local_ds.meta_info.get('variables', [])
-                            local_ds.meta_info['variables'] = [var_info for var_info in variables_info
-                                                               if var_info.get('name')
-                                                               in remote_dataset.variables.keys()
-                                                               and var_info.get('name')
-                                                               not in remote_dataset.dims.keys()]
-                            do_update_of_variables_meta_info_once = False
-                        local_ds.add_dataset(os.path.join(local_ds.id, file_name),
-                                             (time_coverage_start, time_coverage_end))
-                        if do_update_of_verified_time_coverage_start_once:
-                            verified_time_coverage_start = time_coverage_start
-                            do_update_of_verified_time_coverage_start_once = False
-                        verified_time_coverage_end = time_coverage_end
-                        child_monitor.progress(work=5)
-                        remote_dataset_root.close()
-                    except HTTPError as e:
-                        raise self._cannot_access_error(time_range, region, var_names,
-                                                        verb="synchronize", cause=e) from e
-                    except (URLError, socket.timeout) as e:
-                        raise self._cannot_access_error(time_range, region, var_names,
-                                                        verb="synchronize", cause=e,
-                                                        error_cls=NetworkError) from e
-                    except OSError as e:
-                        raise self._cannot_access_error(time_range, region, var_names,
-                                                        verb="synchronize", cause=e) from e
+                            if do_update_of_variables_meta_info_once:
+                                variables_info = local_ds.meta_info.get('variables', [])
+                                local_ds.meta_info['variables'] = [var_info for var_info in variables_info
+                                                                   if var_info.get('name')
+                                                                   in remote_dataset.variables.keys()
+                                                                   and var_info.get('name')
+                                                                   not in remote_dataset.dims.keys()]
+                                do_update_of_variables_meta_info_once = False
+                            local_ds.add_dataset(os.path.join(local_ds.id, file_name),
+                                                 (time_coverage_start, time_coverage_end))
+                            if do_update_of_verified_time_coverage_start_once:
+                                verified_time_coverage_start = time_coverage_start
+                                do_update_of_verified_time_coverage_start_once = False
+                            verified_time_coverage_end = time_coverage_end
+                            child_monitor.progress(work=5)
+                            remote_dataset_root.close()
+                        except HTTPError as e:
+                            if attempts == 1:
+                                to_append = '#fillmismatch'
+                                continue
+                            raise self._cannot_access_error(time_range, region, var_names,
+                                                            verb="synchronize", cause=e) from e
+                        except (URLError, socket.timeout) as e:
+                            if attempts == 1:
+                                to_append = '#fillmismatch'
+                                continue
+                            raise self._cannot_access_error(time_range, region, var_names,
+                                                            verb="synchronize", cause=e,
+                                                            error_cls=NetworkError) from e
+                        except OSError as e:
+                            if attempts == 1:
+                                to_append = '#fillmismatch'
+                                continue
+                            raise self._cannot_access_error(time_range, region, var_names,
+                                                            verb="synchronize", cause=e) from e
         local_ds.meta_info['temporal_coverage_start'] = TimeLike.format(verified_time_coverage_start)
         local_ds.meta_info['temporal_coverage_end'] = TimeLike.format(verified_time_coverage_end)
 
