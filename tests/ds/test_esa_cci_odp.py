@@ -625,6 +625,6 @@ class SpatialSubsetTest(unittest.TestCase):
                                                          region='-2.8, 70.6,-2.7, 70.7')
         self.assertIsNotNone(ds_from_remote_source)
         ds = data_source.make_local('local_name_2',
-                                    time_range=['1997-01-04', '1997-02-01'],
-                                    region='-166.2, 61.0,-166.1, 61.1')
+                                    time_range=['1991-09-01', '1991-09-03'],
+                                    region='-2.8, 70.6,-2.7, 70.7')
         self.assertIsNotNone(ds)
