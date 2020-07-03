@@ -1144,8 +1144,6 @@ class EsaCciOdpDataSource(DataSource):
                 with child_monitor.starting(label=file_name, total_work=100):
                     attempts = 0
                     to_append = ''
-                    format = 'NETCDF4'
-                    engine = 'h5netcdf'
                     while attempts < 2:
                         try:
                             attempts += 1
@@ -1170,13 +1168,43 @@ class EsaCciOdpDataSource(DataSource):
                             if compression_enabled:
                                 for sel_var_name in remote_dataset.variables.keys():
                                     remote_dataset.variables.get(sel_var_name).encoding.update(encoding_update)
-                            # Note: we are using engine='h5netcdf' here because the default engine='netcdf4'
-                            # causes crashes in file "netCDF4/_netCDF4.pyx" with currently used netcdf4-1.4.2 conda
-                            # package from conda-forge. This occurs whenever remote_dataset.to_netcdf() is called a
-                            # second time in this loop.
-                            # Probably related to https://github.com/pydata/xarray/issues/2560.
-                            # And probably fixes Cate issues #823, #822, #818, #816, #783.
-                            remote_dataset.to_netcdf(local_filepath, format=format, engine=engine)
+                            to_netcdf_attempts = 0
+                            format = 'NETCDF4'
+                            # format = 'NETCDF3_64BIT'
+                            engine = 'h5netcdf'
+                            # engine = None
+                            while to_netcdf_attempts < 2:
+                                try:
+                                    to_netcdf_attempts += 1
+                                    # Note: we are using engine='h5netcdf' here because the default engine='netcdf4'
+                                    # causes crashes in file "netCDF4/_netCDF4.pyx" with currently used netcdf4-1.4.2 conda
+                                    # package from conda-forge. This occurs whenever remote_dataset.to_netcdf() is called a
+                                    # second time in this loop.
+                                    # Probably related to https://github.com/pydata/xarray/issues/2560.
+                                    # And probably fixes Cate issues #823, #822, #818, #816, #783.
+                                    remote_dataset.to_netcdf(local_filepath, format=format, engine=engine)
+                                except HTTPError as e:
+                                    if to_netcdf_attempts == 1:
+                                        format = 'NETCDF3_64BIT'
+                                        engine = None
+                                        continue
+                                    raise self._cannot_access_error(time_range, region, var_names,
+                                                                    verb="synchronize", cause=e) from e
+                                except (URLError, socket.timeout) as e:
+                                    if to_netcdf_attempts == 1:
+                                        format = 'NETCDF3_64BIT'
+                                        engine = None
+                                        continue
+                                    raise self._cannot_access_error(time_range, region, var_names,
+                                                                    verb="synchronize", cause=e,
+                                                                    error_cls=NetworkError) from e
+                                except OSError as e:
+                                    if to_netcdf_attempts == 1:
+                                        format = 'NETCDF3_64BIT'
+                                        engine = None
+                                        continue
+                                    raise self._cannot_access_error(time_range, region, var_names,
+                                                                    verb="synchronize", cause=e) from e
                             child_monitor.progress(work=75)
 
                             if do_update_of_variables_meta_info_once:
@@ -1198,16 +1226,12 @@ class EsaCciOdpDataSource(DataSource):
                         except HTTPError as e:
                             if attempts == 1:
                                 to_append = '#fillmismatch'
-                                format = 'NETCDF3_64BIT'
-                                engine = None
                                 continue
                             raise self._cannot_access_error(time_range, region, var_names,
                                                             verb="synchronize", cause=e) from e
                         except (URLError, socket.timeout) as e:
                             if attempts == 1:
                                 to_append = '#fillmismatch'
-                                format = 'NETCDF3_64BIT'
-                                engine = None
                                 continue
                             raise self._cannot_access_error(time_range, region, var_names,
                                                             verb="synchronize", cause=e,
@@ -1215,8 +1239,6 @@ class EsaCciOdpDataSource(DataSource):
                         except OSError as e:
                             if attempts == 1:
                                 to_append = '#fillmismatch'
-                                format = 'NETCDF3_64BIT'
-                                engine = None
                                 continue
                             raise self._cannot_access_error(time_range, region, var_names,
                                                             verb="synchronize", cause=e) from e

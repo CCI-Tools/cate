@@ -617,7 +617,7 @@ class SpatialSubsetTest(unittest.TestCase):
 
     def test_make_local_spatial_1(self):
         data_store = EsaCciOdpDataStore()
-        # The following reproduces Cate issues #823, #822, #818, #816, #783, #892:
+        # The following reproduces Cate issues #823, #822, #818, #816, #783, #892, #900:
 
         cci_dataset_collection = 'esacci.SST.satellite-orbit-frequency.L3U.SSTskin.AVHRR-3.Metop-A.AVHRRMTA_G.2-1.r1'
         data_source = data_store.query(cci_dataset_collection)[0]
@@ -632,7 +632,7 @@ class SpatialSubsetTest(unittest.TestCase):
 
     def test_make_local_spatial_2(self):
         data_store = EsaCciOdpDataStore()
-        # The following reproduces Cate issues #823, #822, #818, #816, #783, #892:
+        # The following reproduces Cate issues #823, #822, #818, #816, #783, #892, #900:
         cci_dataset_collection = 'esacci.SST.day.L4.SSTdepth.multi-sensor.multi-platform.OSTIA.1-1.r1'
         data_source = data_store.query(cci_dataset_collection)[0]
         ds_from_remote_source = data_source.open_dataset(time_range=['1991-09-01', '1991-09-03'],
