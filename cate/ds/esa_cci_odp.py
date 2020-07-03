@@ -1168,13 +1168,28 @@ class EsaCciOdpDataSource(DataSource):
                             if compression_enabled:
                                 for sel_var_name in remote_dataset.variables.keys():
                                     remote_dataset.variables.get(sel_var_name).encoding.update(encoding_update)
-                            # Note: we are using engine='h5netcdf' here because the default engine='netcdf4'
-                            # causes crashes in file "netCDF4/_netCDF4.pyx" with currently used netcdf4-1.4.2 conda
-                            # package from conda-forge. This occurs whenever remote_dataset.to_netcdf() is called a
-                            # second time in this loop.
-                            # Probably related to https://github.com/pydata/xarray/issues/2560.
-                            # And probably fixes Cate issues #823, #822, #818, #816, #783.
-                            remote_dataset.to_netcdf(local_filepath, format='NETCDF4', engine='h5netcdf')
+                            to_netcdf_attempts = 0
+                            format = 'NETCDF4'
+                            # format = 'NETCDF3_64BIT'
+                            engine = 'h5netcdf'
+                            # engine = None
+                            while to_netcdf_attempts < 2:
+                                try:
+                                    to_netcdf_attempts += 1
+                                    # Note: we are using engine='h5netcdf' here because the default engine='netcdf4'
+                                    # causes crashes in file "netCDF4/_netCDF4.pyx" with currently used netcdf4-1.4.2 conda
+                                    # package from conda-forge. This occurs whenever remote_dataset.to_netcdf() is called a
+                                    # second time in this loop.
+                                    # Probably related to https://github.com/pydata/xarray/issues/2560.
+                                    # And probably fixes Cate issues #823, #822, #818, #816, #783.
+                                    remote_dataset.to_netcdf(local_filepath, format=format, engine=engine)
+                                except AttributeError as e:
+                                    if to_netcdf_attempts == 1:
+                                        format = 'NETCDF3_64BIT'
+                                        engine = None
+                                        continue
+                                    raise self._cannot_access_error(time_range, region, var_names,
+                                                                    verb="synchronize", cause=e) from e
                             child_monitor.progress(work=75)
 
                             if do_update_of_variables_meta_info_once:
