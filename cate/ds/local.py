@@ -503,6 +503,9 @@ class LocalDataSource(DataSource):
                '<tr><td>Files</td><td><strong>%s</strong></td></tr>\n' \
                '</table>\n' % (html.escape(self._id), html.escape(' '.join(self._files)))
 
+    def __repr__(self):
+        return self.id
+
     def to_json_dict(self):
         """
         Return a JSON-serializable dictionary representation of this object.
