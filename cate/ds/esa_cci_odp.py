@@ -1183,22 +1183,7 @@ class EsaCciOdpDataSource(DataSource):
                                     # Probably related to https://github.com/pydata/xarray/issues/2560.
                                     # And probably fixes Cate issues #823, #822, #818, #816, #783.
                                     remote_dataset.to_netcdf(local_filepath, format=format, engine=engine)
-                                except HTTPError as e:
-                                    if to_netcdf_attempts == 1:
-                                        format = 'NETCDF3_64BIT'
-                                        engine = None
-                                        continue
-                                    raise self._cannot_access_error(time_range, region, var_names,
-                                                                    verb="synchronize", cause=e) from e
-                                except (URLError, socket.timeout) as e:
-                                    if to_netcdf_attempts == 1:
-                                        format = 'NETCDF3_64BIT'
-                                        engine = None
-                                        continue
-                                    raise self._cannot_access_error(time_range, region, var_names,
-                                                                    verb="synchronize", cause=e,
-                                                                    error_cls=NetworkError) from e
-                                except OSError as e:
+                                except AttributeError as e:
                                     if to_netcdf_attempts == 1:
                                         format = 'NETCDF3_64BIT'
                                         engine = None
