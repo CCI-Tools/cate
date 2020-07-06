@@ -1,5 +1,6 @@
 ## Version 2.1.0 (in development)
 
+* Cate Web API is now handling user preferences
 * Remodeled ODP Data Store to support newly designed CEDA OpenSearch Service. 
   The previous Data Store implementation is now available as "ESA CCI Open Data Portal Legacy".   
 * Cate Web API at now allows changes to the root path using environment variable JUPYTERHUB_SERVICE_PREFIX. This is relevant to Catehub context where each user's cate service is mounted on /user/{username}/{cate-web-api-endpoint}.
