@@ -58,7 +58,8 @@ from cate.util.web import JsonRpcWebSocketHandler
 from cate.util.web.webapi import run_start, url_pattern, WebAPIRequestHandler, WebAPIExitHandler
 from cate.version import __version__
 from cate.webapi.rest import ResourcePlotHandler, CountriesGeoJSONHandler, ResVarTileHandler, \
-    ResFeatureCollectionHandler, ResFeatureHandler, ResVarCsvHandler, ResVarHtmlHandler, NE2Handler
+    ResFeatureCollectionHandler, ResFeatureHandler, ResVarCsvHandler, ResVarHtmlHandler, NE2Handler, \
+    DatasetHandler
 from cate.webapi.mpl import MplJavaScriptHandler, MplDownloadHandler, MplWebSocketHandler
 from cate.webapi.websocket import WebSocketService
 from cate.webapi.service import SERVICE_NAME, SERVICE_TITLE
@@ -82,28 +83,6 @@ class WebAPIInfoHandler(WebAPIRequestHandler):
                                       'user_root_mode': user_root_mode})
 
         self.finish()
-
-
-# noinspection PyAbstractClass
-class WebAPICfgHandler(WebAPIRequestHandler):
-    def get(self):
-        user_root_mode = isinstance(self.application.workspace_manager, RelativeFSWorkspaceManager)
-
-        self.write_status_ok(content={'name': SERVICE_NAME,
-                                      'version': __version__,
-                                      'timestaffmp': date.today().isoformat(),
-                                      'user_root_mode': user_root_mode})
-
-        self.finish()
-
-    def post(self):
-        pass
-
-    def put(self):
-        pass
-
-    def delete(self):
-        pass
 
 
 def service_factory(application):
@@ -131,8 +110,8 @@ def create_application(user_root_path: str = None):
         (url_root + 'mpl.js', MplJavaScriptHandler),
         (url_pattern(url_root + 'mpl/download/{{base_dir}}/{{figure_id}}/{{format_name}}'), MplDownloadHandler),
         (url_pattern(url_root + 'mpl/figures/{{base_dir}}/{{figure_id}}'), MplWebSocketHandler),
+        (url_pattern(url_root + 'dataset/upload'), DatasetHandler),
         (url_pattern(url_root), WebAPIInfoHandler),
-        (url_pattern(url_root + 'cfg'), WebAPICfgHandler),
         (url_pattern(url_root + 'exit'), WebAPIExitHandler),
         (url_pattern(url_root + 'api'), JsonRpcWebSocketHandler, dict(
             service_factory=service_factory,

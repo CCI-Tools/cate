@@ -31,7 +31,7 @@ import time
 import traceback
 import urllib.request
 from datetime import datetime
-from typing import List, Callable, Optional, Tuple, Union
+from typing import List, Callable, Optional, Tuple
 
 # from tornado.platform.asyncio import AnyThreadEventLoopPolicy
 import tornado.options
@@ -49,7 +49,7 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
 
 _LOG = logging.getLogger('cate')
 
-ApplicationFactory = Callable[[Union[str, None]], Application]
+ApplicationFactory = Callable[[Optional[str]], Application]
 
 
 def _get_common_cli_parser(name: str,
@@ -184,7 +184,7 @@ class WebAPI:
         self.service_info = None
 
     @classmethod
-    def get_webapi(cls, application: Application) -> 'WebAPI':
+    def get_webapi(cls, application: Application) -> Optional['WebAPI']:
         """
         Retrieves the associated WebAPI service from the given Tornado web application.
 
@@ -269,7 +269,9 @@ class WebAPI:
 
         print(f'{name}: started service, listening on {join_address_and_port(address, port)}')
 
-        self.server = application.listen(port, address='' if address == 'localhost' else address)
+        self.server = application.listen(port, address='' if address == 'localhost' else address,
+                                         max_body_size=1024 * 1024 * 1024,
+                                         max_buffer_size=1024 * 1024 * 1024)
         # Ensure we have the same event loop in all threads
         asyncio.set_event_loop_policy(_GlobalEventLoopPolicy(asyncio.get_event_loop()))
         # Register handlers for common termination signals

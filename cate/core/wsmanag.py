@@ -26,7 +26,7 @@ import shutil
 import uuid
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
-from typing import List, Union, Optional, Tuple, Any
+from typing import List, Optional, Tuple, Any
 
 from .objectio import write_object
 from .workflow import Workflow
@@ -61,7 +61,7 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def new_workspace(self, base_dir: Union[str, None], description: str = None) -> Workspace:
+    def new_workspace(self, base_dir: Optional[str], description: str = None) -> Workspace:
         pass
 
     @abstractmethod
@@ -97,13 +97,13 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def clean_workspace(self, base_dir: str) -> None:
+    def clean_workspace(self, base_dir: str) -> Workspace:
         pass
 
     @abstractmethod
     def run_op_in_workspace(self, base_dir: str,
                             op_name: str, op_args: OpKwArgs,
-                            monitor: Monitor = Monitor.NONE) -> Union[Any, None]:
+                            monitor: Monitor = Monitor.NONE) -> Optional[Any]:
         pass
 
     @abstractmethod
@@ -355,7 +355,7 @@ class FSWorkspaceManager(WorkspaceManager):
 
     def run_op_in_workspace(self, base_dir: str,
                             op_name: str, op_args: OpKwArgs,
-                            monitor: Monitor = Monitor.NONE) -> Union[Any, None]:
+                            monitor: Monitor = Monitor.NONE) -> Optional[Any]:
         workspace = self.get_workspace(base_dir)
         return workspace.run_op(op_name, op_args, monitor=monitor)
 

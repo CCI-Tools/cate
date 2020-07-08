@@ -20,19 +20,23 @@
 # SOFTWARE.
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
-             "Marco Zühlke (Brockmann Consult GmbH)"
+             "Marco Zühlke (Brockmann Consult GmbH)" \
+             "Helge Dzierzon (Brockmann Consult GmbH)"
 
 import concurrent.futures
 import datetime
+import json
 import os
 import sys
 import time
+from typing import Sequence
 
 import fiona
 import geopandas as gpd
 import numpy as np
 import tornado.gen
 import tornado.web
+from tornado import httputil
 import xarray as xr
 
 from .geojson import write_feature_collection, write_feature
@@ -473,6 +477,35 @@ class ResVarHtmlHandler(WorkspaceResourceHandler):
             self.write(resource)
             self.finish()
         except Exception:
+            self.write_status_error(exc_info=sys.exc_info())
+            self.finish()
+
+
+def save_datasources(dataset_files: Sequence):
+    for file in dataset_files:
+
+        file_path = os.path.join('.', file.filename)
+        with open(file_path, 'wb') as fp:
+            fp.write(file.body)
+
+    return 'Files: ' + ', '.join([file.filename for file in dataset_files])
+
+
+# noinspection PyAbstractClass,PyBroadException
+class DatasetHandler(WebAPIRequestHandler):
+    def post(self):
+        try:
+            arguments = dict()
+            files = dict()
+            httputil.parse_body_arguments(self.request.headers.get("Content-Type"),
+                                          self.request.body,
+                                          arguments,
+                                          files)
+            dataset_files = files.get("datasetfiles", [])
+
+            message = save_datasources(dataset_files)
+            self.finish(json.dumps({'status': 'success', 'error': '', 'content': message}))
+        except Exception as e:
             self.write_status_error(exc_info=sys.exc_info())
             self.finish()
 
