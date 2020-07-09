@@ -27,6 +27,22 @@ def assertDatasetEqual(expected, actual):
 
 
 class TestNormalize(TestCase):
+    def test_normalize_zonal_lat_lon(self):
+        lat_size = 3
+        lat_coords = np.arange(0, 30, 10)
+        var_values_1d = xr.DataArray(np.random.random(lat_size), coords=[('latitude_centers', lat_coords)])
+
+        lon_coords = [i + 5. for i in np.arange(-180.0, 180.0, 10.)]
+
+        var_values_2d = xr.DataArray(np.array([var_values_1d.values for _ in lon_coords]).T,
+                                     coords={'lat': lat_coords, 'lon': lon_coords},
+                                     dims=['lat', 'lon'])
+        dataset = xr.Dataset({'first': var_values_1d})
+        expected = xr.Dataset({'first': var_values_2d})
+        actual = normalize(dataset)
+
+        xr.testing.assert_equal(actual, expected)
+
     def test_normalize_lon_lat_2d(self):
         """
         Test nominal execution
