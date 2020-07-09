@@ -80,19 +80,17 @@ def _normalize_zonal_lat_lon(ds: xr.Dataset) -> xr.Dataset:
     :return: a normalized xarray dataset
     """
 
-    if 'latitude_centers' not in ds.coords:
+    if 'latitude_centers' not in ds.coords or 'lon' in ds.coords:
         return ds
-    if 'lon' in ds.coords:
-        return ds
+
     ds_zonal = ds.copy()
     resolution = (ds.latitude_centers.values[1] - ds.latitude_centers.values[0])
     ds_zonal = ds_zonal.assign_coords(lon=[i + (resolution / 2) for i in np.arange(-180.0, 180.0, resolution)])
 
-    for var in ds_zonal.variables:
-        if var not in ds_zonal.coords:
-            if sorted([dim for dim in ds_zonal[var].dims]) == sorted([coord for coord in ds.coords]):
-                ds_zonal[var] = xr.concat([ds_zonal[var] for _ in ds_zonal.lon], 'lon')
-                ds_zonal[var]['lon'] = ds_zonal.lon
+    for var in ds_zonal.data_vars:
+        if sorted([dim for dim in ds_zonal[var].dims]) == sorted([coord for coord in ds.coords]):
+            ds_zonal[var] = xr.concat([ds_zonal[var] for _ in ds_zonal.lon], 'lon')
+            ds_zonal[var]['lon'] = ds_zonal.lon
     ds_zonal = ds_zonal.assign_coords(lat=ds.latitude_centers.values)
     ds_zonal = ds_zonal.rename_dims({'latitude_centers': 'lat'})
     ds_zonal = ds_zonal.drop('latitude_centers')
@@ -119,8 +117,7 @@ def _normalize_zonal_lat_lon(ds: xr.Dataset) -> xr.Dataset:
     ds_zonal.lat.attrs['standard_name'] = 'latitude'
     ds_zonal.lat.attrs['units'] = 'degrees_north'
 
-    ds = ds_zonal.copy()
-    return ds
+    return ds_zonal
 
 
 def _normalize_inverted_lat(ds: xr.Dataset) -> xr.Dataset:
