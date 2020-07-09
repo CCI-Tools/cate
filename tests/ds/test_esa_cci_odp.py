@@ -612,7 +612,7 @@ class DownloadStatisticsTest(unittest.TestCase):
         self.assertEqual(str(download_stats), '64 of 64 MB @ 0.000 MB/s, 100.0% complete')
 
 
-@unittest.skip(reason='Used for debugging to fix Cate issues #823, #822, #818, #816, #783, #892, #900')
+@unittest.skip(reason='Used for debugging to fix Cate issues #823, #822, #818, #816, #783, #892, #900, #904')
 class SpatialSubsetTest(unittest.TestCase):
 
     def test_make_local_spatial_1(self):
@@ -643,3 +643,13 @@ class SpatialSubsetTest(unittest.TestCase):
                                     time_range=['1991-09-01', '1991-09-03'],
                                     region='-2.8, 70.6,-2.7, 70.7')
         self.assertIsNotNone(ds)
+
+    def test_make_local_spatial_3(self):
+        data_store = EsaCciOdpDataStore()
+        # The following reproduces Cate issue #904:
+        cci_dataset_collection = 'esacci.AEROSOL.5-days.L3C.AEX.GOMOS.Envisat.AERGOM.2-19.r1'
+        data_source = data_store.query(cci_dataset_collection)[0]
+        ds_from_remote_source = data_source.open_dataset(time_range=['2002-04-01', '2002-04-06'],
+                                                         var_names=['AEX550_uncertainty', 'ANG400-800-AEX'],
+                                                         region='-113.9, 40.0,-113.8, 40.1')
+        self.assertIsNotNone(ds_from_remote_source)
