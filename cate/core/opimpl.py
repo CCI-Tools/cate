@@ -33,6 +33,7 @@ from shapely.geometry import box, LineString, Polygon
 from .types import PolygonLike, ValidationError
 from ..util.misc import to_list
 from ..util.monitor import Monitor
+from cate.util.time import get_timestamps_from_string
 
 __author__ = "Janis Gailis (S[&]T Norway)" \
              "Norman Fomferra (Brockmann Consult GmbH)"
@@ -348,19 +349,7 @@ def normalize_coord_vars(ds: xr.Dataset) -> xr.Dataset:
     return ds
 
 
-def normalize_missing_time(ds: xr.Dataset) -> xr.Dataset:
-    """
-    Add a time coordinate variable and their associated bounds coordinate variables
-    if temporal CF attributes ``time_coverage_start`` and ``time_coverage_end``
-    are given but the time dimension is missing.
-
-    The new time coordinate variable will be named ``time`` with dimension ['time'] and shape [1].
-    The time bounds coordinates variable will be named ``time_bnds`` with dimensions ['time', 'bnds'] and shape [1,2].
-    Both are of data type ``datetime64``.
-
-    :param ds: Dataset to adjust
-    :return: Adjusted dataset
-    """
+def _get_time_coverage_from_ds(ds: xr.Dataset) -> (pd.Timestamp, pd.Timestamp):
     time_coverage_start = ds.attrs.get('time_coverage_start')
     if time_coverage_start is not None:
         # noinspection PyBroadException
@@ -376,6 +365,26 @@ def normalize_missing_time(ds: xr.Dataset) -> xr.Dataset:
             time_coverage_end = pd.to_datetime(time_coverage_end)
         except BaseException:
             pass
+    if time_coverage_start or time_coverage_end:
+        return time_coverage_start, time_coverage_end
+    filename = ds.encoding.get('source', '')
+    return get_timestamps_from_string(filename)
+
+
+def normalize_missing_time(ds: xr.Dataset) -> xr.Dataset:
+    """
+    Add a time coordinate variable and their associated bounds coordinate variables
+    if temporal CF attributes ``time_coverage_start`` and ``time_coverage_end``
+    are given but the time dimension is missing.
+
+    The new time coordinate variable will be named ``time`` with dimension ['time'] and shape [1].
+    The time bounds coordinates variable will be named ``time_bnds`` with dimensions ['time', 'bnds'] and shape [1,2].
+    Both are of data type ``datetime64``.
+
+    :param ds: Dataset to adjust
+    :return: Adjusted dataset
+    """
+    time_coverage_start, time_coverage_end = _get_time_coverage_from_ds(ds)
 
     if not time_coverage_start and not time_coverage_end:
         # Can't do anything
