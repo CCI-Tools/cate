@@ -302,8 +302,8 @@ def normalize_coord_vars(ds: xr.Dataset) -> xr.Dataset:
 def normalize_missing_time(ds: xr.Dataset) -> xr.Dataset:
     """
     Add a time coordinate variable and their associated bounds coordinate variables
-    if temporal CF attributes ``time_coverage_start`` and ``time_coverage_end``
-    are given but the time dimension is missing.
+    if either temporal CF attributes ``time_coverage_start`` and ``time_coverage_end``
+    are given or time information can be extracted from the file name but the time dimension is missing.
 
     The new time coordinate variable will be named ``time`` with dimension ['time'] and shape [1].
     The time bounds coordinates variable will be named ``time_bnds`` with dimensions ['time', 'bnds'] and shape [1,2].
