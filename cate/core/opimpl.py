@@ -60,6 +60,7 @@ def normalize_impl(ds: xr.Dataset) -> xr.Dataset:
     :param ds: The dataset to normalize.
     :return: The normalized dataset, or the original dataset, if it is already "normal".
     """
+    ds = _normalize_zonal_lat_lon(ds)
     ds = normalize_coord_vars(ds)
     ds = _normalize_lat_lon(ds)
     ds = _normalize_lat_lon_2d(ds)
@@ -69,6 +70,54 @@ def normalize_impl(ds: xr.Dataset) -> xr.Dataset:
     ds = normalize_missing_time(ds)
     ds = _normalize_jd2datetime(ds)
     return ds
+
+
+def _normalize_zonal_lat_lon(ds: xr.Dataset) -> xr.Dataset:
+    """
+    In case that the dataset only contains lat_centers and is a zonal mean dataset,
+    the longitude dimension created and filled with the variable value of certain latitude.
+    :param ds: some xarray dataset
+    :return: a normalized xarray dataset
+    """
+
+    if 'latitude_centers' not in ds.coords or 'lon' in ds.coords:
+        return ds
+
+    ds_zonal = ds.copy()
+    resolution = (ds.latitude_centers.values[1] - ds.latitude_centers.values[0])
+    ds_zonal = ds_zonal.assign_coords(lon=[i + (resolution / 2) for i in np.arange(-180.0, 180.0, resolution)])
+
+    for var in ds_zonal.data_vars:
+        if sorted([dim for dim in ds_zonal[var].dims]) == sorted([coord for coord in ds.coords]):
+            ds_zonal[var] = xr.concat([ds_zonal[var] for _ in ds_zonal.lon], 'lon')
+            ds_zonal[var]['lon'] = ds_zonal.lon
+    ds_zonal = ds_zonal.assign_coords(lat=ds.latitude_centers.values)
+    ds_zonal = ds_zonal.rename_dims({'latitude_centers': 'lat'})
+    ds_zonal = ds_zonal.drop('latitude_centers')
+    ds_zonal = ds_zonal.transpose(..., 'lat', 'lon')
+
+    has_lon_bnds = 'lon_bnds' in ds_zonal.coords or 'lon_bnds' in ds_zonal
+    if not has_lon_bnds:
+        ds_zonal = ds_zonal.assign_coords(
+            lon_bnds=xr.DataArray([[i - (resolution / 2), i + (resolution / 2)] for i in ds_zonal.lon.values],
+                                  dims=['lon', 'bnds']))
+    has_lat_bnds = 'lat_bnds' in ds_zonal.coords or 'lat_bnds' in ds_zonal
+    if not has_lat_bnds:
+        ds_zonal = ds_zonal.assign_coords(
+            lat_bnds=xr.DataArray([[i - (resolution / 2), i + (resolution / 2)] for i in ds_zonal.lat.values],
+                                  dims=['lat', 'bnds']))
+
+    ds_zonal.lon.attrs['bounds'] = 'lon_bnds'
+    ds_zonal.lon.attrs['long_name'] = 'longitude'
+    ds_zonal.lon.attrs['standard_name'] = 'longitude'
+    ds_zonal.lon.attrs['units'] = 'degrees_east'
+
+    ds_zonal.lat.attrs['bounds'] = 'lat_bnds'
+    ds_zonal.lat.attrs['long_name'] = 'latitude'
+    ds_zonal.lat.attrs['standard_name'] = 'latitude'
+    ds_zonal.lat.attrs['units'] = 'degrees_north'
+
+    return ds_zonal
 
 
 def _normalize_inverted_lat(ds: xr.Dataset) -> xr.Dataset:
@@ -784,7 +833,7 @@ def reset_non_spatial(ds_source: xr.Dataset, ds_target: xr.Dataset):
     non_spatial = list()
     for var_name in ds_source.data_vars.keys():
         if 'lat' not in ds_source[var_name].dims and \
-           'lon' not in ds_source[var_name].dims:
+                'lon' not in ds_source[var_name].dims:
             non_spatial.append(var_name)
 
     retset = ds_target
@@ -1067,7 +1116,6 @@ def subset_temporal_index_impl(ds: xr.Dataset,
 
 
 def _normalize_dim_order(ds: xr.Dataset) -> xr.Dataset:
-
     copy_created = False
 
     for var_name in ds.data_vars:
