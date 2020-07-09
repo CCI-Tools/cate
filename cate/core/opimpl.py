@@ -75,18 +75,18 @@ def normalize_impl(ds: xr.Dataset) -> xr.Dataset:
 def _normalize_zonal_lat_lon(ds: xr.Dataset) -> xr.Dataset:
     """
     In case that the dataset only contains lat_centers and is a zonal mean dataset,
-    a lon dimension is filled with the value of a certain latitude.
+    the longitude dimension created and filled with the variable value of certain latitude.
     :param ds: some xarray dataset
     :return: a normalized xarray dataset
     """
 
     if 'latitude_centers' not in ds.coords:
         return ds
-
+    if 'lon' in ds.coords:
+        return ds
     ds_zonal = ds.copy()
     resolution = (ds.latitude_centers.values[1] - ds.latitude_centers.values[0])
     ds_zonal = ds_zonal.assign_coords(lon=[i + (resolution / 2) for i in np.arange(-180.0, 180.0, resolution)])
-
 
     for var in ds_zonal.variables:
         if var not in ds_zonal.coords:
@@ -119,10 +119,8 @@ def _normalize_zonal_lat_lon(ds: xr.Dataset) -> xr.Dataset:
     ds_zonal.lat.attrs['standard_name'] = 'latitude'
     ds_zonal.lat.attrs['units'] = 'degrees_north'
 
-
-
-    # ds = ds_zonal.copy()
-    return ds_zonal
+    ds = ds_zonal.copy()
+    return ds
 
 
 def _normalize_inverted_lat(ds: xr.Dataset) -> xr.Dataset:
