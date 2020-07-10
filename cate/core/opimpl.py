@@ -367,7 +367,7 @@ def _get_time_coverage_from_ds(ds: xr.Dataset) -> (pd.Timestamp, pd.Timestamp):
             pass
     if time_coverage_start or time_coverage_end:
         return time_coverage_start, time_coverage_end
-    filename = ds.encoding.get('source', '')
+    filename = ds.encoding.get('source', '').split('/')[-1]
     return get_timestamps_from_string(filename)
 
 
@@ -406,36 +406,29 @@ def normalize_missing_time(ds: xr.Dataset) -> xr.Dataset:
             ds = ds.drop_vars('time')
             ds = ds.drop_vars([var_name for var_name in ds.coords if time_dim_name in ds.coords[var_name].dims])
 
-    if time_coverage_start or time_coverage_end:
-        # noinspection PyBroadException
-        try:
-            ds = ds.expand_dims('time')
-        except BaseException as e:
-            warnings.warn(f'failed to add time dimension: {e}')
-
-        if time_coverage_start and time_coverage_end:
-            time_value = time_coverage_start + 0.5 * (time_coverage_end - time_coverage_start)
-        else:
-            time_value = time_coverage_start or time_coverage_end
-
-        new_coord_vars = dict(time=xr.DataArray([time_value], dims=['time']))
-
-        if time_coverage_start and time_coverage_end:
-            has_time_bnds = 'time_bnds' in ds.coords or 'time_bnds' in ds
-            if not has_time_bnds:
-                new_coord_vars.update(time_bnds=xr.DataArray([[time_coverage_start, time_coverage_end]],
-                                                             dims=['time', 'bnds']))
-
-        ds = ds.assign_coords(**new_coord_vars)
-
-        ds.coords['time'].attrs['long_name'] = 'time'
-        ds.coords['time'].attrs['standard_name'] = 'time'
-        ds.coords['time'].encoding['units'] = 'days since 1970-01-01'
-        if 'time_bnds' in ds.coords:
-            ds.coords['time'].attrs['bounds'] = 'time_bnds'
-            ds.coords['time_bnds'].attrs['long_name'] = 'time'
-            ds.coords['time_bnds'].attrs['standard_name'] = 'time'
-            ds.coords['time_bnds'].encoding['units'] = 'days since 1970-01-01'
+    try:
+        ds = ds.expand_dims('time')
+    except BaseException as e:
+        warnings.warn(f'failed to add time dimension: {e}')
+    if time_coverage_start and time_coverage_end:
+        time_value = time_coverage_start + 0.5 * (time_coverage_end - time_coverage_start)
+    else:
+        time_value = time_coverage_start or time_coverage_end
+    new_coord_vars = dict(time=xr.DataArray([time_value], dims=['time']))
+    if time_coverage_start and time_coverage_end:
+        has_time_bnds = 'time_bnds' in ds.coords or 'time_bnds' in ds
+        if not has_time_bnds:
+            new_coord_vars.update(time_bnds=xr.DataArray([[time_coverage_start, time_coverage_end]],
+                                                         dims=['time', 'bnds']))
+    ds = ds.assign_coords(**new_coord_vars)
+    ds.coords['time'].attrs['long_name'] = 'time'
+    ds.coords['time'].attrs['standard_name'] = 'time'
+    ds.coords['time'].encoding['units'] = 'days since 1970-01-01'
+    if 'time_bnds' in ds.coords:
+        ds.coords['time'].attrs['bounds'] = 'time_bnds'
+        ds.coords['time_bnds'].attrs['long_name'] = 'time'
+        ds.coords['time_bnds'].attrs['standard_name'] = 'time'
+        ds.coords['time_bnds'].encoding['units'] = 'days since 1970-01-01'
 
     return ds
 
