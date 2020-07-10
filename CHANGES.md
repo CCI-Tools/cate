@@ -1,4 +1,5 @@
 ## Version 2.1.0 (in development)
+* Cate Web API is now handling user preferences
 * Added normalization method in order to handle datasets with zonal means 
   which have no longitude information.
 * Increased robustness when using netcdf library

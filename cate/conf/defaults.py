@@ -33,6 +33,7 @@ GLOBAL_CONF_FILE = os.path.join(DEFAULT_DATA_PATH, 'conf.py')
 VERSION_CONF_FILE = os.path.join(DEFAULT_VERSION_DATA_PATH, 'conf.py')
 LOCAL_CONF_FILE = 'cate-conf.py'
 LOCATION_FILE = 'cate.location'
+USER_PREFERENCES_FILE = 'user-preferences.json'
 
 WORKSPACES_DIR_NAME = 'workspaces'
 SCRATCH_WORKSPACES_DIR_NAME = 'scratch'
