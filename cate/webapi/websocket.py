@@ -287,10 +287,13 @@ class WebSocketService:
                                base_dir: str,
                                op_name: str,
                                op_args: OpKwArgs,
+                               files: Sequence[str],
                                res_name: Optional[str],
                                overwrite: bool,
                                monitor: Monitor) -> list:
         with cwd(base_dir):
+            if 'file' in op_args and 'value' in op_args['file']:
+                op_args['file']['value'] = files[0]
             workspace, res_name = self.workspace_manager.set_workspace_resource(base_dir,
                                                                                 op_name,
                                                                                 op_args,

@@ -28,15 +28,21 @@ import datetime
 import json
 import os
 import sys
+import tempfile
 import time
+import traceback
+import uuid
 from typing import Sequence
 
 import fiona
 import geopandas as gpd
+import magic
 import numpy as np
 import tornado.gen
 import tornado.web
+from matplotlib.figure import Figure
 from tornado import httputil
+import zarr
 import xarray as xr
 
 from .geojson import write_feature_collection, write_feature
@@ -47,8 +53,10 @@ from ..conf.defaults import \
     WEBAPI_WORKSPACE_MEM_TILE_CACHE_CAPACITY, \
     WEBAPI_ON_ALL_CLOSED_AUTO_STOP_AFTER, \
     WEBAPI_USE_WORKSPACE_IMAGERY_CACHE
+from ..core import DATA_STORE_REGISTRY
 from ..core.cdm import get_tiling_scheme
 from ..core.types import GeoDataFrame
+from ..ds.local import LocalDataStore
 from ..util.cache import Cache, MemoryCacheStore, FileCacheStore
 from ..util.im import ImagePyramid, TransformArrayImage, ColorMappedRgbaImage
 from ..util.im.ds import NaturalEarth2Image
@@ -483,16 +491,36 @@ class ResVarHtmlHandler(WorkspaceResourceHandler):
 
 def save_datasources(dataset_files: Sequence):
     for file in dataset_files:
+        local_store = DATA_STORE_REGISTRY.get_data_store('local')
+        file_name = file.filename.replace(" ", "_")
 
-        file_path = os.path.join('.', file.filename)
+        uuid = LocalDataStore.generate_uuid(ref_id=file_name)
+        ds_id = f"local.{file_name}.{uuid}"
+        local_ds = local_store.create_data_source(ds_id, title=ds_id, lock_file=True)
+
+        local_path = os.path.join(local_ds.data_store.data_store_path, local_ds.id)
+        os.mkdir(local_path)
+        file_path = os.path.join(local_path, file_name)
+        with open(file_path, 'wb') as fp:
+            fp.write(file.body)
+
+        local_ds.add_dataset(file_path)
+        local_ds.save(True)
+
+    return 'Files: ' + ', '.join([file.filename for file in dataset_files])
+
+
+def save_datasets(dataset_files: Sequence, base_dir: str):
+    for file in dataset_files:
+        file_path = os.path.join(base_dir, file.filename)
         with open(file_path, 'wb') as fp:
             fp.write(file.body)
 
     return 'Files: ' + ', '.join([file.filename for file in dataset_files])
 
 
-# noinspection PyAbstractClass,PyBroadException
-class DatasetHandler(WebAPIRequestHandler):
+# noinspection PyAbstractClass
+class DataSourceHandler(WebAPIRequestHandler):
     def post(self):
         try:
             arguments = dict()
@@ -504,10 +532,90 @@ class DatasetHandler(WebAPIRequestHandler):
             dataset_files = files.get("datasetfiles", [])
 
             message = save_datasources(dataset_files)
+
             self.finish(json.dumps({'status': 'success', 'error': '', 'content': message}))
         except Exception as e:
-            self.write_status_error(exc_info=sys.exc_info())
+            exc_info = sys.exc_info()
+            content = ''.join(traceback.format_exception(exc_info[0], exc_info[1], exc_info[2]))
+            self.finish(json.dumps({'status': 'error', 'error': '', 'content': content}))
+
+
+# noinspection PyAbstractClass,PyBroadException
+class DatasetHandler(WebAPIRequestHandler):
+    def _stream_file(self, file_name, res_name):
+        if file_name is None:
+            return
+
+        mime = magic.Magic(mime=True)
+        mime_type = mime.from_file(file_name)  # 'application/pdf'
+
+        self.set_header('Content-Type', mime_type)
+
+        self.set_header("Content-Disposition", f"attachment; filename={res_name}.zip")
+        self._stream_file_content(file_name)
+        os.remove(file_name)
+
+    def _stream_file_content(self, file_name):
+        with open(file_name, 'rb') as f:
+            while True:
+                data = f.read(32768)
+                if not data:
+                    break
+                self.write(data)
+
+    def get(self,
+            base_dir: str,
+            res_name: str):
+
+        try:
+            workspace_manager = self.application.workspace_manager
+
+            ds = workspace_manager.get_workspace(base_dir).resource_cache.get(res_name)
+
+            tdir = tempfile.mkdtemp()
+            fn = str(uuid.uuid4())
+            fn = os.path.join(tdir, fn + '.zarr')
+
+            import cate.core.objectio
+            cate.core.objectio.write_object(ds, fn)
+
+            if type(ds) == Figure:
+                import matplotlib.pyplot as plt
+                fn = os.path.join(tdir, fn + '.png')
+                plt.savefig(fn)
+            else:
+                fn = os.path.join(tdir, fn + '.zip')
+
+                store = zarr.ZipStore(fn)
+                ds.to_zarr(store=store)
+                store.close()
+
+            self._stream_file(fn, res_name)
             self.finish()
+        except Exception as e:
+            exc_info = sys.exc_info()
+            content = ''.join(traceback.format_exception(exc_info[0], exc_info[1], exc_info[2]))
+            self.clear()
+            self.finish(json.dumps({'status': 'error', 'error': '', 'content': content}))
+
+    def post(self):
+        try:
+            arguments = dict()
+            files = dict()
+            httputil.parse_body_arguments(self.request.headers.get("Content-Type"),
+                                          self.request.body,
+                                          arguments,
+                                          files)
+            dataset_files = files.get("datasetfiles", [])
+
+            base_dir = arguments['base_dir'][0].decode()
+            message = save_datasets(dataset_files, base_dir)
+
+            self.finish(json.dumps({'status': 'success', 'error': '', 'content': message}))
+        except Exception as e:
+            exc_info = sys.exc_info()
+            content = ''.join(traceback.format_exception(exc_info[0], exc_info[1], exc_info[2]))
+            self.finish(json.dumps({'status': 'error', 'error': '', 'content': content}))
 
 
 def _new_monitor() -> Monitor:
