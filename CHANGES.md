@@ -1,5 +1,6 @@
 ## Version 2.1.0 (in development)
 
+* The Cate Web API has now handlers to up- and download datasets 
 * Cate Web API is now handling user preferences
 * Remodeled ODP Data Store to support newly designed CEDA OpenSearch Service. 
   The previous Data Store implementation is now available as "ESA CCI Open Data Portal Legacy".   
