@@ -328,24 +328,24 @@ class OperationCommandTest(CliTestCase):
 class DataSourceCommandTest(CliTestCase):
     def test_ds_info(self):
         self.assert_main(['ds', 'info',
-                          'esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.04-5.r1'],
+                          'esacci.OC.day.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.3-1.sinusoidal'],
                          expected_status=0,
                          expected_stdout=[
-                             'Data source esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.04-5.r1'])
+                             'Data source esacci.OC.day.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.3-1.sinusoidal'])
         self.assert_main(['ds', 'info',
-                          'esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.04-5.r1', '--var'],
+                          'esacci.OC.day.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.3-1.sinusoidal', '--var'],
                          expected_status=0,
                          expected_stdout=[
-                             'Data source esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.04-5.r1',
-                             'dnflag ():'])
+                             'esacci.OC.day.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.3-1.sinusoidal',
+                             'VIIRS_nobs ():'])
         self.assert_main(['ds', 'info', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'],
                          expected_status=1,
                          expected_stderr=['data source "SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2" not found'])
 
     def test_ds_list(self):
         self.assert_main(['ds', 'list'],
-                         expected_stdout=['5 data sources found'])
-        self.assert_main(['ds', 'list', '--name', 'SOILMOISTURE'],
+                         expected_stdout=['4 data sources found'])
+        self.assert_main(['ds', 'list', '--name', 'OZONE'],
                          expected_stdout=['One data source found'])
 
     def test_ds_update(self):
