@@ -75,6 +75,7 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Paolo Pesciullesi (Telespazio VEGA UK Ltd)"
 
 _OPENSEARCH_CEDA_URL = "http://opensearch-test.ceda.ac.uk/opensearch/request"
+_OPENSEARCH_CEDA_ODD_URL = 'http://opensearch-test.ceda.ac.uk/opensearch/description.xml?parentIdentifier=cci'
 
 ODD_NS = {'os': 'http://a9.com/-/spec/opensearch/1.1/',
           'param': 'http://a9.com/-/spec/opensearch/extensions/parameters/1.0/'}
@@ -572,6 +573,7 @@ class EsaCciOdpDataStore(DataStore):
         self._index_cache_update_tag = index_cache_update_tag
         self._metadata_store_path = meta_data_store_path
         self._data_sources = []
+        self._drs_ids = []
 
     @property
     def description(self) -> Optional[str]:
@@ -703,12 +705,20 @@ class EsaCciOdpDataStore(DataStore):
     def __repr__(self) -> str:
         return "EsaCciOdpDataStore (%s)" % self.id
 
+    async def _fetch_dataset_names(self, session):
+        meta_info_dict = await _extract_metadata_from_odd_url(session, _OPENSEARCH_CEDA_ODD_URL)
+        if 'drs_ids' in meta_info_dict:
+            return meta_info_dict['drs_ids']
+
     async def _init_data_sources(self):
         os.makedirs(self._metadata_store_path, exist_ok=True)
         if self._data_sources:
             return
         if self._catalogue is None:
             await self._load_index()
+        if not self._drs_ids:
+            async with aiohttp.ClientSession() as session:
+                self._drs_ids = await self._fetch_dataset_names(session)
         if self._catalogue:
             self._data_sources = []
             tasks = []
@@ -734,21 +744,16 @@ class EsaCciOdpDataStore(DataStore):
                                               cache_timestamp_filename='meta-info-timestamp.txt',
                                               cache_expiration_days=self.index_cache_expiration_days)
         drs_ids = self._get_as_list(meta_info, 'drs_id', 'drs_ids')
-        with open(os.path.join(os.path.dirname(__file__), 'data/excluded_data_sources')) as fp:
-            excluded_data_sources = fp.read().split('\n')
-            for drs_id in drs_ids:
-                if drs_id in excluded_data_sources:
-                    continue
-                if drs_id in set([ds.id for ds in self._data_sources]):
-                    _LOG.warning(f'Data source {drs_id} already included. Will omit this one.')
-                    continue
-                meta_info = meta_info.copy()
-                meta_info.update(json_dict)
-                self._adjust_json_dict(meta_info, drs_id)
-                meta_info['cci_project'] = meta_info['ecv']
-                meta_info['fid'] = datasource_id
-                data_source = EsaCciOdpDataSource(self, meta_info, datasource_id, drs_id)
-                self._data_sources.append(data_source)
+        for drs_id in drs_ids:
+            if drs_id not in self._drs_ids:
+                continue
+            meta_info = meta_info.copy()
+            meta_info.update(json_dict)
+            self._adjust_json_dict(meta_info, drs_id)
+            meta_info['cci_project'] = meta_info['ecv']
+            meta_info['fid'] = datasource_id
+            data_source = EsaCciOdpDataSource(self, meta_info, datasource_id, drs_id)
+            self._data_sources.append(data_source)
 
     def _adjust_json_dict(self, json_dict: dict, drs_id: str):
         values = drs_id.split('.')
