@@ -111,7 +111,7 @@ def create_application(user_root_path: str = None):
         (url_pattern(url_root + 'mpl/download/{{base_dir}}/{{figure_id}}/{{format_name}}'), MplDownloadHandler),
         (url_pattern(url_root + 'mpl/figures/{{base_dir}}/{{figure_id}}'), MplWebSocketHandler),
         (url_pattern(url_root + 'dataset/upload'), DatasetHandler),
-        (url_pattern(url_root + 'dataset/{{base_dir}}/{{res_name}}'), DatasetHandler),
+        (url_pattern(url_root + 'dataset/{{base_dir}}/{{res_name}}/download'), DatasetHandler),
         (url_pattern(url_root + 'dataset/add'), DataSourceHandler),
         (url_pattern(url_root), WebAPIInfoHandler),
         (url_pattern(url_root + 'exit'), WebAPIExitHandler),

@@ -489,38 +489,29 @@ class ResVarHtmlHandler(WorkspaceResourceHandler):
             self.finish()
 
 
-def save_datasources(dataset_files: Sequence):
-    for file in dataset_files:
-        local_store = DATA_STORE_REGISTRY.get_data_store('local')
-        file_name = file.filename.replace(" ", "_")
-
-        uuid = LocalDataStore.generate_uuid(ref_id=file_name)
-        ds_id = f"local.{file_name}.{uuid}"
-        local_ds = local_store.create_data_source(ds_id, title=ds_id, lock_file=True)
-
-        local_path = os.path.join(local_ds.data_store.data_store_path, local_ds.id)
-        os.mkdir(local_path)
-        file_path = os.path.join(local_path, file_name)
-        with open(file_path, 'wb') as fp:
-            fp.write(file.body)
-
-        local_ds.add_dataset(file_path)
-        local_ds.save(True)
-
-    return 'Files: ' + ', '.join([file.filename for file in dataset_files])
-
-
-def save_datasets(dataset_files: Sequence, base_dir: str):
-    for file in dataset_files:
-        file_path = os.path.join(base_dir, file.filename)
-        with open(file_path, 'wb') as fp:
-            fp.write(file.body)
-
-    return 'Files: ' + ', '.join([file.filename for file in dataset_files])
-
-
+# TODO: Test
 # noinspection PyAbstractClass
 class DataSourceHandler(WebAPIRequestHandler):
+    def _save_datasources(self, dataset_files: Sequence):
+        for file in dataset_files:
+            local_store = DATA_STORE_REGISTRY.get_data_store('local')
+            file_name = file.filename.replace(" ", "_")
+
+            uuid = LocalDataStore.generate_uuid(ref_id=file_name)
+            ds_id = f"local.{file_name}.{uuid}"
+            local_ds = local_store.create_data_source(ds_id, title=ds_id, lock_file=True)
+
+            local_path = os.path.join(local_ds.data_store.data_store_path, local_ds.id)
+            os.mkdir(local_path)
+            file_path = os.path.join(local_path, file_name)
+            with open(file_path, 'wb') as fp:
+                fp.write(file.body)
+
+            local_ds.add_dataset(file_path)
+            local_ds.save(True)
+
+        return 'Files: ' + ', '.join([file.filename for file in dataset_files])
+
     def post(self):
         try:
             arguments = dict()
@@ -531,7 +522,7 @@ class DataSourceHandler(WebAPIRequestHandler):
                                           files)
             dataset_files = files.get("datasetfiles", [])
 
-            message = save_datasources(dataset_files)
+            message = self._save_datasources(dataset_files)
 
             self.finish(json.dumps({'status': 'success', 'error': '', 'content': message}))
         except Exception as e:
@@ -540,6 +531,7 @@ class DataSourceHandler(WebAPIRequestHandler):
             self.finish(json.dumps({'status': 'error', 'error': '', 'content': content}))
 
 
+# TODO: Test
 # noinspection PyAbstractClass,PyBroadException
 class DatasetHandler(WebAPIRequestHandler):
     def _stream_file(self, file_name, res_name):
@@ -563,9 +555,15 @@ class DatasetHandler(WebAPIRequestHandler):
                     break
                 self.write(data)
 
-    def get(self,
-            base_dir: str,
-            res_name: str):
+    def _save_datasets(self, dataset_files: Sequence, base_dir: str):
+        for file in dataset_files:
+            file_path = os.path.join(base_dir, file.filename)
+            with open(file_path, 'wb') as fp:
+                fp.write(file.body)
+
+        return 'Files: ' + ', '.join([file.filename for file in dataset_files])
+
+    def get(self, base_dir: str, res_name: str):
 
         try:
             workspace_manager = self.application.workspace_manager
@@ -574,10 +572,9 @@ class DatasetHandler(WebAPIRequestHandler):
 
             tdir = tempfile.mkdtemp()
             fn = str(uuid.uuid4())
-            fn = os.path.join(tdir, fn + '.zarr')
 
-            import cate.core.objectio
-            cate.core.objectio.write_object(ds, fn)
+            # import cate.core.objectio
+            # cate.core.objectio.write_object(ds, fn)
 
             if type(ds) == Figure:
                 import matplotlib.pyplot as plt
@@ -609,7 +606,7 @@ class DatasetHandler(WebAPIRequestHandler):
             dataset_files = files.get("datasetfiles", [])
 
             base_dir = arguments['base_dir'][0].decode()
-            message = save_datasets(dataset_files, base_dir)
+            message = self._save_datasets(dataset_files, base_dir)
 
             self.finish(json.dumps({'status': 'success', 'error': '', 'content': message}))
         except Exception as e:
