@@ -284,7 +284,7 @@ class EsaCciOdpDataStoreTest(unittest.TestCase):
     def test_query(self):
         data_sources = self.data_store.query()
         self.assertIsNotNone(data_sources)
-        self.assertEqual(len(data_sources), 5)
+        self.assertEqual(len(data_sources), 4)
 
     @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
     def test_query_web_access(self):
@@ -346,7 +346,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
 
     def test_make_local_and_update(self):
         soil_moisture_data_sources = self.data_store.query(
-            query_expr='esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.04-5.r1')
+            query_expr='esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1')
         soilmoisture_data_source = soil_moisture_data_sources[0]
 
         reference_path = os.path.join(os.path.dirname(__file__),
