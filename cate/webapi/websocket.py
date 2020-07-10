@@ -18,7 +18,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
 from collections import OrderedDict
 from typing import List, Sequence, Optional, Any, Union, Tuple, Dict
 
@@ -30,6 +29,7 @@ from cate.core.ds import DATA_STORE_REGISTRY
 from cate.core.op import OP_REGISTRY
 from cate.core.workspace import OpKwArgs
 from cate.core.wsmanag import WorkspaceManager
+from cate.conf.userprefs import set_user_prefs, get_user_prefs
 from cate.util.misc import cwd, filter_fileset
 from cate.util.monitor import Monitor
 from cate.util.sround import sround_range
@@ -362,3 +362,9 @@ class WebSocketService:
 
         actual_min, actual_max = sround_range((actual_min, actual_max), ndigits=2)
         return dict(min=actual_min, max=actual_max)
+
+    def set_preferences(self, prefs: dict):
+        return set_user_prefs(prefs)
+
+    def get_preferences(self):
+        return get_user_prefs()
