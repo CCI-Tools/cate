@@ -20,6 +20,7 @@
 # SOFTWARE.
 
 import pandas as pd
+import pandas._libs.tslibs as tslibs
 import re
 from typing import Optional
 from typing import Tuple
@@ -40,19 +41,24 @@ def find_datetime_format(filename: str) -> Tuple[Optional[str], int, int]:
 
 def get_timestamp_from_string(string: str) -> pd.Timestamp:
     time_format, p1, p2 = find_datetime_format(string)
-    time = None
-    if time_format:
-        return pd.to_datetime(string[p1:p2])
-    return time
+    if not time_format:
+        return None
+    try:
+        return pd.to_datetime(string[p1:p2], format=time_format)
+    except tslibs.OutOfBoundsDatetime:
+        return None
 
 def get_timestamps_from_string(string: str) -> (pd.Timestamp, pd.Timestamp):
     first_time = None
     second_time = None
     time_format, p1, p2 = find_datetime_format(string)
-    if time_format:
-        first_time = pd.to_datetime(string[p1:p2])
-    string_rest = string[p2:]
-    time_format, p1, p2 = find_datetime_format(string_rest)
-    if time_format:
-        second_time = pd.to_datetime(string_rest[p1:p2])
+    try:
+        if time_format:
+            first_time = pd.to_datetime(string[p1:p2], format=time_format)
+        string_rest = string[p2:]
+        time_format, p1, p2 = find_datetime_format(string_rest)
+        if time_format:
+            second_time = pd.to_datetime(string_rest[p1:p2], format=time_format)
+    except tslibs.OutOfBoundsDatetime:
+        pass
     return first_time, second_time

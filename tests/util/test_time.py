@@ -35,8 +35,20 @@ class TimeTest(TestCase):
         self.assertEqual(11, end_index)
 
     def test_get_timestamp_from_string(self):
-        timestamp = get_timestamp_from_string('ftze20140305131415dgs')
+        timestamp = get_timestamp_from_string('ftze20140305131415dg0023s')
         self.assertEqual(pd.Timestamp('2014-03-05T13:14:15'), timestamp)
+
+        timestamp = get_timestamp_from_string('ftze201403051314dgs')
+        self.assertEqual(pd.Timestamp('2014-03-05T13:14:00'), timestamp)
+
+        timestamp = get_timestamp_from_string('ftze20140305dgs')
+        self.assertEqual(pd.Timestamp('2014-03-05T00:00:00'), timestamp)
+
+        timestamp = get_timestamp_from_string('ftze201403dgs')
+        self.assertEqual(pd.Timestamp('2014-03-01T00:00:00'), timestamp)
+
+        timestamp = get_timestamp_from_string('ftze2014dgs')
+        self.assertEqual(pd.Timestamp('2014-01-01T00:00:00'), timestamp)
 
     def test_get_timestamps_from_string(self):
         timestamp_1, timestamp_2 = \
