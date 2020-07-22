@@ -57,6 +57,7 @@ from urllib.error import URLError, HTTPError
 import pandas as pd
 import xarray as xr
 
+from xcube.core.store import DataDescriptor
 from xcube_cci.dataaccess import CciOdpDataStore
 
 from cate.conf import get_config_value, get_data_stores_path
@@ -472,11 +473,13 @@ INFO_FIELD_NAMES = sorted(["title",
 class EsaCciOdpDataSource(DataSource):
     def __init__(self,
                  data_store: EsaCciOdpDataStore,
+                 descriptor: DataDescriptor,
                  json_dict: dict,
                  raw_datasource_id: str,
                  datasource_id: str,
                  schema: Schema = None):
         super(EsaCciOdpDataSource, self).__init__()
+        self._descriptor = descriptor
         self._raw_id = raw_datasource_id
         self._datasource_id = datasource_id
         self._data_store = data_store
@@ -496,27 +499,14 @@ class EsaCciOdpDataSource(DataSource):
 
     @property
     def spatial_coverage(self) -> Optional[PolygonLike]:
-        if self._json_dict \
-                and self._json_dict.get('bbox_minx', None) and self._json_dict.get('bbox_miny', None) \
-                and self._json_dict.get('bbox_maxx', None) and self._json_dict.get('bbox_maxy', None):
-            return PolygonLike.convert([
-                self._json_dict.get('bbox_minx'),
-                self._json_dict.get('bbox_miny'),
-                self._json_dict.get('bbox_maxx'),
-                self._json_dict.get('bbox_maxy')
-            ])
+        if self._descriptor.bbox:
+            return PolygonLike.convert(self._descriptor.bbox)
         return None
 
     def temporal_coverage(self, monitor: Monitor = Monitor.NONE) -> Optional[TimeRange]:
-        if not self._temporal_coverage:
-            temp_coverage_start = self._json_dict.get('temporal_coverage_start', None)
-            temp_coverage_end = self._json_dict.get('temporal_coverage_end', None)
-            if temp_coverage_start and temp_coverage_end:
-                self._temporal_coverage = TimeRangeLike.convert("{},{}".format(temp_coverage_start, temp_coverage_end))
-            else:
-                self.update_file_list(monitor)
-        if self._temporal_coverage:
-            return self._temporal_coverage
+        if self._descriptor.time_range:
+            return TimeRangeLike.convert("{},{}".format(self._descriptor.time_range[0],
+                                                        self._descriptor.time_range[1]))
         return None
 
     @property
@@ -539,7 +529,9 @@ class EsaCciOdpDataSource(DataSource):
 
     @property
     def title(self) -> Optional[str]:
-        return self._json_dict['title']
+        if self._descriptor.attrs:
+            return self._descriptor.attrs.get('title', '')
+        return ''
 
     @property
     def meta_info(self) -> OrderedDict:
