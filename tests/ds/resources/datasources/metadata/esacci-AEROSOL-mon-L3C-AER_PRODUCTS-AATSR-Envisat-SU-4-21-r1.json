@@ -1,0 +1,2011 @@
+{
+  "data_id": "esacci.AEROSOL.mon.L3C.AER_PRODUCTS.AATSR.Envisat.SU.4-21.r1",
+  "type_id": "dataset",
+  "bbox": [
+    -180.0,
+    -90.0,
+    180.0,
+    90.0
+  ],
+  "spatial_res": 1.0,
+  "time_range": [
+    "2002-05-19T23:00:00",
+    "2012-04-30T22:59:59"
+  ],
+  "open_params_schema": {
+    "type": "object",
+    "properties": {
+      "variable_names": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "pixel_count",
+            "AOD550_mean",
+            "AOD550_sdev",
+            "AOD670_mean",
+            "AOD670_sdev",
+            "AOD870_mean",
+            "AOD870_sdev",
+            "AOD1600_mean",
+            "AOD1600_sdev",
+            "ANG550_870_mean",
+            "ANG550_870_sdev",
+            "FM_AOD550_mean",
+            "FM_AOD550_sdev",
+            "D_AOD550_mean",
+            "D_AOD550_sdev",
+            "AAOD550_mean",
+            "AAOD550_sdev",
+            "SSA550_mean",
+            "SSA550_sdev",
+            "surface_reflectance550_mean",
+            "surface_reflectance550_sdev",
+            "surface_reflectance670_mean",
+            "surface_reflectance670_sdev",
+            "surface_reflectance870_mean",
+            "surface_reflectance870_sdev",
+            "surface_reflectance1600_mean",
+            "surface_reflectance1600_sdev",
+            "AOD550_uncertainty_mean",
+            "AOD550_uncertainty_sdev",
+            "AOD550_uncertainty",
+            "AOD550_uncertainty_min",
+            "AOD550_uncertainty_max",
+            "AOD670_uncertainty_mean",
+            "AOD670_uncertainty_sdev",
+            "AOD670_uncertainty",
+            "AOD670_uncertainty_min",
+            "AOD670_uncertainty_max",
+            "AOD870_uncertainty_mean",
+            "AOD870_uncertainty_sdev",
+            "AOD870_uncertainty",
+            "AOD870_uncertainty_min",
+            "AOD870_uncertainty_max",
+            "AOD1600_uncertainty_mean",
+            "AOD1600_uncertainty_sdev",
+            "AOD1600_uncertainty",
+            "AOD1600_uncertainty_min",
+            "AOD1600_uncertainty_max",
+            "cloud_fraction_mean",
+            "cloud_fraction_sdev",
+            "surface_type_number_mean",
+            "surface_type_number_sdev"
+          ]
+        }
+      },
+      "time_range": {
+        "type": "array",
+        "items": [
+          {
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "type": "string",
+            "format": "date-time"
+          }
+        ]
+      },
+      "crs": {
+        "type": "string",
+        "const": "http://www.opengis.net/def/crs/EPSG/0/4326"
+      },
+      "bbox": {
+        "type": "array",
+        "items": [
+          {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          },
+          {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          }
+        ]
+      }
+    },
+    "additionalProperties": false,
+    "required": [
+      "time_range",
+      "variable_names"
+    ]
+  },
+  "data_vars": [
+    {
+      "name": "pixel_count",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "number of retrieval pixels in grid cell",
+        "units": "1",
+        "valid_range": [
+          1,
+          1000
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": 0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "int32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AOD550_mean",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "aerosol optical thickness at 550 nm",
+        "standard_name": "atmosphere_optical_thickness_due_to_ambient_aerosol",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          2.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AOD550_sdev",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "standard deviation aerosol optical thickness at 550 nm",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          2.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AOD670_mean",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "aerosol optical thickness at 670 nm",
+        "standard_name": "atmosphere_optical_thickness_due_to_ambient_aerosol",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          2.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AOD670_sdev",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "standard deviation aerosol optical thickness at 670 nm",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          2.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AOD870_mean",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "standard_name": "atmosphere_optical_thickness_due_to_ambient_aerosol",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          2.0
+        ],
+        "coordinates": "latitude longitude",
+        "long_name": "aerosol optical thickness at 870 nm",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AOD870_sdev",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "standard deviation aerosol optical thickness at 870 nm",
+        "valid_range": [
+          0.0,
+          2.0
+        ],
+        "coordinates": "latitude longitude",
+        "units": "1",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AOD1600_mean",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "aerosol optical thickness at 1600 nm",
+        "standard_name": "atmosphere_optical_thickness_due_to_ambient_aerosol",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          2.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AOD1600_sdev",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "standard deviation aerosol optical thickness at 1600 nm",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          2.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "ANG550_870_mean",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "angstrom exponent computed on AOD550nm and AOD870nm",
+        "standard_name": "angstrom_exponent_of_ambient_aerosol_in_air",
+        "units": "1",
+        "valid_range": [
+          -5.0,
+          5.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "ANG550_870_sdev",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "standard deviation angstrom exponent computed on AOD550nm and AOD870nm",
+        "units": "1",
+        "valid_range": [
+          -5.0,
+          5.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "FM_AOD550_mean",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "fine mode AOD",
+        "standard_name": "atmosphere_optical_thickness_due_to_ambient_aerosol",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          2.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "FM_AOD550_sdev",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "units": "1",
+        "valid_range": [
+          0.0,
+          2.0
+        ],
+        "coordinates": "latitude longitude",
+        "long_name": "standard deviation fine mode AOD",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "D_AOD550_mean",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "non-spherical dust AOD",
+        "standard_name": "atmosphere_optical_thickness_due_to_ambient_aerosol",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          2.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "D_AOD550_sdev",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "standard deviation non-spherical dust AOD",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          2.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AAOD550_mean",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "absorbing AOD",
+        "standard_name": "atmosphere_optical_thickness_due_to_ambient_aerosol",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          2.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AAOD550_sdev",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "standard deviation absorbing AOD",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          2.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "SSA550_mean",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "single scattering albedo at 550nm",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          2.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "SSA550_sdev",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "standard deviation of SSA",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          2.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "surface_reflectance550_mean",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "mean bidirectional surface reflectance (nadir)",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          1.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "surface_reflectance550_sdev",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "standard deviation mean bidirectional surface reflectance (nadir)",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          1.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "surface_reflectance670_mean",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "mean bidirectional surface reflectance (nadir)",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          1.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "surface_reflectance670_sdev",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "standard deviation mean bidirectional surface reflectance (nadir)",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          1.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "surface_reflectance870_mean",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "mean bidirectional surface reflectance (nadir)",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          1.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "surface_reflectance870_sdev",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "standard deviation mean bidirectional surface reflectance (nadir)",
+        "valid_range": [
+          0.0,
+          1.0
+        ],
+        "coordinates": "latitude longitude",
+        "units": "1",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "surface_reflectance1600_mean",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "mean bidirectional surface reflectance (nadir)",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          1.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "surface_reflectance1600_sdev",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "standard deviation mean bidirectional surface reflectance (nadir)",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          1.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AOD550_uncertainty_mean",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "Mean of L2 uncertainty on AOT at 550 nm",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          10.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AOD550_uncertainty_sdev",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "standard deviation of L2 Uncertainty on AOT at 550 nm",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          10.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AOD550_uncertainty",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "propagated L2 uncertainty in aerosol optical thickness at 550 nm",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          10.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AOD550_uncertainty_min",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "units": "1",
+        "valid_range": [
+          0.0,
+          10.0
+        ],
+        "coordinates": "latitude longitude",
+        "long_name": "minimum L2 uncertainty on AOT at 550 nm",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AOD550_uncertainty_max",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "units": "1",
+        "valid_range": [
+          0.0,
+          10.0
+        ],
+        "coordinates": "latitude longitude",
+        "long_name": "maximum L2 uncertainty on AOT at 550 nm",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AOD670_uncertainty_mean",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "Mean of L2 Uncertainty on AOT at 670 nm",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          10.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AOD670_uncertainty_sdev",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "standard deviation of L2 Uncertainty on AOT at 670 nm",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          10.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AOD670_uncertainty",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "propagated L2 uncertainty in aerosol optical thickness at 670 nm",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          10.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AOD670_uncertainty_min",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "minimum L2 Uncertainty on AOT at 670 nm",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          10.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AOD670_uncertainty_max",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "maximum L2 Uncertainty on AOT at 670 nm",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          10.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AOD870_uncertainty_mean",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "units": "1",
+        "valid_range": [
+          0.0,
+          10.0
+        ],
+        "coordinates": "latitude longitude",
+        "long_name": "Mean of L2 uncertainty on AOT at 870 nm",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AOD870_uncertainty_sdev",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "standard deviation of L2 uncertainty on AOT at 870 nm",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          10.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AOD870_uncertainty",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "propagated L2 uncertainty aerosol optical thickness at 870 nm",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          10.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AOD870_uncertainty_min",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "minimum L2 uncertainty on AOT at 870 nm",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          10.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AOD870_uncertainty_max",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "maximum L2 uncertainty on AOT at 870 nm",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          10.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AOD1600_uncertainty_mean",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "units": "1",
+        "valid_range": [
+          0.0,
+          10.0
+        ],
+        "coordinates": "latitude longitude",
+        "long_name": "Mean of L2 uncertainty on AOT at 1600 nm",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AOD1600_uncertainty_sdev",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "standard deviation of L2 uncertainty on AOT at 1600 nm",
+        "valid_range": [
+          0.0,
+          10.0
+        ],
+        "coordinates": "latitude longitude",
+        "units": "1",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AOD1600_uncertainty",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "propagated L2 uncertainty in aerosol optical thickness at 1600 nm",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          10.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AOD1600_uncertainty_min",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "minimum L2 uncertainty on AOT at 1600 nm",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          10.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "AOD1600_uncertainty_max",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "maximum L2 uncertainty on AOT at 1600 nm",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          10.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "cloud_fraction_mean",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "mean fraction of cloud flagged pixels in 10km bin",
+        "standard_name": "cloud_area_fraction",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          1.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "cloud_fraction_sdev",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "standard deviation mean fraction of cloud flagged pixels in 10km bin",
+        "valid_range": [
+          0.0,
+          1.0
+        ],
+        "coordinates": "latitude longitude",
+        "units": "1",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "surface_type_number_mean",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "mean land fraction",
+        "standard_name": "land_area_fraction",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          1.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "surface_type_number_sdev",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "standard deviation mean land fraction",
+        "standard_name": "land_area_fraction",
+        "units": "1",
+        "valid_range": [
+          0.0,
+          1.0
+        ],
+        "coordinates": "latitude longitude",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    }
+  ],
+  "dims": {
+    "lat": 180,
+    "lon": 360
+  },
+  "attrs": {
+    "Conventions": "CF-1.6",
+    "tracking_id": "a63f9cd2-1fed-4f9a-82fd-91f1c1b966b2",
+    "naming_authority": "uk.ac.su.aatsraerosol",
+    "title": "ESA Aerosol Climate Change Initiative (Aerosol CCI): Level 3 aerosol products from AATSR (SU algorithm), Version 4.21",
+    "product_version": "4-21",
+    "summary": "This dataset contains the level-3 daily mean aerosol properties products from AATSR satellite observations. Data are processed by Swansea algorithm",
+    "id": "20020724141127-ESACCI-L3C_AEROSOL-AER_PRODUCTS-AATSR_ENVISAT-SU_DAILY-v4.21.nc",
+    "sensor": "AATSR",
+    "platform": "ENVISAT",
+    "resolution": "1x1 degrees",
+    "projection": "equirectangular",
+    "cdm_data_type": "grid",
+    "lon": 360,
+    "lat": 180,
+    "time": "1",
+    "time_coverage_start": "20020724T143513Z",
+    "time_coverage_end": "20020724T233825Z",
+    "geospatial_lat_min": "-90.0",
+    "geospatial_lat_max": "90.0",
+    "geospatial_lon_min": "-180.0",
+    "geospatial_lon_max": "180.0",
+    "geospatial_lat_units": "degrees_north",
+    "geospatial_lon_units": "degrees_east",
+    "geospatial_lat_resolution": "1.0",
+    "geospatial_lon_resolution": "1.0",
+    "date_created": "20151022T231808Z",
+    "project": "Climate Change Initiative - European Space Agency",
+    "references": "http://www.esa-aerosol-cci.org",
+    "creator_name": "Swansea University",
+    "creator_url": "http://www.swan.ac.uk/staff/academic/environmentsociety/geography/northpeter/",
+    "creator_email": "p.r.j.north@swansea.ac.uk, a.heckel@swansea.ac.uk",
+    "source": "ATS_TOA_1P, V6.05",
+    "history": "Level 3 product from Swansea algorithm",
+    "keywords": "satellite,observation,atmosphere",
+    "keywords_vocabulary": "NASA Global Change Master Directory (GCMD) Science Keywords",
+    "standard_name_vocabulary": "NetCDF Climate and Forecast (CF) Metadata Convention version 18",
+    "license": "ESA CCI Data Policy: free and open access",
+    "inputfilelist": "ATS_TOA_1PUUPA20020724_141127_000065272008_00024_02082_5805.N1 \nATS_TOA_1PUUPA20020724_141127_000065272008_00024_02082_5805.N1 \nATS_TOA_1PUUPA20020724_141127_000065272008_00024_02082_5805.N1 \nATS_TOA_1PUUPA20020724_141127_000065272008_00024_02082_5805.N1 \nATS_TOA_1PUUPA20020724_141127_000065272008_00024_02082_5805.N1 \nATS_TOA_1PUUPA20020724_141127_000065272008_00024_02082_5805.N1",
+    "ecv": "AEROSOL",
+    "institute": "Swansea University",
+    "processing_level": "L3C",
+    "product_string": "SU",
+    "data_type": "AER_PRODUCTS",
+    "sensor_id": "AATSR",
+    "platform_id": "Envisat",
+    "file_formats": [
+      ".nc",
+      ".txt"
+    ],
+    "drs_ids": [
+      "esacci.AEROSOL.day.L3C.AER_PRODUCTS.AATSR.Envisat.SU.4-21.r1",
+      "esacci.AEROSOL.mon.L3C.AER_PRODUCTS.AATSR.Envisat.SU.4-21.r1"
+    ],
+    "abstract": "The ESA Climate Change Initiative Aerosol project has produced a number of global aerosol Essential Climate Variable (ECV) products from a set of European satellite instruments with different characteristics. \n\nThis dataset comprises the Level 3 aerosol products from AATSR, using the Swansea University (SU) algorithm, version 4.21. Both daily and monthly gridded products are available.\n\nFor further details about these data products please see the documentation.",
+    "licences": "Use of these data is covered by the following licence: http://licences.ceda.ac.uk/image/data_access_condition/esacci_aerosol_terms_and_conditions.pdf . When using these data you must cite them correctly using the citation given on the CEDA Data Catalogue record.",
+    "bbox_minx": "-180.0",
+    "bbox_miny": "-90.0",
+    "bbox_maxx": "180.0",
+    "bbox_maxy": "90.0",
+    "temporal_coverage_start": "2002-05-19T23:00:00",
+    "temporal_coverage_end": "2012-04-30T22:59:59",
+    "publication_date": "2016-05-07T12:14:30",
+    "creation_date": "2016-05-07T12:14:30",
+    "uuid": "5dd3881e89c8419bbdba4ab06aa91112",
+    "variables": [
+      {
+        "name": "AOD670_uncertainty_mean",
+        "units": "1",
+        "long_name": "Mean of L2 Uncertainty on AOT at 670 nm"
+      },
+      {
+        "name": "AOD1600_uncertainty_mean",
+        "units": "1",
+        "long_name": "Mean of L2 uncertainty on AOT at 1600 nm"
+      },
+      {
+        "name": "AOD550_uncertainty_mean",
+        "units": "1",
+        "long_name": "Mean of L2 uncertainty on AOT at 550 nm"
+      },
+      {
+        "name": "AOD870_uncertainty_mean",
+        "units": "1",
+        "long_name": "Mean of L2 uncertainty on AOT at 870 nm"
+      },
+      {
+        "name": "AAOD550_mean",
+        "units": "1",
+        "long_name": "absorbing AOD"
+      },
+      {
+        "name": "AOD1600_mean",
+        "units": "1",
+        "long_name": "aerosol optical thickness at 1600 nm"
+      },
+      {
+        "name": "AOD550_mean",
+        "units": "1",
+        "long_name": "aerosol optical thickness at 550 nm"
+      },
+      {
+        "name": "AOD670_mean",
+        "units": "1",
+        "long_name": "aerosol optical thickness at 670 nm"
+      },
+      {
+        "name": "AOD870_mean",
+        "units": "1",
+        "long_name": "aerosol optical thickness at 870 nm"
+      },
+      {
+        "name": "ANG550_870_mean",
+        "units": "1",
+        "long_name": "angstrom exponent computed on AOD550nm and AOD870nm"
+      },
+      {
+        "name": "FM_AOD550_mean",
+        "units": "1",
+        "long_name": "fine mode AOD"
+      },
+      {
+        "name": "latitude",
+        "units": "degrees_north",
+        "long_name": "latitude"
+      },
+      {
+        "name": "longitude",
+        "units": "degrees_east",
+        "long_name": "longitude"
+      },
+      {
+        "name": "AOD670_uncertainty_max",
+        "units": "1",
+        "long_name": "maximum L2 Uncertainty on AOT at 670 nm"
+      },
+      {
+        "name": "AOD1600_uncertainty_max",
+        "units": "1",
+        "long_name": "maximum L2 uncertainty on AOT at 1600 nm"
+      },
+      {
+        "name": "AOD550_uncertainty_max",
+        "units": "1",
+        "long_name": "maximum L2 uncertainty on AOT at 550 nm"
+      },
+      {
+        "name": "AOD870_uncertainty_max",
+        "units": "1",
+        "long_name": "maximum L2 uncertainty on AOT at 870 nm"
+      },
+      {
+        "name": "surface_reflectance1600_mean",
+        "units": "1",
+        "long_name": "mean bidirectional surface reflectance (nadir)"
+      },
+      {
+        "name": "surface_reflectance550_mean",
+        "units": "1",
+        "long_name": "mean bidirectional surface reflectance (nadir)"
+      },
+      {
+        "name": "surface_reflectance670_mean",
+        "units": "1",
+        "long_name": "mean bidirectional surface reflectance (nadir)"
+      },
+      {
+        "name": "surface_reflectance870_mean",
+        "units": "1",
+        "long_name": "mean bidirectional surface reflectance (nadir)"
+      },
+      {
+        "name": "cloud_fraction_mean",
+        "units": "1",
+        "long_name": "mean fraction of cloud flagged pixels in 10km bin"
+      },
+      {
+        "name": "surface_type_number_mean",
+        "units": "1",
+        "long_name": "mean land fraction"
+      },
+      {
+        "name": "AOD670_uncertainty_min",
+        "units": "1",
+        "long_name": "minimum L2 Uncertainty on AOT at 670 nm"
+      },
+      {
+        "name": "AOD1600_uncertainty_min",
+        "units": "1",
+        "long_name": "minimum L2 uncertainty on AOT at 1600 nm"
+      },
+      {
+        "name": "AOD550_uncertainty_min",
+        "units": "1",
+        "long_name": "minimum L2 uncertainty on AOT at 550 nm"
+      },
+      {
+        "name": "AOD870_uncertainty_min",
+        "units": "1",
+        "long_name": "minimum L2 uncertainty on AOT at 870 nm"
+      },
+      {
+        "name": "D_AOD550_mean",
+        "units": "1",
+        "long_name": "non-spherical dust AOD"
+      },
+      {
+        "name": "pixel_count",
+        "units": "1",
+        "long_name": "number of retrieval pixels in grid cell"
+      },
+      {
+        "name": "AOD870_uncertainty",
+        "units": "1",
+        "long_name": "propagated L2 uncertainty aerosol optical thickness at 870 nm"
+      },
+      {
+        "name": "AOD1600_uncertainty",
+        "units": "1",
+        "long_name": "propagated L2 uncertainty in aerosol optical thickness at 1600 nm"
+      },
+      {
+        "name": "AOD550_uncertainty",
+        "units": "1",
+        "long_name": "propagated L2 uncertainty in aerosol optical thickness at 550 nm"
+      },
+      {
+        "name": "AOD670_uncertainty",
+        "units": "1",
+        "long_name": "propagated L2 uncertainty in aerosol optical thickness at 670 nm"
+      },
+      {
+        "name": "SSA550_mean",
+        "units": "1",
+        "long_name": "single scattering albedo at 550nm"
+      },
+      {
+        "name": "AAOD550_sdev",
+        "units": "1",
+        "long_name": "standard deviation absorbing AOD"
+      },
+      {
+        "name": "AOD1600_sdev",
+        "units": "1",
+        "long_name": "standard deviation aerosol optical thickness at 1600 nm"
+      },
+      {
+        "name": "AOD550_sdev",
+        "units": "1",
+        "long_name": "standard deviation aerosol optical thickness at 550 nm"
+      },
+      {
+        "name": "AOD670_sdev",
+        "units": "1",
+        "long_name": "standard deviation aerosol optical thickness at 670 nm"
+      },
+      {
+        "name": "AOD870_sdev",
+        "units": "1",
+        "long_name": "standard deviation aerosol optical thickness at 870 nm"
+      },
+      {
+        "name": "ANG550_870_sdev",
+        "units": "1",
+        "long_name": "standard deviation angstrom exponent computed on AOD550nm and AOD870nm"
+      },
+      {
+        "name": "FM_AOD550_sdev",
+        "units": "1",
+        "long_name": "standard deviation fine mode AOD"
+      },
+      {
+        "name": "surface_reflectance1600_sdev",
+        "units": "1",
+        "long_name": "standard deviation mean bidirectional surface reflectance (nadir)"
+      },
+      {
+        "name": "surface_reflectance550_sdev",
+        "units": "1",
+        "long_name": "standard deviation mean bidirectional surface reflectance (nadir)"
+      },
+      {
+        "name": "surface_reflectance670_sdev",
+        "units": "1",
+        "long_name": "standard deviation mean bidirectional surface reflectance (nadir)"
+      },
+      {
+        "name": "surface_reflectance870_sdev",
+        "units": "1",
+        "long_name": "standard deviation mean bidirectional surface reflectance (nadir)"
+      },
+      {
+        "name": "cloud_fraction_sdev",
+        "units": "1",
+        "long_name": "standard deviation mean fraction of cloud flagged pixels in 10km bin"
+      },
+      {
+        "name": "surface_type_number_sdev",
+        "units": "1",
+        "long_name": "standard deviation mean land fraction"
+      },
+      {
+        "name": "D_AOD550_sdev",
+        "units": "1",
+        "long_name": "standard deviation non-spherical dust AOD"
+      },
+      {
+        "name": "AOD550_uncertainty_sdev",
+        "units": "1",
+        "long_name": "standard deviation of L2 Uncertainty on AOT at 550 nm"
+      },
+      {
+        "name": "AOD670_uncertainty_sdev",
+        "units": "1",
+        "long_name": "standard deviation of L2 Uncertainty on AOT at 670 nm"
+      },
+      {
+        "name": "AOD1600_uncertainty_sdev",
+        "units": "1",
+        "long_name": "standard deviation of L2 uncertainty on AOT at 1600 nm"
+      },
+      {
+        "name": "AOD870_uncertainty_sdev",
+        "units": "1",
+        "long_name": "standard deviation of L2 uncertainty on AOT at 870 nm"
+      },
+      {
+        "name": "SSA550_sdev",
+        "units": "1",
+        "long_name": "standard deviation of SSA"
+      }
+    ],
+    "odd_url": "http://opensearch-test.ceda.ac.uk/opensearch/description.xml?parentIdentifier=5dd3881e89c8419bbdba4ab06aa91112",
+    "metadata_url": "https://catalogue.ceda.ac.uk/export/xml/5dd3881e89c8419bbdba4ab06aa91112.xml",
+    "time_frequency": "month",
+    "cci_project": "AEROSOL",
+    "fid": "5dd3881e89c8419bbdba4ab06aa91112"
+  }
+}

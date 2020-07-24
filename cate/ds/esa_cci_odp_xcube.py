@@ -37,40 +37,30 @@ and may be executed using
 Components
 ==========
 """
-import aiofiles
-import aiohttp
-import asyncio
-import itertools
 import json
-import logging
 import os
-import re
 import socket
-import urllib.parse
-import urllib.request
 from collections import OrderedDict
 from datetime import datetime, timedelta
-import lxml.etree as etree
-from typing import Sequence, Tuple, Optional, Any, Dict, List, Union
+from typing import Sequence, Optional, Any, Dict, List, Union
 from urllib.error import URLError, HTTPError
 
 import pandas as pd
-import xarray as xr
 
-from xcube.core.store import DataDescriptor
+import xcube.core.store as x_store
 from xcube_cci.dataaccess import CciOdpDataStore
 
-from cate.conf import get_config_value, get_data_stores_path
+from cate.conf import get_config_value
+from cate.conf import get_data_stores_path
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
-from cate.core.ds import DATA_STORE_REGISTRY, NetworkError, DataStore, DataSource, Schema, open_xarray_dataset, \
-    DataStoreNotice
-from cate.core.opimpl import subset_spatial_impl, normalize_impl, adjust_spatial_attrs_impl
+from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, DataStoreNotice, NetworkError
 from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, VarNamesLike
 from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
 from cate.util.monitor import Cancellation, Monitor
 
 
-ESA_CCI_ODP_DATA_STORE_ID = 'esa_cci_odp_os'
+ESA_CCI_ODP_DATA_STORE_ID = 'esa_cci_odp_os_xcube'
+_TIMESTAMP_FORMAT = '%Y-%m-%dT%H:%M:%S'
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Tonio Fincke (Brockmann Consult GmbH), " \
@@ -89,25 +79,89 @@ def get_metadata_store_path():
                           os.path.join(get_data_stores_path(), ESA_CCI_ODP_DATA_STORE_ID))
 
 
+def _load_or_fetch_json(fetch_json_function,
+                        fetch_json_args: list = None,
+                        fetch_json_kwargs: dict = None,
+                        cache_used: bool = False,
+                        cache_dir: str = None,
+                        cache_json_filename: str = None,
+                        cache_timestamp_filename: str = None,
+                        cache_expiration_days: float = 1.0) -> Union[Sequence, Dict]:
+    """
+    Return (JSON) value of fetch_json_function or return value of a cached JSON file.
+    """
+    json_obj = None
+    cache_json_file = None
+
+    if cache_used:
+        if cache_dir is None:
+            raise ValueError('if cache_used argument is True, cache_dir argument must not be None')
+        if cache_json_filename is None:
+            raise ValueError('if cache_used argument is True, cache_json_filename argument must not be None')
+        if cache_timestamp_filename is None:
+            raise ValueError('if cache_used argument is True, cache_timestamp_filename argument must not be None')
+        if cache_expiration_days is None:
+            raise ValueError('if cache_used argument is True, cache_expiration_days argument must not be None')
+
+        cache_json_file = os.path.join(cache_dir, cache_json_filename)
+        cache_timestamp_file = os.path.join(cache_dir, cache_timestamp_filename)
+
+        timestamp = datetime(year=2000, month=1, day=1)
+        if os.path.exists(cache_timestamp_file):
+            with open(cache_timestamp_file) as fp:
+                timestamp_text = fp.read()
+                timestamp = datetime.strptime(timestamp_text, _TIMESTAMP_FORMAT)
+
+        time_diff = datetime.now() - timestamp
+        time_diff_days = time_diff.days + time_diff.seconds / 3600. / 24.
+        if time_diff_days < cache_expiration_days:
+            if os.path.exists(cache_json_file):
+                with open(cache_json_file) as fp:
+                    json_text = fp.read()
+                    json_obj = json.loads(json_text)
+
+    if json_obj is None:
+        # noinspection PyArgumentList
+        try:
+            # noinspection PyArgumentList
+            json_obj = fetch_json_function(*(fetch_json_args or []), **(fetch_json_kwargs or {}))
+            if cache_used:
+                os.makedirs(cache_dir, exist_ok=True)
+                # noinspection PyUnboundLocalVariable
+                with open(cache_json_file, "w") as fp:
+                    fp.write(json.dumps(json_obj, indent='  '))
+                # noinspection PyUnboundLocalVariable
+                with open(cache_timestamp_file, "w") as fp:
+                    fp.write(datetime.utcnow().strftime(_TIMESTAMP_FORMAT))
+        except Exception as e:
+            if cache_json_file and os.path.exists(cache_json_file):
+                with open(cache_json_file) as fp:
+                    json_text = fp.read()
+                    json_obj = json.loads(json_text)
+            else:
+                raise e
+
+    return json_obj
+
+
+
 class EsaCciOdpDataStore(DataStore):
     # noinspection PyShadowingBuiltins
     def __init__(self,
-                 id: str = 'esa_cci_odp_os',
-                 title: str = 'ESA CCI Open Data Portal',
+                 id: str = 'esa_cci_odp_os_xcube',
+                 title: str = 'ESA CCI Open Data Portal (xcube access)',
                  index_cache_used: bool = True,
                  index_cache_expiration_days: float = 1.0,
-                 index_cache_json_dict: dict = None,
                  index_cache_update_tag: str = None,
                  meta_data_store_path: str = get_metadata_store_path()
                  ):
         super().__init__(id, title=title, is_local=False)
         self._index_cache_used = index_cache_used
         self._index_cache_expiration_days = index_cache_expiration_days
-        self._catalogue = index_cache_json_dict
         self._index_cache_update_tag = index_cache_update_tag
         self._metadata_store_path = meta_data_store_path
         self._data_sources = []
-        self._drs_ids = []
+        self._data_ids = []
         self._store = CciOdpDataStore(normalize_data=True)
 
 
@@ -183,12 +237,25 @@ class EsaCciOdpDataStore(DataStore):
     def data_store_path(self) -> str:
         return self._metadata_store_path
 
+    def _get_data_ids(self) -> list:
+        if not self._data_ids:
+            self._load_index()
+        return self._data_ids
+
+    def _fetch_data_ids(self) -> dict:
+        data_id_dict = {}
+        data_ids_iter = self._store.get_data_ids()
+        try:
+            while (True):
+                data_id_tuple = next(data_ids_iter)
+                data_id_dict[data_id_tuple[0]] = data_id_tuple[1]
+        except StopIteration:
+            pass
+        return data_id_dict
+
     def query(self, ds_id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) \
             -> Sequence['DataSource']:
-        # if ds_id:
-        #
-        # self._store.search()
-        asyncio.run(self._init_data_sources())
+        self._init_data_sources()
         if ds_id or query_expr:
             return [ds for ds in self._data_sources if ds.matches(ds_id=ds_id, query_expr=query_expr)]
         return self._data_sources
@@ -244,105 +311,18 @@ class EsaCciOdpDataStore(DataStore):
     def __repr__(self) -> str:
         return "EsaCciOdpDataStore (%s)" % self.id
 
-    async def _fetch_dataset_names(self, session):
-        meta_info_dict = await _extract_metadata_from_odd_url(session, _OPENSEARCH_CEDA_ODD_URL)
-        if 'drs_ids' in meta_info_dict:
-            return meta_info_dict['drs_ids']
-
-    async def _init_data_sources(self):
+    def _init_data_sources(self):
         os.makedirs(self._metadata_store_path, exist_ok=True)
         if self._data_sources:
             return
-        if self._catalogue is None:
-            await self._load_index()
-        if not self._drs_ids:
-            async with aiohttp.ClientSession() as session:
-                self._drs_ids = await self._fetch_dataset_names(session)
-        if self._catalogue:
+        if not self._data_ids:
+            self._load_index()
+        if self._data_ids:
             self._data_sources = []
-            tasks = []
-            for catalogue_item in self._catalogue:
-                tasks.append(self._create_data_source(self._catalogue[catalogue_item], catalogue_item))
-            await asyncio.gather(*tasks)
+            for data_id in self._data_ids:
+                self._data_sources.append(EsaCciOdpDataSource(self, self._store, data_id))
         self._check_source_diff()
         self._freeze_source()
-
-    async def _create_data_source(self, json_dict: dict, datasource_id: str):
-        local_metadata_dataset_dir = os.path.join(self._metadata_store_path, datasource_id)
-        # todo set True when dimensions shall be read during meta data fetching
-        meta_info = await _load_or_fetch_json(_fetch_meta_info,
-                                              fetch_json_args=[datasource_id,
-                                                               json_dict.get('odd_url', None),
-                                                               json_dict.get('metadata_url', None),
-                                                               json_dict.get('variables', []),
-                                                               False],
-                                              fetch_json_kwargs=dict(),
-                                              cache_used=self.index_cache_used,
-                                              cache_dir=local_metadata_dataset_dir,
-                                              cache_json_filename='meta-info.json',
-                                              cache_timestamp_filename='meta-info-timestamp.txt',
-                                              cache_expiration_days=self.index_cache_expiration_days)
-        drs_ids = self._get_as_list(meta_info, 'drs_id', 'drs_ids')
-        for drs_id in drs_ids:
-            if drs_id not in self._drs_ids:
-                continue
-            meta_info = meta_info.copy()
-            meta_info.update(json_dict)
-            self._adjust_json_dict(meta_info, drs_id)
-            meta_info['cci_project'] = meta_info['ecv']
-            meta_info['fid'] = datasource_id
-            data_source = EsaCciOdpDataSource(self, meta_info, datasource_id, drs_id)
-            self._data_sources.append(data_source)
-
-    def _adjust_json_dict(self, json_dict: dict, drs_id: str):
-        values = drs_id.split('.')
-        self._adjust_json_dict_for_param(json_dict, 'time_frequency', 'time_frequencies',
-                                         self._convert_time_from_drs_id(values[2]))
-        self._adjust_json_dict_for_param(json_dict, 'processing_level', 'processing_levels', values[3])
-        self._adjust_json_dict_for_param(json_dict, 'data_type', 'data_types', values[4])
-        self._adjust_json_dict_for_param(json_dict, 'sensor_id', 'sensor_ids', values[5])
-        self._adjust_json_dict_for_param(json_dict, 'platform_id', 'platform_ids', values[6])
-        self._adjust_json_dict_for_param(json_dict, 'product_string', 'product_strings', values[7])
-        self._adjust_json_dict_for_param(json_dict, 'product_version', 'product_versions', values[8])
-
-    @staticmethod
-    def _convert_time_from_drs_id(time_value: str) -> str:
-        time_value_lookup = {'mon': 'month', 'month': 'month', 'yr': 'year', 'year': 'year', 'day': 'day',
-                             'satellite-orbit-frequency': 'satellite-orbit-frequency', 'climatology': 'climatology'}
-        if time_value in time_value_lookup:
-            return time_value_lookup[time_value]
-        if re.match('[0-9]+-[days|yrs]', time_value):
-            split_time_value = time_value.split('-')
-            return f'{split_time_value[0]} {split_time_value[1].replace("yrs", "years")}'
-        raise ValueError('Unknown time frequency format')
-
-    def _adjust_json_dict_for_param(self, json_dict: dict, single_name: str, list_name: str, param_value: str):
-        json_dict[single_name] = param_value
-        if list_name in json_dict:
-            json_dict.pop(list_name)
-
-    def _get_pretty_id(self, json_dict: dict, value_tuple: Tuple, drs_id: str) -> str:
-        pretty_values = []
-        for value in value_tuple:
-            pretty_values.append(self._make_string_pretty(value))
-        return f'esacci2.{json_dict["ecv"]}.{".".join(pretty_values)}.{drs_id}'
-
-    def _make_string_pretty(self, string: str):
-        string = string.replace(" ", "-")
-        if string.startswith("."):
-            string = string[1:]
-        if string.endswith("."):
-            string = string[:-1]
-        if "." in string:
-            string = string.replace(".", "-")
-        return string
-
-    def _get_as_list(self, meta_info: dict, single_name: str, list_name: str) -> List:
-        if single_name in meta_info:
-            return [meta_info[single_name]]
-        if list_name in meta_info:
-            return meta_info[list_name]
-        return []
 
     def _get_update_tag(self):
         """
@@ -353,7 +333,7 @@ class EsaCciOdpDataStore(DataStore):
         """
         if self._index_cache_update_tag:
             return self._index_cache_update_tag
-        return 'dataset-list'
+        return 'data-ids'
 
     def _check_source_diff(self):
         """
@@ -422,18 +402,31 @@ class EsaCciOdpDataStore(DataStore):
             with open(frozen_file, 'w+') as json_out:
                 json.dump(freezed_source, json_out)
 
-    async def _load_index(self):
-        self._catalogue = await _load_or_fetch_json(_fetch_data_source_list_json,
-                                                    fetch_json_args=[
-                                                        _OPENSEARCH_CEDA_URL,
-                                                        dict(parentIdentifier='cci')
-                                                    ],
-                                                    cache_used=self._index_cache_used,
-                                                    cache_dir=self._metadata_store_path,
-                                                    cache_json_filename='dataset-list.json',
-                                                    cache_timestamp_filename='dataset-list-timestamp.json',
-                                                    cache_expiration_days=self._index_cache_expiration_days
-                                                    )
+    def _load_index(self):
+        self._data_ids = _load_or_fetch_json(self._fetch_data_ids,
+                                             fetch_json_args=[],
+                                             fetch_json_kwargs=dict(),
+                                             cache_used=self.index_cache_used,
+                                             cache_dir=self._metadata_store_path,
+                                             cache_json_filename='data-ids.json',
+                                             cache_timestamp_filename='data-ids-timestamp.txt',
+                                             cache_expiration_days=self.index_cache_expiration_days)
+
+    def _fetch_descriptor(self, data_id: str) -> dict:
+        return self._store.describe_data(data_id).to_dict()
+
+    def _load_or_fetch_descriptor(self, data_id: str) -> x_store.DataDescriptor:
+        formatted_data_id = data_id.replace('.', '-')
+        descriptor_as_dict = _load_or_fetch_json(self._fetch_descriptor,
+                                                 fetch_json_args=[data_id],
+                                                 fetch_json_kwargs=dict(),
+                                                 cache_used=self.index_cache_used,
+                                                 cache_dir=self._metadata_store_path,
+                                                 cache_json_filename=f'{formatted_data_id}.json',
+                                                 cache_timestamp_filename=f'{formatted_data_id}-timestamp.txt',
+                                                 cache_expiration_days=self.index_cache_expiration_days
+                                                 )
+        return x_store.DatasetDescriptor.from_dict(descriptor_as_dict)
 
 
 INFO_FIELD_NAMES = sorted(["title",
@@ -471,21 +464,12 @@ INFO_FIELD_NAMES = sorted(["title",
 
 
 class EsaCciOdpDataSource(DataSource):
-    def __init__(self,
-                 data_store: EsaCciOdpDataStore,
-                 descriptor: DataDescriptor,
-                 json_dict: dict,
-                 raw_datasource_id: str,
-                 datasource_id: str,
-                 schema: Schema = None):
+    def __init__(self, data_store: EsaCciOdpDataStore, cci_store: x_store.DataStore, data_id: str):
         super(EsaCciOdpDataSource, self).__init__()
-        self._descriptor = descriptor
-        self._raw_id = raw_datasource_id
-        self._datasource_id = datasource_id
         self._data_store = data_store
-        self._json_dict = json_dict
-        self._schema = schema
-        self._file_list = None
+        self._cci_store = cci_store
+        self._datasource_id = data_id
+        self._descriptor = None
         self._meta_info = None
         self._temporal_coverage = None
 
@@ -499,11 +483,13 @@ class EsaCciOdpDataSource(DataSource):
 
     @property
     def spatial_coverage(self) -> Optional[PolygonLike]:
+        self._ensure_descriptor_read()
         if self._descriptor.bbox:
             return PolygonLike.convert(self._descriptor.bbox)
         return None
 
     def temporal_coverage(self, monitor: Monitor = Monitor.NONE) -> Optional[TimeRange]:
+        self._ensure_descriptor_read()
         if self._descriptor.time_range:
             return TimeRangeLike.convert("{},{}".format(self._descriptor.time_range[0],
                                                         self._descriptor.time_range[1]))
@@ -511,24 +497,17 @@ class EsaCciOdpDataSource(DataSource):
 
     @property
     def variables_info(self):
+        self._ensure_descriptor_read()
         variables = []
-        coordinate_variable_names = ['lat', 'lon', 'time', 'lat_bnds', 'lon_bnds', 'time_bnds', 'crs']
-        for variable in self._json_dict['variables']:
-            if 'variable_infos' in self._meta_info and variable['name'] in self._meta_info['variable_infos'] and \
-                    len(self._meta_info['variable_infos'][variable['name']]['dimensions']) == 0:
-                continue
-            if 'dimensions' in self._meta_info and variable['name'] in self._meta_info['dimensions']:
-                continue
-            if variable['name'] not in coordinate_variable_names:
-                variables.append(variable)
+        for variable_descriptor in self._descriptor.data_vars:
+            variables.append(dict(name=variable_descriptor.name,
+                                  units=variable_descriptor.attrs.get('units', ''),
+                                  long_name=variable_descriptor.attrs.get('long_name', '')))
         return variables
 
     @property
-    def schema(self) -> Schema:
-        return self._schema
-
-    @property
     def title(self) -> Optional[str]:
+        self._ensure_descriptor_read()
         if self._descriptor.attrs:
             return self._descriptor.attrs.get('title', '')
         return ''
@@ -536,10 +515,11 @@ class EsaCciOdpDataSource(DataSource):
     @property
     def meta_info(self) -> OrderedDict:
         # noinspection PyBroadException
+        self._ensure_descriptor_read()
         if not self._meta_info:
             self._meta_info = OrderedDict()
             for name in INFO_FIELD_NAMES:
-                value = self._json_dict.get(name, None)
+                value = self._descriptor.attrs.get(name, None)
                 # Many values in the index JSON are one-element lists: turn them into scalars
                 if isinstance(value, list) and len(value) == 1:
                     value = value[0]
@@ -550,93 +530,28 @@ class EsaCciOdpDataSource(DataSource):
 
     @property
     def cache_info(self) -> OrderedDict:
-        coverage = OrderedDict()
-        selected_file_list = self._find_files(None)
-        if selected_file_list:
-            dataset_dir = self.local_dataset_dir()
-            for filename, date_from, date_to, none, none \
-                    in selected_file_list:
-                if os.path.exists(os.path.join(dataset_dir, filename)):
-                    if date_from in coverage.values():
-                        for temp_date_from, temp_date_to in coverage.items():
-                            if temp_date_to == date_from:
-                                coverage[temp_date_from] = date_to
-                    elif date_to in coverage.keys():
-                        temp_date_to = coverage[date_to]
-                        coverage.pop(date_to)
-                        coverage[date_from] = temp_date_to
-                    else:
-                        coverage[date_from] = date_to
-        return coverage
+        return OrderedDict()
 
-    def update_file_list(self, monitor: Monitor = Monitor.NONE) -> None:
-        self._file_list = None
-        asyncio.run(self._init_file_list(monitor))
-
-    def local_dataset_dir(self):
-        return os.path.join(get_data_store_path(), self._raw_id, self._datasource_id)
-
-    def local_metadata_dataset_dir(self):
-        return os.path.join(get_metadata_store_path(), self._raw_id, self._datasource_id)
-
-    def _find_files(self, time_range):
-        requested_start_date, requested_end_date = time_range if time_range else (None, None)
-        asyncio.run(self._init_file_list())
-        if requested_start_date or requested_end_date:
-            selected_file_list = []
-            for file_rec in self._file_list:
-                start_time = file_rec[1]
-                ok = False
-                if start_time:
-                    if requested_start_date and requested_end_date:
-                        ok = requested_start_date <= start_time <= requested_end_date
-                    elif requested_start_date:
-                        ok = requested_start_date <= start_time
-                    elif requested_end_date:
-                        ok = start_time <= requested_end_date
-                if ok:
-                    selected_file_list.append(file_rec)
-        else:
-            selected_file_list = self._file_list
-        return selected_file_list
+    def _ensure_descriptor_read(self):
+        if self._descriptor:
+            return
+        self._descriptor = self._data_store._load_or_fetch_descriptor(self._datasource_id)
 
     def open_dataset(self,
                      time_range: TimeRangeLike.TYPE = None,
                      region: PolygonLike.TYPE = None,
                      var_names: VarNamesLike.TYPE = None,
                      protocol: str = None,
-                     monitor: Monitor = Monitor.NONE) -> Any:
+                     monitor: Monitor = Monitor.NONE
+                     ) -> Any:
         time_range = TimeRangeLike.convert(time_range) if time_range else None
         var_names = VarNamesLike.convert(var_names) if var_names else None
-
-        selected_file_list = self._find_files(time_range)
-        if not selected_file_list:
-            raise self._empty_error(time_range)
-
-        files = self._get_urls_list(selected_file_list, _ODP_PROTOCOL_OPENDAP)
-        # we need to add this very ugly part so that netcdf works with all files
-        files = [f + '#fillmismatch' for f in files]
-        try:
-            return open_xarray_dataset(files, region=region, var_names=var_names, monitor=monitor)
-        except HTTPError as e:
-            raise self._cannot_access_error(time_range, region, var_names,
-                                            cause=e) from e
-        except (URLError, socket.timeout) as e:
-            raise self._cannot_access_error(time_range, region, var_names,
-                                            cause=e, error_cls=NetworkError) from e
-        except OSError as e:
-            raise self._cannot_access_error(time_range, region, var_names,
-                                            cause=e) from e
-
-    @staticmethod
-    def _get_urls_list(files_description_list, protocol) -> Sequence[str]:
-        """
-        Returns urls list extracted from reference esgf specific files description json list
-        :param files_description_list:
-        :param protocol:
-        :return:
-        """
-        return [file_rec[4][protocol].replace('.html', '') for file_rec in files_description_list]
+        bbox = PolygonLike.convert(region).bounds
+        return self._cci_store.open_data(data_id=self._datasource_id,
+                                         variable_names=var_names,
+                                         time_range=[datetime.strftime(time_range[0], '%Y%m%d%H%M%S'),
+                                                     datetime.strftime(time_range[1], '%Y%m%d%H%M%S')],
+                                         bbox=list(bbox))
 
     def _update_local_ds(self, local_ds: LocalDataSource, time_range: TimeRangeLike.TYPE = None,
                          region: PolygonLike.TYPE = None, var_names: VarNamesLike.TYPE = None,
@@ -646,18 +561,7 @@ class EsaCciOdpDataSource(DataSource):
         local_path = os.path.join(local_ds.data_store.data_store_path, local_ds.id)
         if not os.path.exists(local_path):
             os.makedirs(local_path)
-        selected_file_list = self._find_files(time_range)
-        if not selected_file_list:
-            raise self._empty_error(time_range)
-        if region or var_names:
-            self._update_ds_using_opendap(local_path, local_ds, selected_file_list, time_range, var_names, region,
-                                          monitor)
-        else:
-            self._update_ds_using_http(local_path, local_ds, selected_file_list, time_range, region, var_names, monitor)
-        local_ds.save(True)
-
-    def _update_ds_using_opendap(self, local_path, local_ds, selected_file_list, time_range, var_names, region,
-                                 monitor):
+        remote_ds = self.open_dataset(time_range=time_range, region=region, var_names=var_names, monitor=monitor)
         do_update_of_verified_time_coverage_start_once = True
         do_update_of_variables_meta_info_once = True
         do_update_of_region_meta_info_once = True
@@ -668,154 +572,81 @@ class EsaCciOdpDataSource(DataSource):
         encoding_update = dict()
         if compression_enabled:
             encoding_update.update({'zlib': True, 'complevel': compression_level})
-        files = self._get_urls_list(selected_file_list, _ODP_PROTOCOL_OPENDAP)
-        with monitor.starting('Sync ' + self.id, total_work=len(files)):
-            for idx, dataset_uri in enumerate(files):
+        with monitor.starting('Sync ' + self.id, total_work=remote_ds.time.size):
+            for idx, time_stamp in enumerate(remote_ds.time.data):
                 child_monitor = monitor.child(work=1)
-                file_name = os.path.basename(dataset_uri)
+                time_slice = remote_ds.sel(time=time_stamp)
+                time = pd.to_datetime(str(time_stamp)).strftime('%Y%m%d')
+                file_name = f"{remote_ds.title.split(' ')[0]}-{time}"
                 local_filepath = os.path.join(local_path, file_name)
-                time_coverage_start = selected_file_list[idx][1]
-                time_coverage_end = selected_file_list[idx][2]
                 with child_monitor.starting(label=file_name, total_work=100):
-                    attempts = 0
-                    to_append = ''
-                    while attempts < 2:
-                        try:
-                            attempts += 1
-                            remote_dataset = xr.open_dataset(dataset_uri + to_append)
-                            remote_dataset_root = remote_dataset
-                            child_monitor.progress(work=20)
-                            if var_names:
-                                remote_dataset = remote_dataset.drop_vars(
-                                    [var_name for var_name in remote_dataset.data_vars.keys()
-                                     if var_name not in var_names]
-                                )
-                            if region:
-                                remote_dataset = normalize_impl(remote_dataset)
-                                remote_dataset = subset_spatial_impl(remote_dataset, region)
-                                remote_dataset = adjust_spatial_attrs_impl(remote_dataset, allow_point=False)
-                                if do_update_of_region_meta_info_once:
-                                    local_ds.meta_info['bbox_minx'] = remote_dataset.attrs['geospatial_lon_min']
-                                    local_ds.meta_info['bbox_maxx'] = remote_dataset.attrs['geospatial_lon_max']
-                                    local_ds.meta_info['bbox_maxy'] = remote_dataset.attrs['geospatial_lat_max']
-                                    local_ds.meta_info['bbox_miny'] = remote_dataset.attrs['geospatial_lat_min']
-                                    do_update_of_region_meta_info_once = False
-                            if compression_enabled:
-                                for sel_var_name in remote_dataset.variables.keys():
-                                    remote_dataset.variables.get(sel_var_name).encoding.update(encoding_update)
-                            to_netcdf_attempts = 0
-                            format = 'NETCDF4'
-                            # format = 'NETCDF3_64BIT'
-                            engine = 'h5netcdf'
-                            # engine = None
-                            while to_netcdf_attempts < 2:
-                                try:
-                                    to_netcdf_attempts += 1
-                                    # Note: we are using engine='h5netcdf' here because the default engine='netcdf4'
-                                    # causes crashes in file "netCDF4/_netCDF4.pyx" with currently used netcdf4-1.4.2 conda
-                                    # package from conda-forge. This occurs whenever remote_dataset.to_netcdf() is called a
-                                    # second time in this loop.
-                                    # Probably related to https://github.com/pydata/xarray/issues/2560.
-                                    # And probably fixes Cate issues #823, #822, #818, #816, #783.
-                                    remote_dataset.to_netcdf(local_filepath, format=format, engine=engine)
-                                except AttributeError as e:
-                                    if to_netcdf_attempts == 1:
-                                        format = 'NETCDF3_64BIT'
-                                        engine = None
-                                        continue
-                                    raise self._cannot_access_error(time_range, region, var_names,
-                                                                    verb="synchronize", cause=e) from e
-                            child_monitor.progress(work=75)
-
-                            if do_update_of_variables_meta_info_once:
-                                variables_info = local_ds.meta_info.get('variables', [])
-                                local_ds.meta_info['variables'] = [var_info for var_info in variables_info
-                                                                   if var_info.get('name')
-                                                                   in remote_dataset.variables.keys()
-                                                                   and var_info.get('name')
-                                                                   not in remote_dataset.dims.keys()]
-                                do_update_of_variables_meta_info_once = False
-                            local_ds.add_dataset(os.path.join(local_ds.id, file_name),
-                                                 (time_coverage_start, time_coverage_end))
-                            if do_update_of_verified_time_coverage_start_once:
-                                verified_time_coverage_start = time_coverage_start
-                                do_update_of_verified_time_coverage_start_once = False
-                            verified_time_coverage_end = time_coverage_end
-                            child_monitor.progress(work=5)
-                            remote_dataset_root.close()
-                        except HTTPError as e:
-                            if attempts == 1:
-                                to_append = '#fillmismatch'
-                                continue
-                            raise self._cannot_access_error(time_range, region, var_names,
-                                                            verb="synchronize", cause=e) from e
-                        except (URLError, socket.timeout) as e:
-                            if attempts == 1:
-                                to_append = '#fillmismatch'
-                                continue
-                            raise self._cannot_access_error(time_range, region, var_names,
-                                                            verb="synchronize", cause=e,
-                                                            error_cls=NetworkError) from e
-                        except OSError as e:
-                            if attempts == 1:
-                                to_append = '#fillmismatch'
-                                continue
-                            raise self._cannot_access_error(time_range, region, var_names,
-                                                            verb="synchronize", cause=e) from e
-        local_ds.meta_info['temporal_coverage_start'] = TimeLike.format(verified_time_coverage_start)
-        local_ds.meta_info['temporal_coverage_end'] = TimeLike.format(verified_time_coverage_end)
-
-    def _update_ds_using_http(self, local_path, local_ds, selected_file_list, time_range, region, var_names, monitor):
-        do_update_of_verified_time_coverage_start_once = True
-        verified_time_coverage_start = None
-        verified_time_coverage_end = None
-        outdated_file_list = []
-        for file_rec in selected_file_list:
-            filename, _, _, file_size, url = file_rec
-            dataset_file = os.path.join(local_path, filename)
-            # todo (forman, 20160915): must perform better checks on dataset_file if it is...
-            # ... outdated or incomplete or corrupted.
-            # JSON also includes "checksum" and "checksum_type" fields.
-            if not os.path.isfile(dataset_file) or (file_size and os.path.getsize(dataset_file) != file_size):
-                outdated_file_list.append(file_rec)
-        if outdated_file_list:
-            with monitor.starting('Sync ' + self.id, len(outdated_file_list)):
-                bytes_to_download = sum([file_rec[3] for file_rec in outdated_file_list])
-                dl_stat = _DownloadStatistics(bytes_to_download)
-                file_number = 1
-                for filename, coverage_from, coverage_to, file_size, url in outdated_file_list:
-                    dataset_file = os.path.join(local_path, filename)
-                    child_monitor = monitor.child(work=1.0)
-
-                    # noinspection PyUnusedLocal
-                    def reporthook(block_number, read_size, total_file_size):
-                        dl_stat.handle_chunk(read_size)
-                        child_monitor.progress(work=read_size, msg=str(dl_stat))
-
-                    sub_monitor_msg = "file %d of %d" % (file_number, len(outdated_file_list))
-                    with child_monitor.starting(sub_monitor_msg, file_size):
-                        actual_url = url[_ODP_PROTOCOL_HTTP]
-                        _LOG.info(f"Downloading {actual_url} to {dataset_file}")
-                        try:
-                            urllib.request.urlretrieve(actual_url, filename=dataset_file, reporthook=reporthook)
-                        except HTTPError as e:
-                            raise self._cannot_access_error(time_range, region, var_names,
-                                                            verb="synchronize", cause=e) from e
-                        except (URLError, socket.timeout) as e:
-                            raise self._cannot_access_error(time_range, region, var_names,
-                                                            verb="synchronize", cause=e,
-                                                            error_cls=NetworkError) from e
-                        except OSError as e:
-                            raise self._cannot_access_error(time_range, region, var_names,
-                                                            verb="synchronize", cause=e) from e
-                    file_number += 1
-                    local_ds.add_dataset(os.path.join(local_ds.id, filename), (coverage_from, coverage_to))
-                    if do_update_of_verified_time_coverage_start_once:
-                        verified_time_coverage_start = coverage_from
-                        do_update_of_verified_time_coverage_start_once = False
-                    verified_time_coverage_end = coverage_to
-        local_ds.meta_info['temporal_coverage_start'] = TimeLike.format(verified_time_coverage_start)
-        local_ds.meta_info['temporal_coverage_end'] = TimeLike.format(verified_time_coverage_end)
+                    try:
+                        remote_dataset_root = time_slice
+                        child_monitor.progress(work=20)
+                        if region:
+                            if do_update_of_region_meta_info_once:
+                                local_ds.meta_info['bbox_minx'] = time_slice.attrs.get('geospatial_lon_min', '')
+                                local_ds.meta_info['bbox_maxx'] = time_slice.attrs.get('geospatial_lon_max', '')
+                                local_ds.meta_info['bbox_maxy'] = time_slice.attrs.get('geospatial_lat_max', '')
+                                local_ds.meta_info['bbox_miny'] = time_slice.attrs.get('geospatial_lat_min', '')
+                                do_update_of_region_meta_info_once = False
+                        if compression_enabled:
+                            for sel_var_name in remote_ds.variables.keys():
+                                time_slice.variables.get(sel_var_name).encoding.update(encoding_update)
+                        to_netcdf_attempts = 0
+                        format = 'NETCDF4'
+                        engine = 'h5netcdf'
+                        while to_netcdf_attempts < 2:
+                            try:
+                                to_netcdf_attempts += 1
+                                # Note: we are using engine='h5netcdf' here because the default engine='netcdf4'
+                                # causes crashes in file "netCDF4/_netCDF4.pyx" with currently used netcdf4-1.4.2 conda
+                                # package from conda-forge. This occurs whenever remote_dataset.to_netcdf() is called a
+                                # second time in this loop.
+                                # Probably related to https://github.com/pydata/xarray/issues/2560.
+                                # And probably fixes Cate issues #823, #822, #818, #816, #783.
+                                time_slice.to_netcdf(local_filepath, format=format, engine=engine)
+                                break
+                            except AttributeError as e:
+                                if to_netcdf_attempts == 1:
+                                    format = 'NETCDF3_64BIT'
+                                    engine = None
+                                    continue
+                                raise self._cannot_access_error(time_range, region, var_names,
+                                                                verb="synchronize", cause=e) from e
+                        child_monitor.progress(work=75)
+                        if do_update_of_variables_meta_info_once:
+                            variables_info = local_ds.meta_info.get('variables', [])
+                            local_ds.meta_info['variables'] = [var_info for var_info in variables_info
+                                                               if var_info.get('name')
+                                                               in time_slice.variables.keys()
+                                                               and var_info.get('name')
+                                                               not in time_slice.dims.keys()]
+                            do_update_of_variables_meta_info_once = False
+                        time_bounds = time_slice.time_bnds.data
+                        start_time = pd.to_datetime(str(time_bounds[0])).strftime('%Y-%m-%dT%H:%M:%S')
+                        end_time = pd.to_datetime(str(time_bounds[1])).strftime('%Y-%m-%dT%H:%M:%S')
+                        local_ds.add_dataset(os.path.join(local_ds.id, file_name), (start_time, end_time))
+                        if do_update_of_verified_time_coverage_start_once:
+                            verified_time_coverage_start = start_time
+                            do_update_of_verified_time_coverage_start_once = False
+                        verified_time_coverage_end = end_time
+                        child_monitor.progress(work=5)
+                        remote_dataset_root.close()
+                        break
+                    except HTTPError as e:
+                        raise self._cannot_access_error(time_range, region, var_names,
+                                                        verb="synchronize", cause=e) from e
+                    except (URLError, socket.timeout) as e:
+                        raise self._cannot_access_error(time_range, region, var_names,
+                                                        verb="synchronize", cause=e,
+                                                        error_cls=NetworkError) from e
+                    except OSError as e:
+                        raise self._cannot_access_error(time_range, region, var_names,
+                                                        verb="synchronize", cause=e) from e
+        local_ds.meta_info['temporal_coverage_start'] = verified_time_coverage_start
+        local_ds.meta_info['temporal_coverage_end'] = verified_time_coverage_end
+        local_ds.save(True)
 
     def make_local(self,
                    local_name: str,
@@ -881,61 +712,6 @@ class EsaCciOdpDataSource(DataSource):
         else:
             return None
 
-    async def ensure_meta_info_set(self):
-        if self._json_dict:
-            return
-        # todo set True when dimensions shall be read during meta data fetching
-        self._json_dict = await _load_or_fetch_json(_fetch_meta_info,
-                                                         fetch_json_args=[self._raw_id,
-                                                                          self._json_dict['odd_url'],
-                                                                          self._json_dict['metadata_url'],
-                                                                          self._json_dict['variables'],
-                                                                          # True],
-                                                                          False],
-                                                         fetch_json_kwargs=dict(),
-                                                         cache_used=self._data_store.index_cache_used,
-                                                         cache_dir=self.local_metadata_dataset_dir(),
-                                                         cache_json_filename='meta-info.json',
-                                                         cache_timestamp_filename='meta-info-timestamp.txt',
-                                                         cache_expiration_days=self._data_store.index_cache_expiration_days)
-
-    async def _init_file_list(self, monitor: Monitor = Monitor.NONE):
-        await self.ensure_meta_info_set()
-        if self._file_list:
-            return
-        file_list = await _load_or_fetch_json(_fetch_file_list_json,
-                                              fetch_json_args=[self._raw_id, self._datasource_id],
-                                              fetch_json_kwargs=dict(monitor=monitor),
-                                              cache_used=self._data_store.index_cache_used,
-                                              cache_dir=self.local_metadata_dataset_dir(),
-                                              cache_json_filename='file-list.json',
-                                              cache_timestamp_filename='file-list-timestamp.txt',
-                                              cache_expiration_days=self._data_store.index_cache_expiration_days)
-
-        time_frequency = self._json_dict.get('time_frequency', None)
-        if time_frequency is None and 'time_frequencies' in self._json_dict:
-            time_frequency = self._json_dict.get('time_frequencies')[0]
-        if time_frequency:
-            time_delta = _TIME_FREQUENCY_TO_TIME_DELTA.get(time_frequency, timedelta(days=0))
-        else:
-            time_delta = timedelta(days=0)
-
-        data_source_start_date = datetime(3000, 1, 1)
-        data_source_end_date = datetime(1000, 1, 1)
-        # Convert file_start_date from string to datetime object
-        # Compute file_end_date from 'time_frequency' field
-        # Compute the data source's temporal coverage
-        for file_rec in file_list:
-            if file_rec[1]:
-                file_start_date = datetime.strptime(file_rec[1].split('.')[0], _TIMESTAMP_FORMAT)
-                file_end_date = file_start_date + time_delta
-                data_source_start_date = min(data_source_start_date, file_start_date)
-                data_source_end_date = max(data_source_end_date, file_end_date)
-                file_rec[1] = file_start_date
-                file_rec[2] = file_end_date
-        self._temporal_coverage = data_source_start_date, data_source_end_date
-        self._file_list = file_list
-
     def __str__(self):
         return self.info_string
 
@@ -944,27 +720,3 @@ class EsaCciOdpDataSource(DataSource):
 
     def __repr__(self):
         return self.id
-
-
-class _DownloadStatistics:
-    def __init__(self, bytes_total):
-        self.bytes_total = bytes_total
-        self.bytes_done = 0
-        self.start_time = datetime.now()
-
-    def handle_chunk(self, chunk_size: int):
-        self.bytes_done += chunk_size
-
-    def __str__(self):
-        seconds = (datetime.now() - self.start_time).seconds
-        if seconds > 0:
-            mb_per_sec = self._to_megas(self.bytes_done) / seconds
-        else:
-            mb_per_sec = 0.
-        percent = 100. * self.bytes_done / self.bytes_total
-        return "%d of %d MB @ %.3f MB/s, %.1f%% complete" % \
-               (self._to_megas(self.bytes_done), self._to_megas(self.bytes_total), mb_per_sec, percent)
-
-    @staticmethod
-    def _to_megas(bytes_count: int) -> float:
-        return bytes_count / (1000. * 1000.)

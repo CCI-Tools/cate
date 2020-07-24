@@ -1,0 +1,7 @@
+{
+  "esacci.AEROSOL.mon.L3C.AER_PRODUCTS.AATSR.Envisat.SU.4-21.r1": "AEROSOL CCI: Monthly AATSR L3C SU AER_PRODUCTS, v4.21",
+  "esacci.CLOUD.mon.L3C.CLD_PRODUCTS.MODIS.Terra.MODIS_TERRA.2-0.r1": "CLOUD CCI: Monthly MODIS L3C MODIS_TERRA CLD_PRODUCTS, v2.0",
+  "esacci.OC.mon.L3S.K_490.multi-sensor.multi-platform.MERGED.3-1.geographic": "OC CCI: Monthly multi-sensor L3S MERGED K_490, v3.1",
+  "esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1": "OZONE CCI: Monthly multi-sensor L3 MERGED NP, vfv0002",
+  "esacci.SST.day.L4.SSTdepth.multi-sensor.multi-platform.OSTIA.1-1.r1": "SST CCI: Daily multi-sensor L4 OSTIA SSTdepth, v1.1"
+}

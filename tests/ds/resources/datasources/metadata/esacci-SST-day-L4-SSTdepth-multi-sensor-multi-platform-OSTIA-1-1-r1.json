@@ -1,0 +1,408 @@
+{
+  "data_id": "esacci.SST.day.L4.SSTdepth.multi-sensor.multi-platform.OSTIA.1-1.r1",
+  "type_id": "dataset",
+  "bbox": [
+    -180.0,
+    -90.0,
+    180.0,
+    90.0
+  ],
+  "spatial_res": 0.05,
+  "time_range": [
+    "1991-08-31T23:00:00",
+    "2010-12-31T00:00:00"
+  ],
+  "time_period": "1D",
+  "open_params_schema": {
+    "type": "object",
+    "properties": {
+      "variable_names": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "analysed_sst",
+            "analysis_error",
+            "sea_ice_fraction",
+            "sea_ice_fraction_error",
+            "mask"
+          ]
+        }
+      },
+      "time_range": {
+        "type": "array",
+        "items": [
+          {
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "type": "string",
+            "format": "date-time"
+          }
+        ]
+      },
+      "crs": {
+        "type": "string",
+        "const": "http://www.opengis.net/def/crs/EPSG/0/4326"
+      },
+      "bbox": {
+        "type": "array",
+        "items": [
+          {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          },
+          {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          }
+        ]
+      }
+    },
+    "additionalProperties": false,
+    "required": [
+      "time_range",
+      "variable_names"
+    ]
+  },
+  "data_vars": [
+    {
+      "name": "analysed_sst",
+      "dtype": "int16",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "units": "kelvin",
+        "scale_factor": 0.01,
+        "add_offset": 273.15,
+        "long_name": "analysed sea surface temperature",
+        "valid_min": -300,
+        "valid_max": 4500,
+        "standard_name": "sea_water_temperature",
+        "depth": "20 cm",
+        "source": "ATSR<1,2>-ESACCI-L3U-v1.0, AATSR-ESACCI-L3U-v1.0, AVHRR<12,14,15,16,17,18>_G-ESACCI-L2P-v1.0, AVHRRMTA-ESACCI-L2P-v1.0",
+        "comment": "SST analysis produced for ESA SST CCI project using the OSTIA system in reanalysis mode.",
+        "fill_value": -32768,
+        "chunk_sizes": [
+          1,
+          900,
+          1800
+        ],
+        "data_type": "int16",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 25920000
+      }
+    },
+    {
+      "name": "analysis_error",
+      "dtype": "int16",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "units": "kelvin",
+        "scale_factor": 0.01,
+        "add_offset": 0.0,
+        "long_name": "estimated error standard deviation of analysed_sst",
+        "valid_min": 0,
+        "valid_max": 32767,
+        "comment": "SST analysis standard error produced for ESA SST CCI project using the OSTIA system in reanalysis mode.",
+        "standard_name": "sea_water_temperature standard_error",
+        "fill_value": -32768,
+        "chunk_sizes": [
+          1,
+          900,
+          1800
+        ],
+        "data_type": "int16",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 25920000
+      }
+    },
+    {
+      "name": "sea_ice_fraction",
+      "dtype": "uint8",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "_Unsigned": "false",
+        "units": "1",
+        "valid_min": 0,
+        "valid_max": 100,
+        "standard_name": "sea_ice_area_fraction",
+        "source": "EUMETSAT_OSI-SAF-ICE-v1.1, EUMETSAT_OSI-SAF-ICE-v2.2",
+        "long_name": "sea ice area fraction",
+        "comment": "Sea ice fraction field regridded from EUMETSAT OSI-SAF product.",
+        "add_offset": 0.0,
+        "scale_factor": 0.01,
+        "fill_value": -128,
+        "chunk_sizes": [
+          1,
+          1200,
+          2400
+        ],
+        "data_type": "uint8",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 25920000
+      }
+    },
+    {
+      "name": "sea_ice_fraction_error",
+      "dtype": "uint8",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "_Unsigned": "false",
+        "units": "1",
+        "valid_min": 0,
+        "valid_max": 100,
+        "source": "EUMETSAT_OSI-SAF-ICE-v1.1",
+        "long_name": "sea ice area fraction error estimate",
+        "standard_name": "sea_ice_area_fraction standard_error",
+        "comment": "Estimated error standard deviation of sea ice fraction",
+        "add_offset": 0.0,
+        "scale_factor": 0.01,
+        "fill_value": -128,
+        "chunk_sizes": [
+          1,
+          1200,
+          2400
+        ],
+        "data_type": "uint8",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 25920000
+      }
+    },
+    {
+      "name": "mask",
+      "dtype": "uint8",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "_Unsigned": "false",
+        "comment": "b0: 1=grid cell is open sea water, b1: 1=grid cell is land, b2: 1=grid cell is lake surface, b3: 1=grid cell is sea ice, b4-b7: reserved for future grid mask data",
+        "flag_masks": [
+          1,
+          2,
+          4,
+          8,
+          16
+        ],
+        "flag_meanings": "water land optional_lake_surface sea_ice optional_river_surface",
+        "long_name": "sea/land/lake/ice field composite mask",
+        "source": "NAVOCEANO_landmask_v1.0, EUMETSAT_OSI-SAF_icemask, ARCLake_lakemask",
+        "valid_max": 31,
+        "valid_min": 1,
+        "fill_value": -128,
+        "chunk_sizes": [
+          1,
+          1200,
+          2400
+        ],
+        "data_type": "uint8",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 25920000
+      }
+    }
+  ],
+  "dims": {
+    "time": 1,
+    "bnds": 2,
+    "lat": 3600,
+    "lon": 7200
+  },
+  "attrs": {
+    "title": "ESA Sea Surface Temperature Climate Change Initiative (ESA SST CCI): Analysis long term product version 1.1",
+    "references": "http://www.esa-sst-cci.org",
+    "institution": "ESACCI",
+    "history": "Created using OSTIA reanalysis system v2.0",
+    "license": "GHRSST protocol describes data use as free and open",
+    "naming_authority": "org.ghrsst",
+    "uuid": "c65ce27928f34ebd92224c451c2a8bed",
+    "tracking_id": "19b1f7a4-d8d1-44eb-9cfa-37cc33c4c2c1",
+    "gds_version_id": "2.0",
+    "netcdf_version_id": "4.1.3",
+    "file_quality_level": 3,
+    "spatial_resolution": "0.05 degree",
+    "date_created": "20130429T221012Z",
+    "start_time": "19910901T000000Z",
+    "time_coverage_start": "19910901T000000Z",
+    "stop_time": "19910901T235959Z",
+    "time_coverage_end": "19910901T235959Z",
+    "time_coverage_duration": "P1D",
+    "time_coverage_resolution": "P1D",
+    "metadata_link": "http://www.esa-cci.org",
+    "keywords": "Oceans > Ocean Temperature > Sea Surface Temperature",
+    "keywords_vocabulary": "NASA Global Change Master Directory (GCMD) Science Keywords",
+    "standard_name_vocabulary": "NetCDF Climate and Forecast (CF) Metadata Convention",
+    "geospatial_lat_units": "degrees_north",
+    "geospatial_lat_resolution": 0.05,
+    "geospatial_lon_units": "degrees_east",
+    "geospatial_lon_resolution": 0.05,
+    "geospatial_vertical_min": -0.2,
+    "geospatial_vertical_max": -0.2,
+    "acknowledgment": "Funded by ESA",
+    "creator_name": "ESA SST CCI",
+    "creator_email": "science.leader@esa-sst-cci.org",
+    "creator_url": "http://www.esa-sst-cci.org",
+    "project": "Climate Change Initiative - European Space Agency",
+    "creator_processing_institution": "These data were produced at the Met Office as part of the ESA SST CCI project.",
+    "publisher_name": "ESACCI",
+    "publisher_url": "http://www.esa-sst-cci.org",
+    "publisher_email": "science.leader@esa-sst-cci.org",
+    "comment": "WARNING Some applications are unable to properly handle signed byte values. If values are encountered > 127, please subtract 256 from this reported value",
+    "westernmost_longitude": -180.0,
+    "easternmost_longitude": 180.00002,
+    "southernmost_latitude": -90.0,
+    "northernmost_latitude": 90.0,
+    "geospatial_lat_max": 90.0,
+    "geospatial_lat_min": -90.0,
+    "geospatial_lon_max": 180.0,
+    "geospatial_lon_min": -180.0,
+    "processing_level": "L4",
+    "cdm_data_type": "grid",
+    "Metadata_Conventions": "Unidata Dataset Discovery v1.0",
+    "Conventions": "CF-1.5, Unidata Observation Dataset v1.0",
+    "source": "ATSR<1,2>-ESACCI-L3U-v1.0, AATSR-ESACCI-L3U-v1.0, AVHRR<12,14,15,16,17,18>_G-ESACCI-L2P-v1.0, AVHRRMTA-ESACCI-L2P-v1.0, EUMETSAT_OSI-SAF-ICE-v1.1, EUMETSAT_OSI-SAF-ICE-v2.2",
+    "platform": "ERS-<1,2>, Envisat, NOAA-<12,14,15,16,17,18>, MetOpA",
+    "sensor": "ATSR, AATSR, AVHRR_GAC",
+    "id": "OSTIA-ESACCI-L4-v01.1",
+    "product_version": "1-1",
+    "summary": "OSTIA L4 product from the ESA SST CCI project, produced using OSTIA reanalysis system v2.0. Ice field corrected in v1.1 (v1.0 had ice from day-1). Static ice field between 20080101-20080229 and 20080501-20080521 also fixed in v1.1",
+    "ecv": "SST",
+    "time_frequency": "day",
+    "institute": "ESACCI_SST",
+    "product_string": "OSTIA",
+    "data_type": "SSTdepth",
+    "file_formats": [
+      ".nc",
+      ".txt"
+    ],
+    "drs_id": "esacci.SST.day.L4.SSTdepth.multi-sensor.multi-platform.OSTIA.1-1.r1",
+    "abstract": "The ESA Sea Surface Temperature Climate Change Initiative (ESA SST CCI) dataset accurately maps the surface temperature of the global oceans over the period 1991 to 2010, using observations from many satellites. The data provides an independently quantified SST to a quality suitable for climate research.\n\nThe ESA SST CCI Analysis Long Term Product consists of daily, spatially complete fields of sea surface temperature (SST), obtained by combining the orbit data from the AVHRR and ATSR ESA SST CCI Long Term Products, using optimal interpolation to provide SSTs where there were no measurements.  These data cover the period between 09/1991 and 12/2010.\n\nThe Version 1.1  data is an update of the Version 1.0 dataset.\n\nVersion 1.0 of this dataset is cited in: Merchant, C. J., Embury, O., Roberts-Jones, J., Fiedler, E., Bulgin, C. E., Corlett, G. K., Good, S., McLaren, A., Rayner, N., Morak-Bozzo, S. and Donlon, C. (2014), Sea surface temperature datasets for climate applications from Phase 1 of the European Space Agency Climate Change Initiative (SST CCI). Geoscience Data Journal. doi: 10.1002/gdj3.20",
+    "licences": "Use of these data is covered by the following licence: http://licences.ceda.ac.uk/image/data_access_condition/esacci_sst_terms_and_conditions.pdf . When using these data you must cite them correctly using the citation given on the CEDA Data Catalogue record.",
+    "bbox_minx": "-180.0",
+    "bbox_miny": "-90.0",
+    "bbox_maxx": "180.0",
+    "bbox_maxy": "90.0",
+    "temporal_coverage_start": "1991-08-31T23:00:00",
+    "temporal_coverage_end": "2010-12-31T00:00:00",
+    "publication_date": "2015-12-23T14:53:08",
+    "creation_date": "2015-12-23T14:53:08",
+    "variables": [
+      {
+        "name": "lat_bnds",
+        "units": "degrees_north",
+        "long_name": "Latitude cell boundaries"
+      },
+      {
+        "name": "lat",
+        "units": "degrees_north",
+        "long_name": "Latitude"
+      },
+      {
+        "name": "lon_bnds",
+        "units": "degrees_east",
+        "long_name": "Longitude cell boundaries"
+      },
+      {
+        "name": "lon",
+        "units": "degrees_east",
+        "long_name": "Longitude"
+      },
+      {
+        "name": "time_bnds",
+        "units": "",
+        "long_name": "Time cell boundaries"
+      },
+      {
+        "name": "analysed_sst",
+        "units": "kelvin",
+        "long_name": "analysed sea surface temperature"
+      },
+      {
+        "name": "analysis_error",
+        "units": "kelvin",
+        "long_name": "estimated error standard deviation of analysed_sst"
+      },
+      {
+        "name": "time",
+        "units": "",
+        "long_name": "reference time of sst file"
+      },
+      {
+        "name": "sea_ice_fraction_error",
+        "units": "1",
+        "long_name": "sea ice area fraction error estimate"
+      },
+      {
+        "name": "sea_ice_fraction",
+        "units": "1",
+        "long_name": "sea ice area fraction"
+      },
+      {
+        "name": "mask",
+        "units": "",
+        "long_name": "sea/land/lake/ice field composite mask"
+      }
+    ],
+    "odd_url": "http://opensearch-test.ceda.ac.uk/opensearch/description.xml?parentIdentifier=c65ce27928f34ebd92224c451c2a8bed",
+    "metadata_url": "https://catalogue.ceda.ac.uk/export/xml/c65ce27928f34ebd92224c451c2a8bed.xml",
+    "sensor_id": "multi-sensor",
+    "platform_id": "multi-platform",
+    "cci_project": "SST",
+    "fid": "c65ce27928f34ebd92224c451c2a8bed"
+  }
+}

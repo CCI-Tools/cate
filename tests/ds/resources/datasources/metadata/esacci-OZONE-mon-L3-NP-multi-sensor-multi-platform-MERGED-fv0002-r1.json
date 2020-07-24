@@ -1,0 +1,504 @@
+{
+  "data_id": "esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1",
+  "type_id": "dataset",
+  "bbox": [
+    -180.0,
+    -90.0,
+    180.0,
+    90.0
+  ],
+  "spatial_res": 1.0,
+  "time_range": [
+    "1997-01-01T00:00:00",
+    "2008-12-31T00:00:00"
+  ],
+  "time_period": "1M",
+  "open_params_schema": {
+    "type": "object",
+    "properties": {
+      "variable_names": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "surface_pressure",
+            "O3_du",
+            "O3e_du",
+            "O3_du_tot",
+            "O3e_du_tot",
+            "O3_vmr",
+            "O3e_vmr",
+            "O3_ndens",
+            "O3e_ndens"
+          ]
+        }
+      },
+      "time_range": {
+        "type": "array",
+        "items": [
+          {
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "type": "string",
+            "format": "date-time"
+          }
+        ]
+      },
+      "crs": {
+        "type": "string",
+        "const": "http://www.opengis.net/def/crs/EPSG/0/4326"
+      },
+      "bbox": {
+        "type": "array",
+        "items": [
+          {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          },
+          {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          }
+        ]
+      }
+    },
+    "additionalProperties": false,
+    "required": [
+      "time_range",
+      "variable_names"
+    ]
+  },
+  "data_vars": [
+    {
+      "name": "surface_pressure",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "standard_name": "surface_air_pressure",
+        "long_name": "Pressure at the bottom of the atmosphere.",
+        "units": "hPa",
+        "fill_value": NaN,
+        "chunk_sizes": [
+          1,
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "O3_du",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "layers",
+        "lat",
+        "lon"
+      ],
+      "ndim": 4,
+      "attrs": {
+        "standard_name": "mole_content_of_ozone_in_atmosphere_layer",
+        "long_name": "weighted average of the partial ozone columns (DU/layer)",
+        "units": "446.15E-6 mol m-2",
+        "fill_value": NaN,
+        "chunk_sizes": [
+          1,
+          8,
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "layers",
+          "lat",
+          "lon"
+        ],
+        "size": 1036800
+      }
+    },
+    {
+      "name": "O3e_du",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "layers",
+        "lat",
+        "lon"
+      ],
+      "ndim": 4,
+      "attrs": {
+        "standard_name": "mole_content_of_ozone_in_atmosphere_layer standard_error",
+        "long_name": "error in the weighted average of the partial ozone columns (DU/layer)",
+        "units": "446.15E-6 mol m-2",
+        "fill_value": NaN,
+        "chunk_sizes": [
+          1,
+          8,
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "layers",
+          "lat",
+          "lon"
+        ],
+        "size": 1036800
+      }
+    },
+    {
+      "name": "O3_du_tot",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "standard_name": "atmosphere_mole_content_of_ozone",
+        "long_name": "total column: vertically integrated O3_du dataset (DU)",
+        "units": "446.15E-6 mol m-2",
+        "fill_value": NaN,
+        "chunk_sizes": [
+          1,
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "O3e_du_tot",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "standard_name": "atmosphere_mole_content_of_ozone standard_error",
+        "long_name": "total column error: quadratically added o3e_du (DU)",
+        "units": "446.15E-6 mol m-2",
+        "fill_value": NaN,
+        "chunk_sizes": [
+          1,
+          180,
+          360
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "O3_vmr",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "air_pressure",
+        "lat",
+        "lon"
+      ],
+      "ndim": 4,
+      "attrs": {
+        "standard_name": "mole_fraction_of_ozone_in_air",
+        "long_name": "weighted average of the volume mixing ratio (ppmv)",
+        "units": "1e-6",
+        "fill_value": NaN,
+        "chunk_sizes": [
+          1,
+          9,
+          90,
+          180
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "air_pressure",
+          "lat",
+          "lon"
+        ],
+        "size": 1101600
+      }
+    },
+    {
+      "name": "O3e_vmr",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "air_pressure",
+        "lat",
+        "lon"
+      ],
+      "ndim": 4,
+      "attrs": {
+        "standard_name": "mole_fraction_of_ozone_in_air standard_error",
+        "long_name": "error in the weighted average of the volume mixing ratio (ppmv)",
+        "units": "1e-6",
+        "fill_value": NaN,
+        "chunk_sizes": [
+          1,
+          9,
+          90,
+          180
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "air_pressure",
+          "lat",
+          "lon"
+        ],
+        "size": 1101600
+      }
+    },
+    {
+      "name": "O3_ndens",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "air_pressure",
+        "lat",
+        "lon"
+      ],
+      "ndim": 4,
+      "attrs": {
+        "standard_name": "mole_concentration_of_ozone_in_air",
+        "long_name": "weighted average of the number density (#molecules/cm3)",
+        "units": "6.02214E-17 mol m-3",
+        "fill_value": NaN,
+        "chunk_sizes": [
+          1,
+          9,
+          90,
+          180
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "air_pressure",
+          "lat",
+          "lon"
+        ],
+        "size": 1101600
+      }
+    },
+    {
+      "name": "O3e_ndens",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "air_pressure",
+        "lat",
+        "lon"
+      ],
+      "ndim": 4,
+      "attrs": {
+        "units": "6.02214E-17 mol m-3",
+        "standard_name": "mole_concentration_of_ozone_in_air standard_error",
+        "long_name": "error in the weighted average of the number density (#molecules/cm3)",
+        "fill_value": NaN,
+        "chunk_sizes": [
+          1,
+          9,
+          90,
+          180
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "air_pressure",
+          "lat",
+          "lon"
+        ],
+        "size": 1101600
+      }
+    }
+  ],
+  "dims": {
+    "lon": 360,
+    "lat": 180,
+    "layers": 16,
+    "air_pressure": 17,
+    "time": 1
+  },
+  "attrs": {
+    "title": "ESA Ozone Climate Change Initiative (Ozone CCI): Level 3 Nadir Ozone Profile Merged Data Product, version 2",
+    "institution": "Royal Netherlands Meteorological Institute, KNMI",
+    "source": "This dataset contains L2 profiles from GOME, SCIAMACHY, OMI and GOME-2 gridded onto a global grid.",
+    "history": "L2 data gridded to global grid.",
+    "references": "http://www.esa-ozone-cci.org/",
+    "tracking_id": "32CF0EE6-1F21-4FAE-B0BE-A8C6FD88A775",
+    "Conventions": "CF-1.6",
+    "product_version": "fv0002",
+    "summary": "This dataset contains L2 profiles from GOME, SCIAMACHY, OMI and GOME-2 gridded onto a global grid.",
+    "keywords": "satellite, observation, atmosphere, ozone",
+    "id": "32CF0EE6-1F21-4FAE-B0BE-A8C6FD88A775",
+    "naming_authority": "KNMI, http://www.knmi.nl/",
+    "comment": "These data were produced at KNMI as part of the ESA OZONE CCI project.",
+    "date_created": "2014-01-08T12:50:21.908",
+    "creator_name": "J.C.A. van Peet",
+    "creator_url": "KNMI, http://www.knmi.nl/",
+    "creator_email": "peet@knmi.nl",
+    "project": "Climate Change Initiative - European Space Agency",
+    "geospatial_lat_min": -90.0,
+    "geospatial_lat_max": 90.0,
+    "geospatial_lat_units": "degree_north",
+    "geospatial_lat_resolution": 1.0,
+    "geospatial_lon_min": -180.0,
+    "geospatial_lon_max": 180.0,
+    "geospatial_lon_units": "degree_east",
+    "geospatial_lon_resolution": 1.0,
+    "geospatial_vertical_min": 0.01,
+    "geospatial_vertical_max": 1013.0,
+    "time_coverage_start": "19970104T102333Z",
+    "time_coverage_end": "19970131T233849Z",
+    "time_coverage_duration": "P1M",
+    "time_coverage_resolution": "P1M",
+    "standard_name_vocabulary": "NetCDF Climate and Forecast(CF) Metadata Convention version 20, 11 September 2012",
+    "license": "data use is free and open",
+    "platform": "merged: ERS-2, ENVISAT, EOS-AURA, METOP-A",
+    "sensor": "merged: GOME, SCIAMACHY, OMI and GOME-2.",
+    "spatial_resolution": "see geospatial_lat_resolution and geospatial_lat_resolution",
+    "Note": "netCDF compression applied.",
+    "ecv": "OZONE",
+    "time_frequency": "month",
+    "institute": "Royal Netherlands Meteorological Institute",
+    "processing_level": "L3",
+    "product_string": "MERGED",
+    "data_type": "NP",
+    "file_formats": [
+      ".nc",
+      ".txt"
+    ],
+    "drs_id": "esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1",
+    "abstract": "This dataset contains Level 3 nadir profile ozone data  from the ESA Ozone Climate Change Initiative (CCI) project.   The Level 3 data are monthly averages on a regular 3D grid derived from level 2 ozone profiles.  In this version 2 of the dataset, data are available for 1997 and 2007 and 2008 only, and use data from the GOME instrument on ERS (1997) and the GOME-2 instrument on METOP-A (2007, 2008).",
+    "licences": "Use of these data is covered by the following licence: http://licences.ceda.ac.uk/image/data_access_condition/esacci_ozone_terms_and_conditions.pdf . When using these data you must cite them correctly using the citation given on the CEDA Data Catalogue record.",
+    "bbox_minx": "-180.0",
+    "bbox_miny": "-90.0",
+    "bbox_maxx": "180.0",
+    "bbox_maxy": "90.0",
+    "temporal_coverage_start": "1997-01-01T00:00:00",
+    "temporal_coverage_end": "2008-12-31T00:00:00",
+    "publication_date": "2016-03-08T16:54:39",
+    "creation_date": "2016-03-08T16:54:39",
+    "uuid": "4eb4e801424a47f7b77434291921f889",
+    "variables": [
+      {
+        "name": "surface_pressure",
+        "units": "hPa",
+        "long_name": "Pressure at the bottom of the atmosphere."
+      },
+      {
+        "name": "air_pressure",
+        "units": "hPa",
+        "long_name": "air pressure at layer boundaries"
+      },
+      {
+        "name": "O3e_ndens",
+        "units": "6.02214E-17 mol m-3",
+        "long_name": "error in the weighted average of the number density (#molecules/cm3)"
+      },
+      {
+        "name": "O3e_du",
+        "units": "446.15E-6 mol m-2",
+        "long_name": "error in the weighted average of the partial ozone columns (DU/layer)"
+      },
+      {
+        "name": "O3e_vmr",
+        "units": "1e-6",
+        "long_name": "error in the weighted average of the volume mixing ratio (ppmv)"
+      },
+      {
+        "name": "lat",
+        "units": "degree_north",
+        "long_name": "latitude, from -90 (south) to +90 (north) given at gridcell centers"
+      },
+      {
+        "name": "lon",
+        "units": "degree_east",
+        "long_name": "longitude, from -180 (west) to +180 (east) given at gridcell centers"
+      },
+      {
+        "name": "layers",
+        "units": "1",
+        "long_name": "model_level_number == layer number, starting at 1"
+      },
+      {
+        "name": "time",
+        "units": "",
+        "long_name": "time"
+      },
+      {
+        "name": "O3e_du_tot",
+        "units": "446.15E-6 mol m-2",
+        "long_name": "total column error: quadratically added o3e_du (DU)"
+      },
+      {
+        "name": "O3_du_tot",
+        "units": "446.15E-6 mol m-2",
+        "long_name": "total column: vertically integrated O3_du dataset (DU)"
+      },
+      {
+        "name": "O3_ndens",
+        "units": "6.02214E-17 mol m-3",
+        "long_name": "weighted average of the number density (#molecules/cm3)"
+      },
+      {
+        "name": "O3_du",
+        "units": "446.15E-6 mol m-2",
+        "long_name": "weighted average of the partial ozone columns (DU/layer)"
+      },
+      {
+        "name": "O3_vmr",
+        "units": "1e-6",
+        "long_name": "weighted average of the volume mixing ratio (ppmv)"
+      }
+    ],
+    "odd_url": "http://opensearch-test.ceda.ac.uk/opensearch/description.xml?parentIdentifier=4eb4e801424a47f7b77434291921f889",
+    "metadata_url": "https://catalogue.ceda.ac.uk/export/xml/4eb4e801424a47f7b77434291921f889.xml",
+    "sensor_id": "multi-sensor",
+    "platform_id": "multi-platform",
+    "cci_project": "OZONE",
+    "fid": "4eb4e801424a47f7b77434291921f889"
+  }
+}

@@ -1,0 +1,5873 @@
+{
+  "data_id": "esacci.CLOUD.mon.L3C.CLD_PRODUCTS.MODIS.Terra.MODIS_TERRA.2-0.r1",
+  "type_id": "dataset",
+  "bbox": [
+    -180.0,
+    -90.0,
+    180.0,
+    90.0
+  ],
+  "spatial_res": 0.5,
+  "time_range": [
+    "2000-02-01T00:00:00",
+    "2014-12-31T23:59:59"
+  ],
+  "time_period": "1M",
+  "open_params_schema": {
+    "type": "object",
+    "properties": {
+      "variable_names": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "nobs",
+            "nobs_day",
+            "nobs_clear_day",
+            "nobs_cloudy_day",
+            "nobs_clear_night",
+            "nobs_cloudy_night",
+            "nobs_clear_twl",
+            "nobs_cloudy_twl",
+            "nobs_cloudy",
+            "nretr_cloudy",
+            "nretr_cloudy_liq",
+            "nretr_cloudy_ice",
+            "nretr_cloudy_day",
+            "nretr_cloudy_day_liq",
+            "nretr_cloudy_day_ice",
+            "nretr_cloudy_low",
+            "nretr_cloudy_mid",
+            "nretr_cloudy_high",
+            "cfc",
+            "cfc_std",
+            "cfc_prop_unc",
+            "cfc_corr_unc",
+            "cfc_unc",
+            "cfc_low",
+            "cfc_mid",
+            "cfc_high",
+            "cfc_day",
+            "cfc_night",
+            "cfc_twl",
+            "ctt",
+            "ctt_std",
+            "ctt_prop_unc",
+            "ctt_corr_unc",
+            "ctt_unc",
+            "ctt_corrected",
+            "ctt_corrected_std",
+            "ctt_corrected_prop_unc",
+            "ctt_corrected_corr_unc",
+            "ctt_corrected_unc",
+            "stemp",
+            "stemp_std",
+            "stemp_prop_unc",
+            "stemp_corr_unc",
+            "stemp_unc",
+            "cth",
+            "cth_std",
+            "cth_prop_unc",
+            "cth_corr_unc",
+            "cth_unc",
+            "cth_corrected",
+            "cth_corrected_std",
+            "cth_corrected_prop_unc",
+            "cth_corrected_corr_unc",
+            "cth_corrected_unc",
+            "ctp",
+            "ctp_std",
+            "ctp_prop_unc",
+            "ctp_corr_unc",
+            "ctp_unc",
+            "ctp_log",
+            "ctp_corrected",
+            "ctp_corrected_std",
+            "ctp_corrected_prop_unc",
+            "ctp_corrected_corr_unc",
+            "ctp_corrected_unc",
+            "cph",
+            "cph_std",
+            "cph_day",
+            "cph_day_std",
+            "cer",
+            "cer_std",
+            "cer_prop_unc",
+            "cer_corr_unc",
+            "cer_unc",
+            "cot",
+            "cot_log",
+            "cot_std",
+            "cot_prop_unc",
+            "cot_corr_unc",
+            "cot_unc",
+            "cee",
+            "cee_std",
+            "cee_prop_unc",
+            "cee_corr_unc",
+            "cee_unc",
+            "cla_vis006",
+            "cla_vis006_std",
+            "cla_vis006_prop_unc",
+            "cla_vis006_corr_unc",
+            "cla_vis006_unc",
+            "cla_vis006_liq",
+            "cla_vis006_liq_std",
+            "cla_vis006_liq_unc",
+            "cla_vis006_ice",
+            "cla_vis006_ice_std",
+            "cla_vis006_ice_unc",
+            "cla_vis008",
+            "cla_vis008_std",
+            "cla_vis008_prop_unc",
+            "cla_vis008_corr_unc",
+            "cla_vis008_unc",
+            "cla_vis008_liq",
+            "cla_vis008_liq_std",
+            "cla_vis008_liq_unc",
+            "cla_vis008_ice",
+            "cla_vis008_ice_std",
+            "cla_vis008_ice_unc",
+            "lwp",
+            "lwp_std",
+            "lwp_prop_unc",
+            "lwp_corr_unc",
+            "lwp_unc",
+            "lwp_allsky",
+            "iwp",
+            "iwp_std",
+            "iwp_prop_unc",
+            "iwp_corr_unc",
+            "iwp_unc",
+            "iwp_allsky",
+            "cer_liq",
+            "cer_liq_std",
+            "cer_liq_prop_unc",
+            "cer_liq_corr_unc",
+            "cer_liq_unc",
+            "cer_ice",
+            "cer_ice_std",
+            "cer_ice_prop_unc",
+            "cer_ice_corr_unc",
+            "cer_ice_unc",
+            "cot_liq",
+            "cot_liq_std",
+            "cot_liq_prop_unc",
+            "cot_liq_corr_unc",
+            "cot_liq_unc",
+            "cot_ice",
+            "cot_ice_std",
+            "cot_ice_prop_unc",
+            "cot_ice_corr_unc",
+            "cot_ice_unc",
+            "hist2d_cot_ctp",
+            "hist1d_cot",
+            "hist1d_ctp",
+            "hist1d_ctt",
+            "hist1d_cer",
+            "hist1d_cwp",
+            "hist1d_cla_vis006",
+            "hist1d_cla_vis008"
+          ]
+        }
+      },
+      "time_range": {
+        "type": "array",
+        "items": [
+          {
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "type": "string",
+            "format": "date-time"
+          }
+        ]
+      },
+      "crs": {
+        "type": "string",
+        "const": "http://www.opengis.net/def/crs/EPSG/0/4326"
+      },
+      "bbox": {
+        "type": "array",
+        "items": [
+          {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          },
+          {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          }
+        ]
+      }
+    },
+    "additionalProperties": false,
+    "required": [
+      "time_range",
+      "variable_names"
+    ]
+  },
+  "data_vars": [
+    {
+      "name": "nobs",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "number of observations",
+        "units": "1",
+        "scale_factor": 1,
+        "add_offset": 0,
+        "valid_min": 0,
+        "valid_max": 1212370944,
+        "comment": "total number of satellite observations available",
+        "fill_value": -999,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "nobs_day",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "number of daytime observations",
+        "units": "1",
+        "scale_factor": 1,
+        "add_offset": 0,
+        "valid_min": 0,
+        "valid_max": 1212370944,
+        "comment": "total number of satellite observations available",
+        "fill_value": -999,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "nobs_clear_day",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "number of clear daytime observations",
+        "units": "1",
+        "scale_factor": 1,
+        "add_offset": 0,
+        "valid_min": 0,
+        "valid_max": 1212370944,
+        "fill_value": -999,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "nobs_cloudy_day",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "number of cloudy daytime observations",
+        "units": "1",
+        "scale_factor": 1,
+        "add_offset": 0,
+        "valid_min": 0,
+        "valid_max": 1212370944,
+        "fill_value": -999,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "nobs_clear_night",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "number of clear nighttime observations",
+        "units": "1",
+        "scale_factor": 1,
+        "add_offset": 0,
+        "valid_min": 0,
+        "valid_max": 1212370944,
+        "fill_value": -999,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "nobs_cloudy_night",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "number of cloudy nighttime observations",
+        "units": "1",
+        "scale_factor": 1,
+        "add_offset": 0,
+        "valid_min": 0,
+        "valid_max": 1212370944,
+        "fill_value": -999,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "nobs_clear_twl",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "number of clear twilight observations",
+        "units": "1",
+        "scale_factor": 1,
+        "add_offset": 0,
+        "valid_min": 0,
+        "valid_max": 1212370944,
+        "fill_value": -999,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "nobs_cloudy_twl",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "number of cloudy twilight observations",
+        "units": "1",
+        "scale_factor": 1,
+        "add_offset": 0,
+        "valid_min": 0,
+        "valid_max": 1212370944,
+        "fill_value": -999,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "nobs_cloudy",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "number of cloudy observations",
+        "units": "1",
+        "scale_factor": 1,
+        "add_offset": 0,
+        "valid_min": 0,
+        "valid_max": 1212370944,
+        "fill_value": -999,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "nretr_cloudy",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "number of valid cloudy retrievals",
+        "units": "1",
+        "scale_factor": 1,
+        "add_offset": 0,
+        "valid_min": 0,
+        "valid_max": 1212370944,
+        "comment": "number of valid cloudy retrievals, not valid = clear/high cost/fill_value/not converged",
+        "fill_value": -999,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "nretr_cloudy_liq",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "number of valid liquid phase cloudy retrievals",
+        "units": "1",
+        "scale_factor": 1,
+        "add_offset": 0,
+        "valid_min": 0,
+        "valid_max": 1212370944,
+        "comment": "number of valid liquid phase cloudy retrievals, not valid = clear/high cost/fill_value/not converged",
+        "fill_value": -999,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "nretr_cloudy_ice",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "number of valid ice phase cloudy retrievals",
+        "units": "1",
+        "scale_factor": 1,
+        "add_offset": 0,
+        "valid_min": 0,
+        "valid_max": 1212370944,
+        "comment": "number of valid ice phase cloudy retrievals, not valid = clear/high cost/fill_value/not converged",
+        "fill_value": -999,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "nretr_cloudy_day",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "valid_max": 1212370944,
+        "add_offset": 0,
+        "valid_min": 0,
+        "scale_factor": 1,
+        "units": "1",
+        "long_name": "number of valid daytime cloudy retrievals",
+        "fill_value": -999,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "nretr_cloudy_day_liq",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "units": "1",
+        "scale_factor": 1,
+        "add_offset": 0,
+        "valid_min": 0,
+        "valid_max": 1212370944,
+        "long_name": "number of valid liquid phase daytime cloudy retrievals",
+        "fill_value": -999,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "nretr_cloudy_day_ice",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "scale_factor": 1,
+        "add_offset": 0,
+        "valid_min": 0,
+        "valid_max": 1212370944,
+        "long_name": "number of valid ice phase daytime cloudy retrievals",
+        "units": "1",
+        "fill_value": -999,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "nretr_cloudy_low",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "number of valid low level cloudy retrievals",
+        "units": "1",
+        "scale_factor": 1,
+        "add_offset": 0,
+        "valid_min": 0,
+        "valid_max": 1212370944,
+        "comment": "680 hPa < ctp < 1100 hPa",
+        "fill_value": -999,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "nretr_cloudy_mid",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "number of valid mid level cloudy retrievals",
+        "units": "1",
+        "scale_factor": 1,
+        "add_offset": 0,
+        "valid_min": 0,
+        "valid_max": 1212370944,
+        "comment": "440 hPa < ctp < 680 hPa",
+        "fill_value": -999,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "nretr_cloudy_high",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "number of valid high level cloudy retrievals",
+        "units": "1",
+        "scale_factor": 1,
+        "add_offset": 0,
+        "valid_min": 0,
+        "valid_max": 1212370944,
+        "comment": "ctp < 440 hPa",
+        "fill_value": -999,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cfc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud fraction",
+        "standard_name": "cloud_area_fraction",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cfc_std",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud fraction standard deviation",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 100.0,
+        "comment": "standard deviation of retrieved values",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cfc_prop_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud fraction propagated uncertainty",
+        "units": "%",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 100.0,
+        "comment": "total uncertainty from individual pixel uncertainty added in quadrature",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cfc_corr_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud fraction correlated uncertainty",
+        "units": "%",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 100.0,
+        "comment": "correlated uncertainty assuming correlation of 0.1",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cfc_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud fraction uncertainty",
+        "units": "%",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 100.0,
+        "comment": "mean of the pixel uncertainties",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cfc_low",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "low level cloud fraction",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "comment": "low level clouds = 680 hPa < ctp < 1100 hPa",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cfc_mid",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "mid level cloud fraction",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "comment": "mid level clouds = 440 hPa < ctp < 680 hPa",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cfc_high",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "high level cloud fraction",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "comment": "high level clouds = ctp < 440 hPa",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cfc_day",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "long_name": "cloud fraction day",
+        "units": "1",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cfc_night",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "long_name": "cloud fraction night",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cfc_twl",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "long_name": "cloud fraction twilight",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "ctt",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top temperature",
+        "standard_name": "air_temperature_at_cloud_top",
+        "units": "K",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "ctt_std",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top temperature standard deviation",
+        "units": "K",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "comment": "standard deviation of retrieved values",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "ctt_prop_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top temperature propagated uncertainty",
+        "units": "K",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "comment": "total uncertainty from individual pixel uncertainty added in quadrature",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "ctt_corr_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top temperature correlated uncertainty",
+        "units": "K",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "comment": "correlated uncertainty assuming correlation of 0.1",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "ctt_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top temperature uncertainty",
+        "units": "K",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "comment": "mean of the pixel uncertainties",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "ctt_corrected",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top temperature",
+        "standard_name": "air_temperature_at_cloud_top",
+        "units": "K",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "comment": "as CTT, but ice cloud values are corrected with microphysical information",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "ctt_corrected_std",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top temperature standard deviation",
+        "units": "K",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "comment": "standard deviation of retrieved values",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "ctt_corrected_prop_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top temperature propagated uncertainty",
+        "units": "K",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "comment": "total uncertainty from individual pixel uncertainty added in quadrature",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "ctt_corrected_corr_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top temperature correlated uncertainty",
+        "units": "K",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "comment": "correlated uncertainty assuming correlation of 0.1",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "ctt_corrected_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top temperature uncertainty",
+        "units": "K",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "comment": "mean of the pixel uncertainties",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "stemp",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "surface temperature",
+        "standard_name": "surface_temperature",
+        "units": "K",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "comment": "stemp is retrieved only under optically thin clouds, and otherwise reverts to the apriori ECMWF ERA-Interim stemp value",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "stemp_std",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "surface temperature standard deviation",
+        "units": "K",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "comment": "standard deviation of retrieved values",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "stemp_prop_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "surface temperature propagated uncertainty",
+        "units": "K",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "comment": "total uncertainty from individual pixel uncertainty added in quadrature",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "stemp_corr_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "surface temperature correlated uncertainty",
+        "units": "K",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "comment": "correlated uncertainty assuming correlation of 0.1",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "stemp_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "surface temperature uncertainty",
+        "units": "K",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "comment": "mean of the pixel uncertainties",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cth",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top height",
+        "standard_name": "cloud_top_altitude",
+        "units": "km",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": -1.0,
+        "valid_max": 20.0,
+        "comment": "CTH retrieved at approx. 1 optical depth below cloud top",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cth_std",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top height standard deviation",
+        "units": "km",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": -1.0,
+        "valid_max": 20.0,
+        "comment": "standard deviation of retrieved values",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cth_prop_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top height propagated uncertainty",
+        "units": "km",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": -1.0,
+        "valid_max": 20.0,
+        "comment": "total uncertainty from individual pixel uncertainty added in quadrature",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cth_corr_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top height correlated uncertainty",
+        "units": "km",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": -1.0,
+        "valid_max": 20.0,
+        "comment": "correlated uncertainty assuming correlation of 0.1",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cth_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top height uncertainty",
+        "units": "km",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": -1.0,
+        "valid_max": 20.0,
+        "comment": "mean of the pixel uncertainties",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cth_corrected",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top height",
+        "standard_name": "cloud_top_altitude",
+        "units": "km",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": -1.0,
+        "valid_max": 50.0,
+        "comment": "as CTH, but ice cloud values are corrected with microphysical information",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cth_corrected_std",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top height standard deviation",
+        "units": "km",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": -1.0,
+        "valid_max": 50.0,
+        "comment": "standard deviation of retrieved values",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cth_corrected_prop_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top height propagated uncertainty",
+        "units": "km",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": -1.0,
+        "valid_max": 50.0,
+        "comment": "total uncertainty from individual pixel uncertainty added in quadrature",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cth_corrected_corr_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top height correlated uncertainty",
+        "units": "km",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": -1.0,
+        "valid_max": 50.0,
+        "comment": "correlated uncertainty assuming correlation of 0.1",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cth_corrected_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top height uncertainty",
+        "units": "km",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": -1.0,
+        "valid_max": 50.0,
+        "comment": "mean of the pixel uncertainties",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "ctp",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top pressure",
+        "standard_name": "air_pressure_at_cloud_top",
+        "units": "hPa",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 50.0,
+        "valid_max": 1200.0,
+        "comment": "CTP retrieved at approx. 1 optical depth below cloud top",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "ctp_std",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top pressure standard deviation",
+        "units": "hPa",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1200.0,
+        "comment": "standard deviation of retrieved values",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "ctp_prop_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top pressure propagated uncertainty",
+        "units": "hPa",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1200.0,
+        "comment": "total uncertainty from individual pixel uncertainty added in quadrature",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "ctp_corr_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top pressure correlated uncertainty",
+        "units": "hPa",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1200.0,
+        "comment": "correlated uncertainty assuming correlation of 0.1",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "ctp_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top pressure uncertainty",
+        "units": "hPa",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1200.0,
+        "comment": "mean of the pixel uncertainties",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "ctp_log",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top pressure logarithmically averaged",
+        "standard_name": "air_pressure_at_cloud_top",
+        "units": "hPa",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 50.0,
+        "valid_max": 1200.0,
+        "comment": "as CTP, but values were log-transformed while averaging",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "ctp_corrected",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top pressure",
+        "standard_name": "air_pressure_at_cloud_top",
+        "units": "hPa",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 50.0,
+        "valid_max": 1200.0,
+        "comment": "as CTP, but ice cloud values are corrected with microphysical information",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "ctp_corrected_std",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top pressure standard deviation",
+        "units": "hPa",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1200.0,
+        "comment": "standard deviation of retrieved values",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "ctp_corrected_prop_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top pressure propagated uncertainty",
+        "units": "hPa",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1200.0,
+        "comment": "total uncertainty from individual pixel uncertainty added in quadrature",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "ctp_corrected_corr_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top pressure correlated uncertainty",
+        "units": "hPa",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1200.0,
+        "comment": "correlated uncertainty assuming correlation of 0.1",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "ctp_corrected_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud top pressure uncertainty",
+        "units": "hPa",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1200.0,
+        "comment": "mean of the pixel uncertainties",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cph",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "fraction of liquid water clouds",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cph_std",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "fraction of liquid water clouds standard deviation",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "comment": "standard deviation of retrieved values",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cph_day",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "daytime fraction of liquid water clouds",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cph_day_std",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "daytime fraction of liquid water clouds standard deviation",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "comment": "standard deviation of retrieved values",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cer",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud effective radius",
+        "standard_name": "effective_radius_of_cloud_condensed_water_particles_at_cloud_top",
+        "units": "um",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 200.0,
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cer_std",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud effective radius standard deviation",
+        "units": "um",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 200.0,
+        "comment": "standard deviation of retrieved values",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cer_prop_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud effective radius propagated uncertainty",
+        "units": "um",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 200.0,
+        "comment": "total uncertainty from individual pixel uncertainty added in quadrature",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cer_corr_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud effective radius correlated uncertainty",
+        "units": "um",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 200.0,
+        "comment": "correlated uncertainty assuming correlation of 0.1",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cer_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud effective radius uncertainty",
+        "units": "um",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 200.0,
+        "comment": "mean of the pixel uncertainties",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cot",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud optical thickness",
+        "standard_name": "atmosphere_optical_thickness_due_to_cloud",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cot_log",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud optical thickness logarithmically averaged",
+        "standard_name": "atmosphere_optical_thickness_due_to_cloud",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "comment": "as COT, but values were log-transformed while averaging",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cot_std",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud optical thickness standard deviation",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "comment": "standard deviation of retrieved values",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cot_prop_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud optical thickness propagated uncertainty",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "comment": "total uncertainty from individual pixel uncertainty added in quadrature",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cot_corr_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud optical thickness correlated uncertainty",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "comment": "correlated uncertainty assuming correlation of 0.1",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cot_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud optical thickness uncertainty",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "comment": "mean of the pixel uncertainties",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cee",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "valid_max": 1.0,
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "units": "1",
+        "long_name": "cloud effective emissivity at 10.8 um",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cee_std",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud effective emissivity at 10.8 um standard deviation",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "comment": "standard deviation of retrieved values",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cee_prop_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud effective emissivity at 10.8 um propagated uncertainty",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "comment": "total uncertainty from individual pixel uncertainty added in quadrature",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cee_corr_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud effective emissivity at 10.8 um correlated uncertainty",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "comment": "correlated uncertainty assuming correlation of 0.1",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cee_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud effective emissivity at 10.8 um uncertainty",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "comment": "mean of the pixel uncertainties",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cla_vis006",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud albedo at 0.6 um",
+        "standard_name": "cloud_albedo",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cla_vis006_std",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud albedo at 0.6 um standard deviation",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "comment": "standard deviation of retrieved values",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cla_vis006_prop_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud albedo at 0.6 um propagated uncertainty",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "comment": "total uncertainty from individual pixel uncertainty added in quadrature",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cla_vis006_corr_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud albedo at 0.6 um correlated uncertainty",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "comment": "correlated uncertainty assuming correlation of 0.1",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cla_vis006_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud albedo at 0.6 um uncertainty",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "comment": "mean of the pixel uncertainties",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cla_vis006_liq",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "long_name": "liquid water cloud albedo at 0.6 um",
+        "units": "1",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cla_vis006_liq_std",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "liquid water cloud albedo at 0.6 um standard deviation",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "comment": "standard deviation of retrieved values",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cla_vis006_liq_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "liquid water cloud albedo at 0.6 um uncertainty",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "comment": "mean of the pixel uncertainties",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cla_vis006_ice",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "long_name": "ice water cloud albedo at 0.6 um",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cla_vis006_ice_std",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "ice water cloud albedo at 0.6 um standard deviation",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "comment": "standard deviation of retrieved values",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cla_vis006_ice_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "ice water cloud albedo at 0.6 um uncertainty",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "comment": "mean of the pixel uncertainties",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cla_vis008",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud albedo at 0.8 um",
+        "standard_name": "cloud_albedo",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cla_vis008_std",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud albedo at 0.8 um standard deviation",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "comment": "standard deviation of retrieved values",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cla_vis008_prop_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud albedo at 0.8 um propagated uncertainty",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "comment": "total uncertainty from individual pixel uncertainty added in quadrature",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cla_vis008_corr_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud albedo at 0.8 um correlated uncertainty",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "comment": "correlated uncertainty assuming correlation of 0.1",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cla_vis008_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud albedo at 0.8 um uncertainty",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "comment": "mean of the pixel uncertainties",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cla_vis008_liq",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "liquid water cloud albedo at 0.8 um",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cla_vis008_liq_std",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "liquid water cloud albedo at 0.8 um standard deviation",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "comment": "standard deviation of retrieved values",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cla_vis008_liq_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "liquid water cloud albedo at 0.8 um uncertainty",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "comment": "standard deviation of uncertainty values",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cla_vis008_ice",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "ice water cloud albedo at 0.8 um",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cla_vis008_ice_std",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "ice water cloud albedo at 0.8 um standard deviation",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "comment": "standard deviation of retrieved values",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cla_vis008_ice_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "ice water cloud albedo at 0.8 um uncertainty",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 1.0,
+        "comment": "mean of the pixel uncertainties",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "lwp",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud liquid water path",
+        "standard_name": "atmosphere_mass_content_of_cloud_liquid_water",
+        "units": "g/m2",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 32000.0,
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "lwp_std",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud liquid water path standard deviation",
+        "units": "g/m2",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 32000.0,
+        "comment": "standard deviation of retrieved values",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "lwp_prop_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud liquid water path propagated uncertainty",
+        "units": "g/m2",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 32000.0,
+        "comment": "total uncertainty from individual pixel uncertainty added in quadrature",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "lwp_corr_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud liquid water path correlated uncertainty",
+        "units": "g/m2",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 32000.0,
+        "comment": "correlated uncertainty assuming correlation of 0.1",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "lwp_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud liquid water path uncertainty",
+        "units": "g/m2",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 32000.0,
+        "comment": "mean of the pixel uncertainties",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "lwp_allsky",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "grid box mean of cloud liquid water path",
+        "standard_name": "atmosphere_mass_content_of_cloud_liquid_water",
+        "units": "g/m2",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 32000.0,
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "iwp",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud ice water path",
+        "standard_name": "atmosphere_mass_content_of_cloud_ice",
+        "units": "g/m2",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 32000.0,
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "iwp_std",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud ice water path standard deviation",
+        "units": "g/m2",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 32000.0,
+        "comment": "standard deviation of retrieved values",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "iwp_prop_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud ice water path propagated uncertainty",
+        "units": "g/m2",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 32000.0,
+        "comment": "total uncertainty from individual pixel uncertainty added in quadrature",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "iwp_corr_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud ice water path correlated uncertainty",
+        "units": "g/m2",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 32000.0,
+        "comment": "correlated uncertainty assuming correlation of 0.1",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "iwp_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "cloud ice water path uncertainty",
+        "units": "g/m2",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 32000.0,
+        "comment": "mean of the pixel uncertainties",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "iwp_allsky",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "grid box mean of cloud ice water path",
+        "standard_name": "atmosphere_mass_content_of_cloud_ice",
+        "units": "g/m2",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 32000.0,
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cer_liq",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "liquid water cloud effective radius",
+        "units": "um",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 200.0,
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cer_liq_std",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "liquid water cloud effective radius standard deviation",
+        "units": "um",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 200.0,
+        "comment": "standard deviation of retrieved values",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cer_liq_prop_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "liquid water cloud effective radius propagated uncertainty",
+        "units": "um",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 200.0,
+        "comment": "total uncertainty from individual pixel uncertainty added in quadrature",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cer_liq_corr_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "liquid water cloud effective radius correlated uncertainty",
+        "units": "um",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 200.0,
+        "comment": "correlated uncertainty assuming correlation of 0.1",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cer_liq_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "liquid water cloud effective radius uncertainty",
+        "units": "um",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 200.0,
+        "comment": "mean of the pixel uncertainties",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cer_ice",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "ice water cloud effective radius",
+        "units": "um",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 200.0,
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cer_ice_std",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "ice water cloud effective radius standard deviation",
+        "units": "um",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 200.0,
+        "comment": "standard deviation of retrieved values",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cer_ice_prop_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "ice water cloud effective radius propagated uncertainty",
+        "units": "um",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 200.0,
+        "comment": "total uncertainty from individual pixel uncertainty added in quadrature",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cer_ice_corr_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "ice water cloud effective radius correlated uncertainty",
+        "units": "um",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 200.0,
+        "comment": "correlated uncertainty assuming correlation of 0.1",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cer_ice_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "ice water cloud effective radius uncertainty",
+        "units": "um",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 200.0,
+        "comment": "mean of the pixel uncertainties",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cot_liq",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "liquid water cloud optical thickness",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cot_liq_std",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "liquid water cloud optical thickness standard deviation",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "comment": "standard deviation of retrieved values",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cot_liq_prop_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "liquid water cloud optical thickness propagated uncertainty",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "comment": "total uncertainty from individual pixel uncertainty added in quadrature",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cot_liq_corr_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "liquid water cloud optical thickness correlated uncertainty",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "comment": "correlated uncertainty assuming correlation of 0.1",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cot_liq_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "liquid water cloud optical thickness uncertainty",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "comment": "mean of the pixel uncertainties",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cot_ice",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "units": "1",
+        "scale_factor": 1.0,
+        "long_name": "ice water cloud optical thickness",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cot_ice_std",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "ice water cloud optical thickness standard deviation",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "comment": "standard deviation of retrieved values",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cot_ice_prop_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "ice water cloud optical thickness propagated uncertainty",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "comment": "total uncertainty from individual pixel uncertainty added in quadrature",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cot_ice_corr_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "ice water cloud optical thickness correlated uncertainty",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "comment": "correlated uncertainty assuming correlation of 0.1",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "cot_ice_unc",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "ice water cloud optical thickness uncertainty",
+        "units": "1",
+        "scale_factor": 1.0,
+        "add_offset": 0.0,
+        "valid_min": 0.0,
+        "valid_max": 320.0,
+        "comment": "mean of the pixel uncertainties",
+        "fill_value": -999.0,
+        "chunk_sizes": [
+          1,
+          360,
+          720
+        ],
+        "data_type": "float32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 259200
+      }
+    },
+    {
+      "name": "hist2d_cot_ctp",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "hist_phase",
+        "hist2d_ctp_bin_centre",
+        "hist2d_cot_bin_centre",
+        "lat",
+        "lon"
+      ],
+      "ndim": 6,
+      "attrs": {
+        "name": "atmosphere_optical_thickness_due_to_cloud_and_air_pressure_at_cloud_top_histogram",
+        "long_name": "joint histogram of cloud optical thickness and cloud top pressure",
+        "units": "1",
+        "fill_value": -999,
+        "chunk_sizes": [
+          1,
+          1,
+          5,
+          5,
+          120,
+          240
+        ],
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "hist_phase",
+          "hist2d_ctp_bin_centre",
+          "hist2d_cot_bin_centre",
+          "lat",
+          "lon"
+        ],
+        "size": 101088000
+      }
+    },
+    {
+      "name": "hist1d_cot",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "hist_phase",
+        "hist1d_cot_bin_centre",
+        "lat",
+        "lon"
+      ],
+      "ndim": 5,
+      "attrs": {
+        "long_name": "histogram of cloud optical thickness",
+        "name": "atmosphere_optical_thickness_due_to_cloud_histogram",
+        "units": "1",
+        "fill_value": -999,
+        "chunk_sizes": [
+          1,
+          1,
+          7,
+          180,
+          360
+        ],
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "hist_phase",
+          "hist1d_cot_bin_centre",
+          "lat",
+          "lon"
+        ],
+        "size": 7257600
+      }
+    },
+    {
+      "name": "hist1d_ctp",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "hist_phase",
+        "hist1d_ctp_bin_centre",
+        "lat",
+        "lon"
+      ],
+      "ndim": 5,
+      "attrs": {
+        "long_name": "histogram of cloud top pressure",
+        "name": "air_pressure_at_cloud_top_histogram",
+        "units": "1",
+        "fill_value": -999,
+        "chunk_sizes": [
+          1,
+          1,
+          8,
+          180,
+          360
+        ],
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "hist_phase",
+          "hist1d_ctp_bin_centre",
+          "lat",
+          "lon"
+        ],
+        "size": 7776000
+      }
+    },
+    {
+      "name": "hist1d_ctt",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "hist_phase",
+        "hist1d_ctt_bin_centre",
+        "lat",
+        "lon"
+      ],
+      "ndim": 5,
+      "attrs": {
+        "long_name": "histogram of cloud top temperature",
+        "name": "temperature_at_cloud_top_histogram",
+        "units": "1",
+        "fill_value": -999,
+        "chunk_sizes": [
+          1,
+          1,
+          8,
+          180,
+          360
+        ],
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "hist_phase",
+          "hist1d_ctt_bin_centre",
+          "lat",
+          "lon"
+        ],
+        "size": 8294400
+      }
+    },
+    {
+      "name": "hist1d_cer",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "hist_phase",
+        "hist1d_cer_bin_centre",
+        "lat",
+        "lon"
+      ],
+      "ndim": 5,
+      "attrs": {
+        "long_name": "histogram of cloud effective radius",
+        "name": "effective_radius_of_cloud_condensed_water_particles_at_cloud_top_histogram",
+        "units": "1",
+        "fill_value": -999,
+        "chunk_sizes": [
+          1,
+          1,
+          6,
+          180,
+          360
+        ],
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "hist_phase",
+          "hist1d_cer_bin_centre",
+          "lat",
+          "lon"
+        ],
+        "size": 5702400
+      }
+    },
+    {
+      "name": "hist1d_cwp",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "hist_phase",
+        "hist1d_cwp_bin_centre",
+        "lat",
+        "lon"
+      ],
+      "ndim": 5,
+      "attrs": {
+        "long_name": "histogram of cloud water path",
+        "name": "atmosphere_mass_content_of_cloud_condensed_water_histogram",
+        "units": "1",
+        "fill_value": -999,
+        "chunk_sizes": [
+          1,
+          1,
+          7,
+          180,
+          360
+        ],
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "hist_phase",
+          "hist1d_cwp_bin_centre",
+          "lat",
+          "lon"
+        ],
+        "size": 7257600
+      }
+    },
+    {
+      "name": "hist1d_cla_vis006",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "hist_phase",
+        "hist1d_cla_vis006_bin_centre",
+        "lat",
+        "lon"
+      ],
+      "ndim": 5,
+      "attrs": {
+        "long_name": "histogram of cloud albedo at 0.6 um",
+        "name": "cloud_albedo_histogram",
+        "units": "1",
+        "fill_value": -999,
+        "chunk_sizes": [
+          1,
+          1,
+          7,
+          180,
+          360
+        ],
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "hist_phase",
+          "hist1d_cla_vis006_bin_centre",
+          "lat",
+          "lon"
+        ],
+        "size": 6739200
+      }
+    },
+    {
+      "name": "hist1d_cla_vis008",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "hist_phase",
+        "hist1d_cla_vis008_bin_centre",
+        "lat",
+        "lon"
+      ],
+      "ndim": 5,
+      "attrs": {
+        "long_name": "histogram of cloud albedo at 0.8 um",
+        "name": "cloud_albedo_histogram",
+        "units": "1",
+        "fill_value": -999,
+        "chunk_sizes": [
+          1,
+          1,
+          7,
+          180,
+          360
+        ],
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "hist_phase",
+          "hist1d_cla_vis008_bin_centre",
+          "lat",
+          "lon"
+        ],
+        "size": 6739200
+      }
+    }
+  ],
+  "dims": {
+    "lat": 360,
+    "lon": 720,
+    "time": 1,
+    "hist2d_cot_bin_border": 14,
+    "hist2d_cot_bin_centre": 13,
+    "hist2d_ctp_bin_border": 16,
+    "hist2d_ctp_bin_centre": 15,
+    "hist_phase": 2,
+    "hist1d_cot_bin_border": 15,
+    "hist1d_cot_bin_centre": 14,
+    "hist1d_cla_vis006_bin_border": 14,
+    "hist1d_cla_vis006_bin_centre": 13,
+    "hist1d_cla_vis008_bin_border": 14,
+    "hist1d_cla_vis008_bin_centre": 13,
+    "hist1d_cer_bin_border": 12,
+    "hist1d_cer_bin_centre": 11,
+    "hist1d_cwp_bin_border": 15,
+    "hist1d_cwp_bin_centre": 14,
+    "hist1d_ctp_bin_border": 16,
+    "hist1d_ctp_bin_centre": 15,
+    "hist1d_ctt_bin_border": 17,
+    "hist1d_ctt_bin_centre": 16
+  },
+  "attrs": {
+    "title": "ESA Cloud Climate Change Initiative (Cloud_cci): MODIS-TERRA monthly gridded cloud properties, version 2.0",
+    "project": "Climate Change Initiative - European Space Agency",
+    "product_version": "2-0",
+    "Conventions": "CF-1.6,ACDD-1.3",
+    "standard_name_vocabulary": "NetCDF Climate Forecast (CF) Metadata Convention version 18",
+    "institution": "Deutscher Wetterdienst",
+    "source": "MODIS_TERRA_Collection 6",
+    "number_of_processed_orbits": 1516,
+    "geospatial_lon_resolution": "0.50",
+    "geospatial_lat_resolution": "0.50",
+    "geospatial_lat_min": -89.75,
+    "geospatial_lat_max": 89.75,
+    "geospatial_lon_min": -179.75,
+    "geospatial_lon_max": 179.75,
+    "geospatial_lat_units": "degrees_north",
+    "geospatial_lon_units": "degrees_east",
+    "geospatial_vertical_min": "0.0",
+    "geospatial_vertical_max": "0.0",
+    "spatial_resolution": "0.50 degree",
+    "platform": "TERRA",
+    "sensor": "MODIS",
+    "tracking_id": "1b6a5bee-afad-43e5-a326-67a76df184a7",
+    "id": "200002-ESACCI-L3C_CLOUD-CLD_PRODUCTS-MODIS_TERRA-fv2.0.nc",
+    "creator_email": "contact.cloudcci@dwd.de",
+    "creator_url": "http://www.dwd.de",
+    "date_created": "2016-04-25T17:07:07+0000",
+    "creator_name": "Deutscher Wetterdienst",
+    "time_coverage_start": "20000201T000000Z",
+    "time_coverage_end": "20000229T235959Z",
+    "time_coverage_duration": "P1M",
+    "time_coverage_resolution": "P1M",
+    "references": "http://www.esa-cloud-cci.info",
+    "history": "Dataset produced by DWDs CC4CL retrieval system installed at ECMWF in second phase of ESA Cloud CCI.",
+    "summary": "This dataset contains monthly Level-3 global cloud property products from satellite observations. Averaged onto a regular grid.",
+    "keywords": "EARTH SCIENCE > ATMOSPHERE > SATELLITES > CLOUDS > CLOUD PROPERTIES",
+    "comment": "These data were produced at ESACCI as part of the ESA Cloud CCI project.",
+    "license": "ESA CCI Data Policy: free and open access",
+    "cdm_data_type": "Grid",
+    "keywords_vocabulary": "GCMD Science Keywords, Version 8.1",
+    "naming_authority": "de.dwd",
+    "ecv": "CLOUD",
+    "time_frequency": "month",
+    "institute": "Deutscher Wetterdienst",
+    "processing_level": "L3C",
+    "product_string": "MODIS_TERRA",
+    "data_type": "CLD_PRODUCTS",
+    "sensor_id": "MODIS",
+    "platform_id": "Terra",
+    "file_formats": [
+      ".nc",
+      ".txt"
+    ],
+    "drs_id": "esacci.CLOUD.mon.L3C.CLD_PRODUCTS.MODIS.Terra.MODIS_TERRA.2-0.r1",
+    "abstract": "The Cloud_cci MODIS-Terra dataset was generated within the Cloud_cci project (http://www.esa-cloud-cci.org) which was funded by the European Space Agency (ESA) as part of the ESA Climate Change Initiative (CCI) programme (Contract No.: 4000109870/13/I-NB). This dataset is one of the 6 datasets generated in Cloud_cci; all of them being based on passive-imager satellite measurements. This dataset is based on MODIS (onboard Terra) measurements and contains a variety of cloud properties which were derived employing the Community Cloud retrieval for Climate (CC4CL) retrieval system. The core cloud properties contained in the Cloud_cci MODIS-Terra dataset are cloud mask/fraction, cloud phase, cloud top pressure/height/temperature, cloud optical thickness, cloud effective radius and cloud liquid/ice water path. Spectral cloud albedo is also included as experimental product. Level-3C product files contain monthly averages and histograms of the mentioned cloud properties together with propagated uncertainty measures.",
+    "licences": "Use of these data is covered by the following licence: http://licences.ceda.ac.uk/image/data_access_condition/esacci_cloud_terms_and_conditions_v2.pdf . When using these data you must cite them correctly using the citation given on the CEDA Data Catalogue record.",
+    "bbox_minx": "-180.0",
+    "bbox_miny": "-90.0",
+    "bbox_maxx": "180.0",
+    "bbox_maxy": "90.0",
+    "temporal_coverage_start": "2000-02-01T00:00:00",
+    "temporal_coverage_end": "2014-12-31T23:59:59",
+    "publication_date": "2017-04-02T17:32:43",
+    "creation_date": "2017-04-02T17:32:43",
+    "uuid": "f1ab07b5292f4813bd3090b51d270aa8",
+    "variables": [
+      {
+        "name": "time",
+        "units": "",
+        "long_name": "Time in days"
+      },
+      {
+        "name": "hist1d_cer_bin_border",
+        "units": "um",
+        "long_name": "cer histogram bin border values"
+      },
+      {
+        "name": "hist1d_cer_bin_centre",
+        "units": "um",
+        "long_name": "cer histogram bin centres"
+      },
+      {
+        "name": "hist1d_cla_vis006_bin_centre",
+        "units": "1",
+        "long_name": "cloud abedo1 histogram bin centres"
+      },
+      {
+        "name": "cla_vis006_corr_unc",
+        "units": "1",
+        "long_name": "cloud albedo at 0.6 um correlated uncertainty"
+      },
+      {
+        "name": "cla_vis006_prop_unc",
+        "units": "1",
+        "long_name": "cloud albedo at 0.6 um propagated uncertainty"
+      },
+      {
+        "name": "cla_vis006_std",
+        "units": "1",
+        "long_name": "cloud albedo at 0.6 um standard deviation"
+      },
+      {
+        "name": "cla_vis006_unc",
+        "units": "1",
+        "long_name": "cloud albedo at 0.6 um uncertainty"
+      },
+      {
+        "name": "cla_vis006",
+        "units": "1",
+        "long_name": "cloud albedo at 0.6 um"
+      },
+      {
+        "name": "cla_vis008_corr_unc",
+        "units": "1",
+        "long_name": "cloud albedo at 0.8 um correlated uncertainty"
+      },
+      {
+        "name": "cla_vis008_prop_unc",
+        "units": "1",
+        "long_name": "cloud albedo at 0.8 um propagated uncertainty"
+      },
+      {
+        "name": "cla_vis008_std",
+        "units": "1",
+        "long_name": "cloud albedo at 0.8 um standard deviation"
+      },
+      {
+        "name": "cla_vis008_unc",
+        "units": "1",
+        "long_name": "cloud albedo at 0.8 um uncertainty"
+      },
+      {
+        "name": "cla_vis008",
+        "units": "1",
+        "long_name": "cloud albedo at 0.8 um"
+      },
+      {
+        "name": "hist1d_cla_vis006_bin_border",
+        "units": "1",
+        "long_name": "cloud albedo1 histogram bin border values"
+      },
+      {
+        "name": "hist1d_cla_vis008_bin_border",
+        "units": "1",
+        "long_name": "cloud albedo2 histogram bin border values"
+      },
+      {
+        "name": "hist1d_cla_vis008_bin_centre",
+        "units": "1",
+        "long_name": "cloud albedo2 histogram bin centres"
+      },
+      {
+        "name": "cee_corr_unc",
+        "units": "1",
+        "long_name": "cloud effective emissivity at 10.8 um correlated uncertainty"
+      },
+      {
+        "name": "cee_prop_unc",
+        "units": "1",
+        "long_name": "cloud effective emissivity at 10.8 um propagated uncertainty"
+      },
+      {
+        "name": "cee_std",
+        "units": "1",
+        "long_name": "cloud effective emissivity at 10.8 um standard deviation"
+      },
+      {
+        "name": "cee_unc",
+        "units": "1",
+        "long_name": "cloud effective emissivity at 10.8 um uncertainty"
+      },
+      {
+        "name": "cee",
+        "units": "1",
+        "long_name": "cloud effective emissivity at 10.8 um"
+      },
+      {
+        "name": "cer_corr_unc",
+        "units": "um",
+        "long_name": "cloud effective radius correlated uncertainty"
+      },
+      {
+        "name": "cer_prop_unc",
+        "units": "um",
+        "long_name": "cloud effective radius propagated uncertainty"
+      },
+      {
+        "name": "cer_std",
+        "units": "um",
+        "long_name": "cloud effective radius standard deviation"
+      },
+      {
+        "name": "cer_unc",
+        "units": "um",
+        "long_name": "cloud effective radius uncertainty"
+      },
+      {
+        "name": "cer",
+        "units": "um",
+        "long_name": "cloud effective radius"
+      },
+      {
+        "name": "cfc_corr_unc",
+        "units": "%",
+        "long_name": "cloud fraction correlated uncertainty"
+      },
+      {
+        "name": "cfc_day",
+        "units": "1",
+        "long_name": "cloud fraction day"
+      },
+      {
+        "name": "cfc_night",
+        "units": "1",
+        "long_name": "cloud fraction night"
+      },
+      {
+        "name": "cfc_prop_unc",
+        "units": "%",
+        "long_name": "cloud fraction propagated uncertainty"
+      },
+      {
+        "name": "cfc_std",
+        "units": "1",
+        "long_name": "cloud fraction standard deviation"
+      },
+      {
+        "name": "cfc_twl",
+        "units": "1",
+        "long_name": "cloud fraction twilight"
+      },
+      {
+        "name": "cfc_unc",
+        "units": "%",
+        "long_name": "cloud fraction uncertainty"
+      },
+      {
+        "name": "cfc",
+        "units": "1",
+        "long_name": "cloud fraction"
+      },
+      {
+        "name": "iwp_corr_unc",
+        "units": "g/m2",
+        "long_name": "cloud ice water path correlated uncertainty"
+      },
+      {
+        "name": "iwp_prop_unc",
+        "units": "g/m2",
+        "long_name": "cloud ice water path propagated uncertainty"
+      },
+      {
+        "name": "iwp_std",
+        "units": "g/m2",
+        "long_name": "cloud ice water path standard deviation"
+      },
+      {
+        "name": "iwp_unc",
+        "units": "g/m2",
+        "long_name": "cloud ice water path uncertainty"
+      },
+      {
+        "name": "iwp",
+        "units": "g/m2",
+        "long_name": "cloud ice water path"
+      },
+      {
+        "name": "lwp_corr_unc",
+        "units": "g/m2",
+        "long_name": "cloud liquid water path correlated uncertainty"
+      },
+      {
+        "name": "lwp_prop_unc",
+        "units": "g/m2",
+        "long_name": "cloud liquid water path propagated uncertainty"
+      },
+      {
+        "name": "lwp_std",
+        "units": "g/m2",
+        "long_name": "cloud liquid water path standard deviation"
+      },
+      {
+        "name": "lwp_unc",
+        "units": "g/m2",
+        "long_name": "cloud liquid water path uncertainty"
+      },
+      {
+        "name": "lwp",
+        "units": "g/m2",
+        "long_name": "cloud liquid water path"
+      },
+      {
+        "name": "cot_corr_unc",
+        "units": "1",
+        "long_name": "cloud optical thickness correlated uncertainty"
+      },
+      {
+        "name": "cot_log",
+        "units": "1",
+        "long_name": "cloud optical thickness logarithmically averaged"
+      },
+      {
+        "name": "cot_prop_unc",
+        "units": "1",
+        "long_name": "cloud optical thickness propagated uncertainty"
+      },
+      {
+        "name": "cot_std",
+        "units": "1",
+        "long_name": "cloud optical thickness standard deviation"
+      },
+      {
+        "name": "cot_unc",
+        "units": "1",
+        "long_name": "cloud optical thickness uncertainty"
+      },
+      {
+        "name": "cot",
+        "units": "1",
+        "long_name": "cloud optical thickness"
+      },
+      {
+        "name": "cth_corr_unc",
+        "units": "km",
+        "long_name": "cloud top height correlated uncertainty"
+      },
+      {
+        "name": "cth_corrected_corr_unc",
+        "units": "km",
+        "long_name": "cloud top height correlated uncertainty"
+      },
+      {
+        "name": "cth_corrected_prop_unc",
+        "units": "km",
+        "long_name": "cloud top height propagated uncertainty"
+      },
+      {
+        "name": "cth_prop_unc",
+        "units": "km",
+        "long_name": "cloud top height propagated uncertainty"
+      },
+      {
+        "name": "cth_corrected_std",
+        "units": "km",
+        "long_name": "cloud top height standard deviation"
+      },
+      {
+        "name": "cth_std",
+        "units": "km",
+        "long_name": "cloud top height standard deviation"
+      },
+      {
+        "name": "cth_corrected_unc",
+        "units": "km",
+        "long_name": "cloud top height uncertainty"
+      },
+      {
+        "name": "cth_unc",
+        "units": "km",
+        "long_name": "cloud top height uncertainty"
+      },
+      {
+        "name": "cth",
+        "units": "km",
+        "long_name": "cloud top height"
+      },
+      {
+        "name": "cth_corrected",
+        "units": "km",
+        "long_name": "cloud top height"
+      },
+      {
+        "name": "ctp_corr_unc",
+        "units": "hPa",
+        "long_name": "cloud top pressure correlated uncertainty"
+      },
+      {
+        "name": "ctp_corrected_corr_unc",
+        "units": "hPa",
+        "long_name": "cloud top pressure correlated uncertainty"
+      },
+      {
+        "name": "ctp_log",
+        "units": "hPa",
+        "long_name": "cloud top pressure logarithmically averaged"
+      },
+      {
+        "name": "ctp_corrected_prop_unc",
+        "units": "hPa",
+        "long_name": "cloud top pressure propagated uncertainty"
+      },
+      {
+        "name": "ctp_prop_unc",
+        "units": "hPa",
+        "long_name": "cloud top pressure propagated uncertainty"
+      },
+      {
+        "name": "ctp_corrected_std",
+        "units": "hPa",
+        "long_name": "cloud top pressure standard deviation"
+      },
+      {
+        "name": "ctp_std",
+        "units": "hPa",
+        "long_name": "cloud top pressure standard deviation"
+      },
+      {
+        "name": "ctp_corrected_unc",
+        "units": "hPa",
+        "long_name": "cloud top pressure uncertainty"
+      },
+      {
+        "name": "ctp_unc",
+        "units": "hPa",
+        "long_name": "cloud top pressure uncertainty"
+      },
+      {
+        "name": "ctp",
+        "units": "hPa",
+        "long_name": "cloud top pressure"
+      },
+      {
+        "name": "ctp_corrected",
+        "units": "hPa",
+        "long_name": "cloud top pressure"
+      },
+      {
+        "name": "ctt_corr_unc",
+        "units": "K",
+        "long_name": "cloud top temperature correlated uncertainty"
+      },
+      {
+        "name": "ctt_corrected_corr_unc",
+        "units": "K",
+        "long_name": "cloud top temperature correlated uncertainty"
+      },
+      {
+        "name": "ctt_corrected_prop_unc",
+        "units": "K",
+        "long_name": "cloud top temperature propagated uncertainty"
+      },
+      {
+        "name": "ctt_prop_unc",
+        "units": "K",
+        "long_name": "cloud top temperature propagated uncertainty"
+      },
+      {
+        "name": "ctt_corrected_std",
+        "units": "K",
+        "long_name": "cloud top temperature standard deviation"
+      },
+      {
+        "name": "ctt_std",
+        "units": "K",
+        "long_name": "cloud top temperature standard deviation"
+      },
+      {
+        "name": "ctt_corrected_unc",
+        "units": "K",
+        "long_name": "cloud top temperature uncertainty"
+      },
+      {
+        "name": "ctt_unc",
+        "units": "K",
+        "long_name": "cloud top temperature uncertainty"
+      },
+      {
+        "name": "ctt",
+        "units": "K",
+        "long_name": "cloud top temperature"
+      },
+      {
+        "name": "ctt_corrected",
+        "units": "K",
+        "long_name": "cloud top temperature"
+      },
+      {
+        "name": "hist1d_cot_bin_border",
+        "units": "1",
+        "long_name": "cot histogram bin border values"
+      },
+      {
+        "name": "hist2d_cot_bin_border",
+        "units": "1",
+        "long_name": "cot histogram bin border values"
+      },
+      {
+        "name": "hist1d_cot_bin_centre",
+        "units": "1",
+        "long_name": "cot histogram bin centres"
+      },
+      {
+        "name": "hist2d_cot_bin_centre",
+        "units": "1",
+        "long_name": "cot histogram bin centres"
+      },
+      {
+        "name": "hist1d_ctp_bin_border",
+        "units": "hPa",
+        "long_name": "ctp histogram bin border values"
+      },
+      {
+        "name": "hist2d_ctp_bin_border",
+        "units": "hPa",
+        "long_name": "ctp histogram bin border values"
+      },
+      {
+        "name": "hist1d_ctp_bin_centre",
+        "units": "hPa",
+        "long_name": "ctp histogram bin centres"
+      },
+      {
+        "name": "hist2d_ctp_bin_centre",
+        "units": "hPa",
+        "long_name": "ctp histogram bin centres"
+      },
+      {
+        "name": "hist1d_ctt_bin_border",
+        "units": "K",
+        "long_name": "ctt histogram bin border values"
+      },
+      {
+        "name": "hist1d_ctt_bin_centre",
+        "units": "K",
+        "long_name": "ctt histogram bin centres"
+      },
+      {
+        "name": "hist1d_cwp_bin_border",
+        "units": "g/m2",
+        "long_name": "cwp histogram bin border values"
+      },
+      {
+        "name": "hist1d_cwp_bin_centre",
+        "units": "g/m2",
+        "long_name": "cwp histogram bin centres"
+      },
+      {
+        "name": "cph_day_std",
+        "units": "1",
+        "long_name": "daytime fraction of liquid water clouds standard deviation"
+      },
+      {
+        "name": "cph_day",
+        "units": "1",
+        "long_name": "daytime fraction of liquid water clouds"
+      },
+      {
+        "name": "cph_std",
+        "units": "1",
+        "long_name": "fraction of liquid water clouds standard deviation"
+      },
+      {
+        "name": "cph",
+        "units": "1",
+        "long_name": "fraction of liquid water clouds"
+      },
+      {
+        "name": "iwp_allsky",
+        "units": "g/m2",
+        "long_name": "grid box mean of cloud ice water path"
+      },
+      {
+        "name": "lwp_allsky",
+        "units": "g/m2",
+        "long_name": "grid box mean of cloud liquid water path"
+      },
+      {
+        "name": "cfc_high",
+        "units": "1",
+        "long_name": "high level cloud fraction"
+      },
+      {
+        "name": "hist1d_cla_vis006",
+        "units": "1",
+        "long_name": "histogram of cloud albedo at 0.6 um"
+      },
+      {
+        "name": "hist1d_cla_vis008",
+        "units": "1",
+        "long_name": "histogram of cloud albedo at 0.8 um"
+      },
+      {
+        "name": "hist1d_cer",
+        "units": "1",
+        "long_name": "histogram of cloud effective radius"
+      },
+      {
+        "name": "hist1d_cot",
+        "units": "1",
+        "long_name": "histogram of cloud optical thickness"
+      },
+      {
+        "name": "hist1d_ctp",
+        "units": "1",
+        "long_name": "histogram of cloud top pressure"
+      },
+      {
+        "name": "hist1d_ctt",
+        "units": "1",
+        "long_name": "histogram of cloud top temperature"
+      },
+      {
+        "name": "hist1d_cwp",
+        "units": "1",
+        "long_name": "histogram of cloud water path"
+      },
+      {
+        "name": "cla_vis006_ice_std",
+        "units": "1",
+        "long_name": "ice water cloud albedo at 0.6 um standard deviation"
+      },
+      {
+        "name": "cla_vis006_ice_unc",
+        "units": "1",
+        "long_name": "ice water cloud albedo at 0.6 um uncertainty"
+      },
+      {
+        "name": "cla_vis006_ice",
+        "units": "1",
+        "long_name": "ice water cloud albedo at 0.6 um"
+      },
+      {
+        "name": "cla_vis008_ice_std",
+        "units": "1",
+        "long_name": "ice water cloud albedo at 0.8 um standard deviation"
+      },
+      {
+        "name": "cla_vis008_ice_unc",
+        "units": "1",
+        "long_name": "ice water cloud albedo at 0.8 um uncertainty"
+      },
+      {
+        "name": "cla_vis008_ice",
+        "units": "1",
+        "long_name": "ice water cloud albedo at 0.8 um"
+      },
+      {
+        "name": "cer_ice_corr_unc",
+        "units": "um",
+        "long_name": "ice water cloud effective radius correlated uncertainty"
+      },
+      {
+        "name": "cer_ice_prop_unc",
+        "units": "um",
+        "long_name": "ice water cloud effective radius propagated uncertainty"
+      },
+      {
+        "name": "cer_ice_std",
+        "units": "um",
+        "long_name": "ice water cloud effective radius standard deviation"
+      },
+      {
+        "name": "cer_ice_unc",
+        "units": "um",
+        "long_name": "ice water cloud effective radius uncertainty"
+      },
+      {
+        "name": "cer_ice",
+        "units": "um",
+        "long_name": "ice water cloud effective radius"
+      },
+      {
+        "name": "cot_ice_corr_unc",
+        "units": "1",
+        "long_name": "ice water cloud optical thickness correlated uncertainty"
+      },
+      {
+        "name": "cot_ice_prop_unc",
+        "units": "1",
+        "long_name": "ice water cloud optical thickness propagated uncertainty"
+      },
+      {
+        "name": "cot_ice_std",
+        "units": "1",
+        "long_name": "ice water cloud optical thickness standard deviation"
+      },
+      {
+        "name": "cot_ice_unc",
+        "units": "1",
+        "long_name": "ice water cloud optical thickness uncertainty"
+      },
+      {
+        "name": "cot_ice",
+        "units": "1",
+        "long_name": "ice water cloud optical thickness"
+      },
+      {
+        "name": "hist2d_cot_ctp",
+        "units": "1",
+        "long_name": "joint histogram of cloud optical thickness and cloud top pressure"
+      },
+      {
+        "name": "lat",
+        "units": "degrees_north",
+        "long_name": "latitude"
+      },
+      {
+        "name": "cla_vis006_liq_std",
+        "units": "1",
+        "long_name": "liquid water cloud albedo at 0.6 um standard deviation"
+      },
+      {
+        "name": "cla_vis006_liq_unc",
+        "units": "1",
+        "long_name": "liquid water cloud albedo at 0.6 um uncertainty"
+      },
+      {
+        "name": "cla_vis006_liq",
+        "units": "1",
+        "long_name": "liquid water cloud albedo at 0.6 um"
+      },
+      {
+        "name": "cla_vis008_liq_std",
+        "units": "1",
+        "long_name": "liquid water cloud albedo at 0.8 um standard deviation"
+      },
+      {
+        "name": "cla_vis008_liq_unc",
+        "units": "1",
+        "long_name": "liquid water cloud albedo at 0.8 um uncertainty"
+      },
+      {
+        "name": "cla_vis008_liq",
+        "units": "1",
+        "long_name": "liquid water cloud albedo at 0.8 um"
+      },
+      {
+        "name": "cer_liq_corr_unc",
+        "units": "um",
+        "long_name": "liquid water cloud effective radius correlated uncertainty"
+      },
+      {
+        "name": "cer_liq_prop_unc",
+        "units": "um",
+        "long_name": "liquid water cloud effective radius propagated uncertainty"
+      },
+      {
+        "name": "cer_liq_std",
+        "units": "um",
+        "long_name": "liquid water cloud effective radius standard deviation"
+      },
+      {
+        "name": "cer_liq_unc",
+        "units": "um",
+        "long_name": "liquid water cloud effective radius uncertainty"
+      },
+      {
+        "name": "cer_liq",
+        "units": "um",
+        "long_name": "liquid water cloud effective radius"
+      },
+      {
+        "name": "cot_liq_corr_unc",
+        "units": "1",
+        "long_name": "liquid water cloud optical thickness correlated uncertainty"
+      },
+      {
+        "name": "cot_liq_prop_unc",
+        "units": "1",
+        "long_name": "liquid water cloud optical thickness propagated uncertainty"
+      },
+      {
+        "name": "cot_liq_std",
+        "units": "1",
+        "long_name": "liquid water cloud optical thickness standard deviation"
+      },
+      {
+        "name": "cot_liq_unc",
+        "units": "1",
+        "long_name": "liquid water cloud optical thickness uncertainty"
+      },
+      {
+        "name": "cot_liq",
+        "units": "1",
+        "long_name": "liquid water cloud optical thickness"
+      },
+      {
+        "name": "lon",
+        "units": "degrees_east",
+        "long_name": "longitude"
+      },
+      {
+        "name": "cfc_low",
+        "units": "1",
+        "long_name": "low level cloud fraction"
+      },
+      {
+        "name": "cfc_mid",
+        "units": "1",
+        "long_name": "mid level cloud fraction"
+      },
+      {
+        "name": "nobs_clear_day",
+        "units": "1",
+        "long_name": "number of clear daytime observations"
+      },
+      {
+        "name": "nobs_clear_night",
+        "units": "1",
+        "long_name": "number of clear nighttime observations"
+      },
+      {
+        "name": "nobs_clear_twl",
+        "units": "1",
+        "long_name": "number of clear twilight observations"
+      },
+      {
+        "name": "nobs_cloudy_day",
+        "units": "1",
+        "long_name": "number of cloudy daytime observations"
+      },
+      {
+        "name": "nobs_cloudy_night",
+        "units": "1",
+        "long_name": "number of cloudy nighttime observations"
+      },
+      {
+        "name": "nobs_cloudy",
+        "units": "1",
+        "long_name": "number of cloudy observations"
+      },
+      {
+        "name": "nobs_cloudy_twl",
+        "units": "1",
+        "long_name": "number of cloudy twilight observations"
+      },
+      {
+        "name": "nobs_day",
+        "units": "1",
+        "long_name": "number of daytime observations"
+      },
+      {
+        "name": "nobs",
+        "units": "1",
+        "long_name": "number of observations"
+      },
+      {
+        "name": "nretr_cloudy",
+        "units": "1",
+        "long_name": "number of valid cloudy retrievals"
+      },
+      {
+        "name": "nretr_cloudy_day",
+        "units": "1",
+        "long_name": "number of valid daytime cloudy retrievals"
+      },
+      {
+        "name": "nretr_cloudy_high",
+        "units": "1",
+        "long_name": "number of valid high level cloudy retrievals"
+      },
+      {
+        "name": "nretr_cloudy_ice",
+        "units": "1",
+        "long_name": "number of valid ice phase cloudy retrievals"
+      },
+      {
+        "name": "nretr_cloudy_day_ice",
+        "units": "1",
+        "long_name": "number of valid ice phase daytime cloudy retrievals"
+      },
+      {
+        "name": "nretr_cloudy_liq",
+        "units": "1",
+        "long_name": "number of valid liquid phase cloudy retrievals"
+      },
+      {
+        "name": "nretr_cloudy_day_liq",
+        "units": "1",
+        "long_name": "number of valid liquid phase daytime cloudy retrievals"
+      },
+      {
+        "name": "nretr_cloudy_low",
+        "units": "1",
+        "long_name": "number of valid low level cloudy retrievals"
+      },
+      {
+        "name": "nretr_cloudy_mid",
+        "units": "1",
+        "long_name": "number of valid mid level cloudy retrievals"
+      },
+      {
+        "name": "hist_phase",
+        "units": "1",
+        "long_name": "phase histogram bins"
+      },
+      {
+        "name": "stemp_corr_unc",
+        "units": "K",
+        "long_name": "surface temperature correlated uncertainty"
+      },
+      {
+        "name": "stemp_prop_unc",
+        "units": "K",
+        "long_name": "surface temperature propagated uncertainty"
+      },
+      {
+        "name": "stemp_std",
+        "units": "K",
+        "long_name": "surface temperature standard deviation"
+      },
+      {
+        "name": "stemp_unc",
+        "units": "K",
+        "long_name": "surface temperature uncertainty"
+      },
+      {
+        "name": "stemp",
+        "units": "K",
+        "long_name": "surface temperature"
+      }
+    ],
+    "odd_url": "http://opensearch-test.ceda.ac.uk/opensearch/description.xml?parentIdentifier=f1ab07b5292f4813bd3090b51d270aa8",
+    "metadata_url": "https://catalogue.ceda.ac.uk/export/xml/f1ab07b5292f4813bd3090b51d270aa8.xml",
+    "cci_project": "CLOUD",
+    "fid": "f1ab07b5292f4813bd3090b51d270aa8"
+  }
+}
