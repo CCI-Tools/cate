@@ -593,6 +593,9 @@ class EsaCciOdpDataSource(DataSource):
                         if compression_enabled:
                             for sel_var_name in remote_ds.variables.keys():
                                 time_slice.variables.get(sel_var_name).encoding.update(encoding_update)
+                        time_slice_history = time_slice.attrs.pop('history')
+                        if time_slice_history:
+                            time_slice.attrs['history'] = json.dumps(time_slice_history)
                         to_netcdf_attempts = 0
                         format = 'NETCDF4'
                         engine = 'h5netcdf'
