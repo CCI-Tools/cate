@@ -503,9 +503,7 @@ class EsaCciOdpDataSource(DataSource):
         self._ensure_descriptor_read()
         variables = []
         for variable_descriptor in self._descriptor.data_vars:
-            variables.append(dict(name=variable_descriptor.name,
-                                  units=variable_descriptor.attrs.get('units', ''),
-                                  long_name=variable_descriptor.attrs.get('long_name', '')))
+            variables.append(variable_descriptor.name)
         return variables
 
     @property
