@@ -72,6 +72,10 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Paolo Pesciullesi (Telespazio VEGA UK Ltd)"
 
 
+def add_data_store():
+    DATA_STORE_REGISTRY.add_data_store(EsaCciOdpDataStore())
+
+
 def get_data_store_path():
     return os.environ.get('CATE_LOCAL_DATA_STORE_PATH',
                           os.path.join(get_data_stores_path(), 'local'))

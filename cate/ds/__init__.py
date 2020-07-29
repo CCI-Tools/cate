@@ -53,5 +53,8 @@ def cate_init():
         from .esa_cci_odp_legacy import add_data_store
         add_data_store()
 
+    from .esa_cci_odp_xcube import add_data_store as xcube_add_data_store
+    xcube_add_data_store()
+
     from .local import add_to_data_store_registry
     add_to_data_store_registry()
