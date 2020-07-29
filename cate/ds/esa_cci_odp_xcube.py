@@ -54,8 +54,11 @@ from cate.conf import get_config_value
 from cate.conf import get_data_stores_path
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, DataStore, DataSource, DataStoreNotice, NetworkError
-from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, VarNamesLike
+from cate.core.types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike
 from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
+from cate.core.opimpl import adjust_spatial_attrs_impl
+from cate.core.opimpl import normalize_impl
+from cate.core.opimpl import subset_spatial_impl
 from cate.util.monitor import Cancellation, Monitor
 
 
@@ -563,8 +566,6 @@ class EsaCciOdpDataSource(DataSource):
             os.makedirs(local_path)
         remote_ds = self.open_dataset(time_range=time_range, region=region, var_names=var_names, monitor=monitor)
         do_update_of_verified_time_coverage_start_once = True
-        do_update_of_variables_meta_info_once = True
-        do_update_of_region_meta_info_once = True
         verified_time_coverage_start = None
         verified_time_coverage_end = None
         compression_level = get_config_value('NETCDF_COMPRESSION_LEVEL', NETCDF_COMPRESSION_LEVEL)
@@ -572,6 +573,22 @@ class EsaCciOdpDataSource(DataSource):
         encoding_update = dict()
         if compression_enabled:
             encoding_update.update({'zlib': True, 'complevel': compression_level})
+        # update region meta info
+        if region:
+            remote_ds = normalize_impl(remote_ds)
+            remote_ds = subset_spatial_impl(remote_ds, region)
+            remote_ds = adjust_spatial_attrs_impl(remote_ds, allow_point=False)
+            local_ds.meta_info['bbox_minx'] = remote_ds.attrs.get('geospatial_lon_min', '')
+            local_ds.meta_info['bbox_maxx'] = remote_ds.attrs.get('geospatial_lon_max', '')
+            local_ds.meta_info['bbox_maxy'] = remote_ds.attrs.get('geospatial_lat_max', '')
+            local_ds.meta_info['bbox_miny'] = remote_ds.attrs.get('geospatial_lat_min', '')
+        # update variables meta info
+        variables_info = local_ds.meta_info.get('variables', [])
+        local_ds.meta_info['variables'] = [var_info for var_info in variables_info
+                                           if var_info.get('name')
+                                           in remote_ds.variables.keys()
+                                           and var_info.get('name')
+                                           not in remote_ds.dims.keys()]
         with monitor.starting('Sync ' + self.id, total_work=remote_ds.time.size):
             for idx, time_stamp in enumerate(remote_ds.time.data):
                 child_monitor = monitor.child(work=1)
@@ -583,13 +600,6 @@ class EsaCciOdpDataSource(DataSource):
                     try:
                         remote_dataset_root = time_slice
                         child_monitor.progress(work=20)
-                        if region:
-                            if do_update_of_region_meta_info_once:
-                                local_ds.meta_info['bbox_minx'] = time_slice.attrs.get('geospatial_lon_min', '')
-                                local_ds.meta_info['bbox_maxx'] = time_slice.attrs.get('geospatial_lon_max', '')
-                                local_ds.meta_info['bbox_maxy'] = time_slice.attrs.get('geospatial_lat_max', '')
-                                local_ds.meta_info['bbox_miny'] = time_slice.attrs.get('geospatial_lat_min', '')
-                                do_update_of_region_meta_info_once = False
                         if compression_enabled:
                             for sel_var_name in remote_ds.variables.keys():
                                 time_slice.variables.get(sel_var_name).encoding.update(encoding_update)
@@ -618,14 +628,6 @@ class EsaCciOdpDataSource(DataSource):
                                 raise self._cannot_access_error(time_range, region, var_names,
                                                                 verb="synchronize", cause=e) from e
                         child_monitor.progress(work=75)
-                        if do_update_of_variables_meta_info_once:
-                            variables_info = local_ds.meta_info.get('variables', [])
-                            local_ds.meta_info['variables'] = [var_info for var_info in variables_info
-                                                               if var_info.get('name')
-                                                               in time_slice.variables.keys()
-                                                               and var_info.get('name')
-                                                               not in time_slice.dims.keys()]
-                            do_update_of_variables_meta_info_once = False
                         time_bounds = time_slice.time_bnds.data
                         start_time = pd.to_datetime(str(time_bounds[0])).strftime('%Y-%m-%dT%H:%M:%S')
                         end_time = pd.to_datetime(str(time_bounds[1])).strftime('%Y-%m-%dT%H:%M:%S')
@@ -647,6 +649,7 @@ class EsaCciOdpDataSource(DataSource):
                     except OSError as e:
                         raise self._cannot_access_error(time_range, region, var_names,
                                                         verb="synchronize", cause=e) from e
+        remote_ds.close()
         local_ds.meta_info['temporal_coverage_start'] = verified_time_coverage_start
         local_ds.meta_info['temporal_coverage_end'] = verified_time_coverage_end
         local_ds.save(True)
