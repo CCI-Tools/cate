@@ -6,10 +6,9 @@ import unittest
 from datetime import datetime
 
 from cate.core.ds import DATA_STORE_REGISTRY
+from cate.core.ds import DataStoreNotice
 from cate.ds.esa_cci_odp_xcube import EsaCciOdpDataStore
 from cate.ds.esa_cci_odp_xcube import EsaCciOdpDataSource
-# from xcube.core.
-# from xcube.core.store import TYPE_ID_DATASET
 from xcube_cci.dataaccess import CciOdpDataStore
 
 def _create_test_data_store():
@@ -46,6 +45,41 @@ class EsaCciOdpDataStoreTest(unittest.TestCase):
         self.assertEqual('esacci.CLOUD.mon.L3C.CLD_PRODUCTS.MODIS.Terra.MODIS_TERRA.2-0.r1', data_sources[1].id)
         self.assertEqual('esacci.OC.mon.L3S.K_490.multi-sensor.multi-platform.MERGED.3-1.geographic', data_sources[2].id)
         self.assertEqual('esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1', data_sources[3].id)
+
+    def test_id_title_and_is_local(self):
+        self.assertEqual(self._store.id, 'test-odp')
+        self.assertEqual(self._store.title, 'ESA CCI Open Data Portal (xcube access)')
+        self.assertEqual(self._store.is_local, False)
+
+    def test_description(self):
+        self.assertIsNotNone(self._store.description)
+        self.assertTrue(len(self._store.description) > 40)
+
+    def test_notices(self):
+        self.assertIsInstance(self._store.notices, list)
+        self.assertEqual(2, len(self._store.notices))
+
+        notice0 = self._store.notices[0]
+        self.assertIsInstance(notice0, DataStoreNotice)
+        self.assertEqual(notice0.id, "terminologyClarification")
+        self.assertEqual(notice0.title, "Terminology Clarification")
+        self.assertEqual(notice0.icon, "info-sign")
+        self.assertEqual(notice0.intent, "primary")
+        self.assertTrue(len(notice0.content) > 20)
+
+        notice1 = self._store.notices[1]
+        self.assertIsInstance(notice0, DataStoreNotice)
+        self.assertEqual(notice1.id, "dataCompleteness")
+        self.assertEqual(notice1.title, "Data Completeness")
+        self.assertEqual(notice1.icon, "warning-sign")
+        self.assertEqual(notice1.intent, "warning")
+        self.assertTrue(len(notice1.content) > 20)
+
+    @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
+    def test_query_web_access(self):
+        store = EsaCciOdpDataStore()
+        all_data_sources = store.query()
+        self.assertIsNotNone(all_data_sources)
 
 
 class EsaCciOdpDataSourceTest(unittest.TestCase):
@@ -119,6 +153,9 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
         self.assertEqual('2012-04-30T22:59:59', meta_info.get('temporal_coverage_end', None))
         self.assertEqual('2002-05-19T23:00:00', meta_info.get('temporal_coverage_start', None))
         self.assertEqual('month', meta_info.get('time_frequency', None))
+
+    def test_schema(self):
+        self.assertEqual(self._source.schema, None)
 
 
 @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
