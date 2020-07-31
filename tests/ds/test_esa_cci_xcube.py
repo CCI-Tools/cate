@@ -108,6 +108,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
 
     def test_variables_info(self):
         variables_info = self._source.variables_info
+        names = [var_info['name'] for var_info in variables_info]
         self.assertEqual(["pixel_count", "AOD550_mean", "AOD550_sdev", "AOD670_mean", "AOD670_sdev", "AOD870_mean",
                           "AOD870_sdev", "AOD1600_mean", "AOD1600_sdev", "ANG550_870_mean", "ANG550_870_sdev",
                           "FM_AOD550_mean", "FM_AOD550_sdev", "D_AOD550_mean", "D_AOD550_sdev", "AAOD550_mean",
@@ -123,7 +124,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
                           "AOD1600_uncertainty", "AOD1600_uncertainty_min", "AOD1600_uncertainty_max",
                           "cloud_fraction_mean", "cloud_fraction_sdev", "surface_type_number_mean",
                           "surface_type_number_sdev"],
-                         variables_info)
+                         names)
 
     def test_title(self):
         self.assertEqual('ESA Aerosol Climate Change Initiative (Aerosol CCI): Level 3 aerosol products '
