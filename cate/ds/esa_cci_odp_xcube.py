@@ -97,9 +97,40 @@ def _load_or_fetch_json(fetch_json_function,
     """
     Return (JSON) value of fetch_json_function or return value of a cached JSON file.
     """
-    json_obj = None
+    json_obj = _load_json_obj(cache_used, cache_dir, cache_json_filename, cache_timestamp_filename, cache_expiration_days)
     cache_json_file = None
 
+    if json_obj is None:
+        # noinspection PyArgumentList
+        try:
+            # noinspection PyArgumentList
+            json_obj = fetch_json_function(*(fetch_json_args or []), **(fetch_json_kwargs or {}))
+            if cache_used:
+                os.makedirs(cache_dir, exist_ok=True)
+                cache_json_file = os.path.join(cache_dir, cache_json_filename)
+                cache_timestamp_file = os.path.join(cache_dir, cache_timestamp_filename)
+                # noinspection PyUnboundLocalVariable
+                with open(cache_json_file, "w") as fp:
+                    fp.write(json.dumps(json_obj, indent='  '))
+                # noinspection PyUnboundLocalVariable
+                with open(cache_timestamp_file, "w") as fp:
+                    fp.write(datetime.utcnow().strftime(_TIMESTAMP_FORMAT))
+        except Exception as e:
+            if cache_json_file and os.path.exists(cache_json_file):
+                with open(cache_json_file) as fp:
+                    json_text = fp.read()
+                    json_obj = json.loads(json_text)
+            else:
+                raise e
+
+    return json_obj
+
+
+def _load_json_obj(cache_used: bool = False,
+                    cache_dir: str = None,
+                    cache_json_filename: str = None,
+                    cache_timestamp_filename: str = None,
+                    cache_expiration_days: float = 1.0):
     if cache_used:
         if cache_dir is None:
             raise ValueError('if cache_used argument is True, cache_dir argument must not be None')
@@ -125,31 +156,60 @@ def _load_or_fetch_json(fetch_json_function,
             if os.path.exists(cache_json_file):
                 with open(cache_json_file) as fp:
                     json_text = fp.read()
-                    json_obj = json.loads(json_text)
+                    return json.loads(json_text)
 
-    if json_obj is None:
+    return None
+
+
+def _load_or_fetch_jsons(fetch_json_function,
+                         fetch_json_args_list: list = list,
+                         fetch_json_kwargs: dict = None,
+                         cache_used: bool = False,
+                         cache_dir: str = None,
+                         cache_json_filenames: list = list,
+                         cache_timestamp_filenames: list = list,
+                         cache_expiration_days: float = 1.0) -> Union[Sequence, Dict]:
+    """
+    Return (JSON) value of fetch_json_function or return value of a cached JSON file.
+    """
+    json_objs = {}
+    still_to_fetch = []
+    still_to_cache_name = []
+    still_to_stamp_name = []
+    for i, cache_json_filename in enumerate(cache_json_filenames):
+        cache_timestamp_filename = cache_timestamp_filenames[i]
+        json_obj = _load_json_obj(cache_used,
+                                  cache_dir,
+                                  cache_json_filename,
+                                  cache_timestamp_filename,
+                                  cache_expiration_days)
+        if json_obj:
+            json_objs[fetch_json_args_list[i]] = json_obj
+        else:
+            still_to_fetch.append(fetch_json_args_list[i])
+            still_to_cache_name.append(cache_json_filename)
+            still_to_stamp_name.append(cache_timestamp_filename)
+
+    if len(still_to_fetch) > 0:
+    # if json_obj is None:
         # noinspection PyArgumentList
-        try:
+        # try:
             # noinspection PyArgumentList
-            json_obj = fetch_json_function(*(fetch_json_args or []), **(fetch_json_kwargs or {}))
+        fetched_json_objs = fetch_json_function(*(still_to_fetch or []), **(fetch_json_kwargs or {}))
+        for i, to_fetch in enumerate(still_to_fetch):
+            json_obj = fetched_json_objs[i]
+            json_objs[to_fetch] = json_obj
             if cache_used:
                 os.makedirs(cache_dir, exist_ok=True)
+                cache_json_file = os.path.join(cache_dir, still_to_cache_name[i])
+                cache_timestamp_file = os.path.join(cache_dir, still_to_stamp_name[i])
                 # noinspection PyUnboundLocalVariable
                 with open(cache_json_file, "w") as fp:
                     fp.write(json.dumps(json_obj, indent='  '))
                 # noinspection PyUnboundLocalVariable
                 with open(cache_timestamp_file, "w") as fp:
                     fp.write(datetime.utcnow().strftime(_TIMESTAMP_FORMAT))
-        except Exception as e:
-            if cache_json_file and os.path.exists(cache_json_file):
-                with open(cache_json_file) as fp:
-                    json_text = fp.read()
-                    json_obj = json.loads(json_text)
-            else:
-                raise e
-
-    return json_obj
-
+    return json_objs
 
 
 class EsaCciOdpDataStore(DataStore):
@@ -325,9 +385,10 @@ class EsaCciOdpDataStore(DataStore):
         if not self._data_ids:
             self._load_index()
         if self._data_ids:
+            descriptors = self._store.describe_datasets(self._data_ids)
             self._data_sources = []
-            for data_id in self._data_ids:
-                self._data_sources.append(EsaCciOdpDataSource(self, self._store, data_id))
+            for descriptor in descriptors:
+                self._data_sources.append(EsaCciOdpDataSource(self, self._store, descriptor.data_id, descriptor))
         self._check_source_diff()
         self._freeze_source()
 
@@ -422,18 +483,46 @@ class EsaCciOdpDataStore(DataStore):
     def _fetch_descriptor(self, data_id: str) -> dict:
         return self._store.describe_data(data_id).to_dict()
 
+    def _fetch_descriptors(self, data_ids: List[str]) -> List[dict]:
+        return [descriptor.to_dict() for descriptor in self._store.describe_datasets(data_ids)]
+
     def _load_or_fetch_descriptor(self, data_id: str) -> x_store.DataDescriptor:
-        formatted_data_id = data_id.replace('.', '-')
         descriptor_as_dict = _load_or_fetch_json(self._fetch_descriptor,
                                                  fetch_json_args=[data_id],
                                                  fetch_json_kwargs=dict(),
                                                  cache_used=self.index_cache_used,
                                                  cache_dir=self._metadata_store_path,
-                                                 cache_json_filename=f'{formatted_data_id}.json',
-                                                 cache_timestamp_filename=f'{formatted_data_id}-timestamp.txt',
+                                                 cache_json_filename=self._get_data_id_filename(data_id),
+                                                 cache_timestamp_filename=self._get_data_id_timestamp_filename(data_id),
                                                  cache_expiration_days=self.index_cache_expiration_days
                                                  )
         return x_store.DatasetDescriptor.from_dict(descriptor_as_dict)
+
+    def _get_data_id_filename(self, data_id: str) -> str:
+        formatted_data_id = data_id.replace('.', '-')
+        return f'{formatted_data_id}.json'
+
+    def _get_data_id_timestamp_filename(self, data_id: str) -> str:
+        formatted_data_id = data_id.replace('.', '-')
+        return f'{formatted_data_id}-timestamp.txt'
+
+    def _load_or_fetch_descriptors(self, data_ids: str) -> dict:
+        filenames = []
+        timestamps = []
+        for data_id in data_ids:
+            filenames.append(self._get_data_id_filename(data_id))
+            timestamps.append(self._get_data_id_timestamp_filename(data_id))
+        descriptors_as_dicts = _load_or_fetch_jsons(self._fetch_descriptors,
+                                                    fetch_json_args_list=[[data_ids]],
+                                                    fetch_json_kwargs=dict(),
+                                                    cache_used=self.index_cache_used,
+                                                    cache_dir=self._metadata_store_path,
+                                                    cache_json_filenames=filenames,
+                                                    cache_timestamp_filenames=timestamps,
+                                                    cache_expiration_days=self.index_cache_expiration_days
+                                                    )
+        return [x_store.DatasetDescriptor.from_dict(descriptor_as_dict) for descriptor_as_dict in descriptors_as_dicts]
+
 
 
 INFO_FIELD_NAMES = sorted(["title",
@@ -471,12 +560,13 @@ INFO_FIELD_NAMES = sorted(["title",
 
 
 class EsaCciOdpDataSource(DataSource):
-    def __init__(self, data_store: EsaCciOdpDataStore, cci_store: x_store.DataStore, data_id: str):
+    def __init__(self, data_store: EsaCciOdpDataStore, cci_store: x_store.DataStore, data_id: str,
+                 descriptor: x_store.DataDescriptor = None):
         super(EsaCciOdpDataSource, self).__init__()
         self._data_store = data_store
         self._cci_store = cci_store
         self._datasource_id = data_id
-        self._descriptor = None
+        self._descriptor = descriptor
         self._meta_info = None
         self._temporal_coverage = None
 
@@ -509,8 +599,8 @@ class EsaCciOdpDataSource(DataSource):
         if self._descriptor.data_vars:
             for variable_descriptor in self._descriptor.data_vars:
                 variables.append(dict(name=variable_descriptor.name,
-                                      units=variable_descriptor.attrs.get('units', ''),
-                                      long_name=variable_descriptor.attrs.get('long_name', '')))
+                                      units=variable_descriptor.attrs.get('units', '') if variable_descriptor.attrs else None,
+                                      long_name=variable_descriptor.attrs.get('long_name', '')  if variable_descriptor.attrs else None))
         return variables
 
     @property
