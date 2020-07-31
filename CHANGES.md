@@ -1,4 +1,8 @@
 ## Version 2.1.0 (in development)
+* Exchanged Cate's countries GeoJSON, by three new maps from https://www.naturalearthdata.com
+  using 10m, 50m (default), and 110m resolutions. This fixes broken polyline and polygon 
+  drawing in Cate Web UI [#912](https://github.com/CCI-Tools/cate/issues/912). See also
+  https://github.com/CCI-Tools/cate-webui/issues/11. 
 * Cate Web API is now handling user preferences
 * Added normalization method in order to handle datasets with zonal means 
   which have no longitude information.
