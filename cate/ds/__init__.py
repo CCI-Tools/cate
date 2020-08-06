@@ -49,7 +49,9 @@ def cate_init():
 
     # from .esa_cci_ftp import set_default_data_store
     import os
-    if os.environ.get('USE_ODP_LEGACY_DATA_STORE', True):
+    import distutils.util
+    if bool(distutils.util.strtobool(os.environ.get('USE_ODP_LEGACY_DATA_STORE', 'True'))):
+        bool(distutils.util.strtobool('0'))
         from .esa_cci_odp_legacy import add_data_store
         add_data_store()
 

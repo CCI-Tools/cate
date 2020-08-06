@@ -1,8 +1,15 @@
 ## Version 2.1.0 (in development)
-
+* Exchanged Cate's countries GeoJSON, by three new maps from https://www.naturalearthdata.com
+  using 10m, 50m (default), and 110m resolutions. This fixes broken polyline and polygon 
+  drawing in Cate Web UI [#912](https://github.com/CCI-Tools/cate/issues/912). See also
+  https://github.com/CCI-Tools/cate-webui/issues/11. 
 * Cate Web API is now handling user preferences
+* Added normalization method in order to handle datasets with zonal means 
+  which have no longitude information.
+* Increased robustness when using netcdf library
 * Remodeled ODP Data Store to support newly designed CEDA OpenSearch Service. 
-  The previous Data Store implementation is now available as "ESA CCI Open Data Portal Legacy".   
+  The previous Data Store implementation is now available as "ESA CCI Open Data Portal Legacy".
+* Iteratively adapted CCI Data Store to support newly provided data sets.    
 * Cate Web API at now allows changes to the root path using environment variable JUPYTERHUB_SERVICE_PREFIX. This is relevant to Catehub context where each user's cate service is mounted on /user/{username}/{cate-web-api-endpoint}.
 * Cate Web API at `${endpoint}/` now reports whether it is running with a "user root directory". In this case, the Web API uses relative workspace path only and users connot escape the given user root directory.
 * Cate Web API allows for Cross-Origin Resource Sharing (CORS), which is required

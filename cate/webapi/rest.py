@@ -283,16 +283,24 @@ class GeoJSONHandler(WebAPIRequestHandler):
             self.finish()
 
 
+DEFAULT_COUNTRIES_RESOLUTION = '50m'
+
+
 # noinspection PyAbstractClass,PyBroadException
-class CountriesGeoJSONHandler(GeoJSONHandler):
-    def __init__(self, application, request, **kwargs):
+class CountriesGeoJSONHandler(WebAPIRequestHandler):
+    def get(self, resolution: str = DEFAULT_COUNTRIES_RESOLUTION):
+        """
+        :param resolution: '10m', '50m', or '110m' (default), refer to https://geojson-maps.ash.ms/
+        """
+        filename = f'countries-{resolution or DEFAULT_COUNTRIES_RESOLUTION}.geojson'
         try:
-            shapefile_path = os.path.join(os.path.dirname(__file__),
-                                          '..', 'ds', 'data', 'countries', 'countries.geojson')
-            super().__init__(application, request, shapefile_path=shapefile_path, **kwargs)
+            path = os.path.join(os.path.dirname(__file__),
+                                '..', 'ds', 'data', 'countries', filename)
+            with open(path) as fp:
+                self.write(fp.read())
         except Exception:
             self.write_status_error(exc_info=sys.exc_info())
-            self.finish()
+        self.finish()
 
 
 # noinspection PyAbstractClass,PyBroadException
