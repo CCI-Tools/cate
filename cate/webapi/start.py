@@ -59,7 +59,7 @@ from cate.util.web.webapi import run_start, url_pattern, WebAPIRequestHandler, W
 from cate.version import __version__
 from cate.webapi.rest import ResourcePlotHandler, CountriesGeoJSONHandler, ResVarTileHandler, \
     ResFeatureCollectionHandler, ResFeatureHandler, ResVarCsvHandler, ResVarHtmlHandler, NE2Handler, \
-    DatasetHandler
+    FilesUploadHandler, FilesDownloadHandler
 from cate.webapi.mpl import MplJavaScriptHandler, MplDownloadHandler, MplWebSocketHandler
 from cate.webapi.websocket import WebSocketService
 from cate.webapi.service import SERVICE_NAME, SERVICE_TITLE
@@ -110,7 +110,8 @@ def create_application(user_root_path: str = None):
         (url_root + 'mpl.js', MplJavaScriptHandler),
         (url_pattern(url_root + 'mpl/download/{{base_dir}}/{{figure_id}}/{{format_name}}'), MplDownloadHandler),
         (url_pattern(url_root + 'mpl/figures/{{base_dir}}/{{figure_id}}'), MplWebSocketHandler),
-        (url_pattern(url_root + 'dataset/upload'), DatasetHandler),
+        (url_pattern(url_root + 'files/upload'), FilesUploadHandler),
+        (url_pattern(url_root + 'files/download'), FilesDownloadHandler),
         (url_pattern(url_root), WebAPIInfoHandler),
         (url_pattern(url_root + 'exit'), WebAPIExitHandler),
         (url_pattern(url_root + 'api'), JsonRpcWebSocketHandler, dict(

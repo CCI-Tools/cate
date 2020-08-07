@@ -28,15 +28,17 @@ import datetime
 import json
 import os
 import sys
+import tempfile
 import time
-from typing import Sequence
+import zipfile
+from typing import Sequence, Any
 
 import fiona
 import geopandas as gpd
 import numpy as np
 import tornado.gen
 import tornado.web
-from tornado import httputil
+from tornado import escape
 import xarray as xr
 
 from .geojson import write_feature_collection, write_feature
@@ -489,30 +491,125 @@ class ResVarHtmlHandler(WorkspaceResourceHandler):
             self.finish()
 
 
-def save_datasources(dataset_files: Sequence):
-    for file in dataset_files:
+def save_files(files: Sequence, target_dir: str):
+    for file in files:
+        file_path = os.path.join(target_dir, file.filename)
+        if not os.path.exists(target_dir):
+            os.mkdir(target_dir)
 
-        file_path = os.path.join('.', file.filename)
         with open(file_path, 'wb') as fp:
             fp.write(file.body)
 
-    return 'Files: ' + ', '.join([file.filename for file in dataset_files])
+    return 'Files: ' + ', '.join([file.filename for file in files])
+
+
+def ensure_str(value: Any) -> str:
+    if isinstance(value, list):
+        value = value[0]
+
+    if isinstance(value, bytes):
+        value = value.decode()
+
+    if isinstance(value, str):
+        return value
+    else:
+        return str(value)
+
+
+MAX_STREAMED_SIZE = 1024 * 1024 * 1024 * 1024
 
 
 # noinspection PyAbstractClass,PyBroadException
-class DatasetHandler(WebAPIRequestHandler):
+@tornado.web.stream_request_body
+class FilesUploadHandler(WebAPIRequestHandler):
+    def initialize(self):
+        self.bytes_read = 0
+        self.meta = dict()
+        self.receiver = self.get_receiver()
+
+    # def prepare(self):
+    #     self.request.connection.set_max_body_size(MAX_STREAMED_SIZE)
+
+    def data_received(self, chunk):
+        self.receiver(chunk)
+
+    def get_receiver(self):
+        index = 0
+        separate = b'\r\n'
+
+        def receiver(chunk):
+            nonlocal index
+            if index == 0:
+                index += 1
+                split_chunk = chunk.split(separate)
+                self.meta['boundary'] = separate + split_chunk[0] + b'--' + separate
+                self.meta['header'] = separate.join(split_chunk[0:3])
+                self.meta['header'] += separate * 2
+                self.meta['filename'] = split_chunk[1].split(b'=')[-1].replace(b'"', b'').decode()
+
+                chunk = chunk[len(self.meta['header']):]  # Stream
+                import os
+                self.fp = open(os.path.join('helge', self.meta['filename']), "wb")
+                self.fp.write(chunk)
+            else:
+                self.fp.write(chunk)
+
+        return receiver
+
+    def post(self):
+        # Stream
+        self.meta['content_length'] = int(self.request.headers.get('Content-Length')) - \
+                                      len(self.meta['header']) - \
+                                      len(self.meta['boundary'])
+
+        megabytes = int(self.meta['content_length'] / 2**20)
+        self.fp.seek(self.meta['content_length'], 0)
+        self.fp.truncate()
+        self.fp.close()
+        self.finish(
+            json.dumps({'status': 'success', 'error': '', 'message': str(megabytes) + 'MBs uploaded.'}))
+
+
+# noinspection PyAbstractClass
+class FilesDownloadHandler(WebAPIRequestHandler):
+    def _zip_files(self, file_names: Sequence[str]):
+        zip_file_path = tempfile.mktemp('.zip')
+
+        with zipfile.ZipFile(zip_file_path, "w") as zip_file:
+            for file_name in file_names:
+                if os.path.isfile(file_name):
+                    zip_file.write(file_name, file_name)
+
+        return zip_file
+
+    def _return_zip_file(self, result):
+        if result is None:
+            return
+
+        self.set_header('Content-Type', 'application/zip')
+        path, filename = os.path.split(result.filename)
+        self.set_header("Content-Disposition", "attachment; filename=%s" % filename)
+        self._stream_file_content(result)
+        os.remove(result.filename)
+
+    def _stream_file_content(self, result):
+        with open(result.filename, 'rb') as f:
+            while True:
+                data = f.read(32768)
+                if not data:
+                    break
+                self.write(data)
+
     def post(self):
         try:
-            arguments = dict()
-            files = dict()
-            httputil.parse_body_arguments(self.request.headers.get("Content-Type"),
-                                          self.request.body,
-                                          arguments,
-                                          files)
-            dataset_files = files.get("datasetfiles", [])
+            body_dict = escape.json_decode(self.request.body)
 
-            message = save_datasources(dataset_files)
-            self.finish(json.dumps({'status': 'success', 'error': '', 'content': message}))
+            file_names = body_dict.get('filenames')
+
+            zip_file = self._zip_files(file_names)
+            self._return_zip_file(zip_file)
+
+            self.finish(json.dumps({'status': 'success', 'error': '', 'content': 'Done'}))
         except Exception as e:
             self.write_status_error(exc_info=sys.exc_info())
             self.finish()
