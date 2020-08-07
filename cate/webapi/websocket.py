@@ -18,6 +18,10 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
+import datetime
+import os
+import platform
 from collections import OrderedDict
 from typing import List, Sequence, Optional, Any, Union, Tuple, Dict
 
@@ -25,11 +29,11 @@ import xarray as xr
 
 from cate.conf import conf
 from cate.conf.defaults import GLOBAL_CONF_FILE
+from cate.conf.userprefs import set_user_prefs, get_user_prefs
 from cate.core.ds import DATA_STORE_REGISTRY
 from cate.core.op import OP_REGISTRY
 from cate.core.workspace import OpKwArgs
 from cate.core.wsmanag import WorkspaceManager
-from cate.conf.userprefs import set_user_prefs, get_user_prefs
 from cate.util.misc import cwd, filter_fileset
 from cate.util.monitor import Monitor
 from cate.util.sround import sround_range
@@ -317,7 +321,7 @@ class WebSocketService:
             return self.workspace_manager.run_op_in_workspace(base_dir, op_name, op_args, monitor=monitor)
 
     def extract_pixel_values(self, base_dir: str, source: str,
-                             point: Tuple[float, float], indexers: dict) -> Dict[str, Any]:
+                             point: Tuple[float, float], indexers: dict) -> dict:
         with cwd(base_dir):
             from cate.ops.subset import extract_point
             ds = self.workspace_manager.get_workspace(base_dir).resource_cache.get(source)
@@ -366,5 +370,82 @@ class WebSocketService:
     def set_preferences(self, prefs: dict):
         return set_user_prefs(prefs)
 
-    def get_preferences(self):
+    def get_preferences(self) -> dict:
         return get_user_prefs()
+
+    def update_file_node(self, path: str) -> dict:
+        if path and '..' in path:
+            # Make it a little securer
+            raise ValueError('illegal path')
+        if platform.system() == 'Windows':
+            drive_letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            if not path:
+                child_nodes = []
+                for letter in drive_letters:
+                    drive_path = f'{letter}:/'
+                    if os.path.exists(drive_path):
+                        stat_result = os.stat(drive_path)
+                        child_nodes.append(
+                            _new_file_node(f'{letter}:', stat_result.st_mtime, stat_result.st_size, True))
+                return _new_file_node('', datetime.datetime.timestamp(datetime.datetime.now()), 0, True,
+                                      child_nodes=child_nodes, status="ready")
+            if len(path) == 2 and path[0] in drive_letters and path[1] == ':':
+                basename = path
+                path = basename + '/'
+            else:
+                basename = os.path.basename(path)
+        else:
+            if not path:
+                path = '/'
+                basename = ''
+            else:
+                basename = os.path.basename(path)
+
+        if basename.startswith('.'):
+            # Make it a little securer
+            raise ValueError('cannot update hidden files')
+
+        if os.path.isdir(path):
+            child_nodes = []
+            with os.scandir(path) as it:
+                for entry in it:
+                    stat_result = entry.stat()
+                    name = str(entry.name)
+                    if not name.startswith('.'):
+                        child_nodes.append(_new_file_node(name, stat_result.st_mtime, stat_result.st_size,
+                                                          entry.is_dir()))
+            stat_result = os.stat(path)
+            return _new_file_node(basename, stat_result.st_mtime, stat_result.st_size, True,
+                                  child_nodes=child_nodes, status='ready')
+        else:
+            stat_result = os.stat(path)
+            return _new_file_node(basename, stat_result.st_mtime, stat_result.st_size, False,
+                                  status='ready')
+
+
+def _new_file_node(name: str,
+                   last_modified: datetime.datetime.timestamp,
+                   size: int,
+                   is_directory: bool,
+                   child_nodes: List[Dict] = None,
+                   status=None) -> Dict:
+    file_node = {
+        "name": name,
+        "lastModified": _format_time(last_modified),
+        "size": size,
+        "isDirectory": is_directory
+    }
+    if child_nodes is not None:
+        file_node["childNodes"] = child_nodes
+    if status is not None:
+        file_node["status"] = status
+    return file_node
+
+
+def _format_time(seconds):
+    text = datetime.datetime.fromtimestamp(seconds).isoformat()
+    if '.' in text:
+        text = text[0:text.rindex('.')]
+    if 'T' in text:
+        text = text.replace('T', ' ')
+    return text
