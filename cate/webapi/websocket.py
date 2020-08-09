@@ -384,11 +384,14 @@ class WebSocketService:
                 for letter in drive_letters:
                     drive_path = f'{letter}:/'
                     if os.path.exists(drive_path):
-                        stat_result = os.stat(drive_path)
-                        child_nodes.append(
-                            _new_file_node(f'{letter}:', stat_result.st_mtime, stat_result.st_size, True))
-                return _new_file_node('', datetime.datetime.timestamp(datetime.datetime.now()), 0, True,
-                                      child_nodes=child_nodes, status="ready")
+                        child_node = _new_file_node(f'{letter}:', is_dir=True)
+                        try:
+                            stat_result = os.stat(drive_path)
+                            _update_file_node_stat_result(child_node, stat_result)
+                        except OSError as error:
+                            _update_file_node_error(child_node, error)
+                        child_nodes.append(child_node)
+                return _new_file_node('', is_dir=True, child_nodes=child_nodes, status="ready")
             if len(path) == 2 and path[0] in drive_letters and path[1] == ':':
                 basename = path
                 path = basename + '/'
@@ -405,40 +408,70 @@ class WebSocketService:
             # Make it a little securer
             raise ValueError('cannot update hidden files')
 
-        if os.path.isdir(path):
+        child_nodes = None
+        is_dir = os.path.isdir(path)
+        if is_dir:
             child_nodes = []
-            with os.scandir(path) as it:
-                for entry in it:
-                    stat_result = entry.stat()
-                    name = str(entry.name)
-                    if not name.startswith('.'):
-                        child_nodes.append(_new_file_node(name, stat_result.st_mtime, stat_result.st_size,
-                                                          entry.is_dir()))
+            dir_it = None
+            try:
+                dir_it = os.scandir(path)
+                for dir_entry in dir_it:
+                    name = str(dir_entry.name)
+                    if name.startswith('.'):
+                        continue
+                    child_node = _new_file_node(name,
+                                                is_dir=dir_entry.is_dir(),
+                                                status=None)
+                    try:
+                        stat_result = dir_entry.stat()
+                        _update_file_node_stat_result(child_node, stat_result=stat_result)
+                    except OSError as error:
+                        _update_file_node_error(child_node, error)
+                    child_nodes.append(child_node)
+            except OSError as error:
+                file_node = _new_file_node(basename, is_dir=is_dir)
+                return _update_file_node_error(file_node, error)
+            finally:
+                if dir_it is not None:
+                    # noinspection PyUnresolvedReferences
+                    dir_it.close()
+        file_node = _new_file_node(basename,
+                                   is_dir=is_dir,
+                                   child_nodes=child_nodes,
+                                   status='ready')
+        try:
             stat_result = os.stat(path)
-            return _new_file_node(basename, stat_result.st_mtime, stat_result.st_size, True,
-                                  child_nodes=child_nodes, status='ready')
-        else:
-            stat_result = os.stat(path)
-            return _new_file_node(basename, stat_result.st_mtime, stat_result.st_size, False,
-                                  status='ready')
+            return _update_file_node_stat_result(file_node, stat_result)
+        except OSError as error:
+            return _update_file_node_error(file_node, error)
 
 
 def _new_file_node(name: str,
-                   last_modified: datetime.datetime.timestamp,
-                   size: int,
-                   is_directory: bool,
+                   is_dir: bool = False,
                    child_nodes: List[Dict] = None,
                    status=None) -> Dict:
     file_node = {
         "name": name,
-        "lastModified": _format_time(last_modified),
-        "size": size,
-        "isDirectory": is_directory
+        "lastModified": "",
+        "size": 0,
+        "isDirectory": is_dir
     }
     if child_nodes is not None:
         file_node["childNodes"] = child_nodes
     if status is not None:
         file_node["status"] = status
+    return file_node
+
+
+def _update_file_node_stat_result(file_node: Dict, stat_result) -> Dict:
+    file_node["lastModified"] = _format_time(stat_result.st_mtime)
+    file_node["size"] = stat_result.st_size
+    return file_node
+
+
+def _update_file_node_error(file_node: Dict, error) -> Dict:
+    file_node["status"] = "error"
+    file_node["message"] = f'{error}'
     return file_node
 
 
