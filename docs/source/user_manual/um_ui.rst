@@ -1,5 +1,5 @@
 ==================
-Cate Software-as-a-Service (SaaS)
+Cate User Interface (Cate UI)
 ==================
 
 *Applies to Cate Webversion, version 2.0.0*
@@ -7,34 +7,34 @@ Cate Software-as-a-Service (SaaS)
 Overview
 ========
 
-**Cate Software-as-a-Service** (SaaS) provides to users access to the Cate software without any
-installation and configuration. Cate SaaS also provides some computational resources free of charge,
+**Cate User Interface** (Cate UI) provides to users access to the Cate software without any
+installation and configuration. Cate UI also provides some computational resources free of charge,
 however service capacities might be throttled depending on the number of concurrent users logged
 into the system. In the future, this will be the recommended way to use Cate for most users.
 
 .. warning::
-   The Cate SaaS is still in development. A demo can be accessed at: https://cate-webui.brockmann-consult.de/.
+   The Cate UI is still in development. A demo can be accessed at: https://cate-webui.brockmann-consult.de/.
    Currently, users will need to apply for access.
 
 
 It provides all the Cate CLI and almost all Cate Python API functionality through a interactive and user friendly
 interface and adds some unique imaging and visual data analysis features.
 
-The basic idea of Cate SaaS is to allow access all remote CCI data sources and calling all Cate operations
+The basic idea of Cate UI is to allow access all remote CCI data sources and calling all Cate operations
 through a consistent interface. The results of opening a data source or applying an operations is usually
 an in-memory dataset representation - this is what Cate calls a *resource*. Usually, a resource refers to
 a (NetCDF/CF) dataset comprising one or more geo-physical variables, but a resource can virtually be of any (Python)
 data type.
 
-The Cate SaaS user interface basically comprises *panels*, *views*, and a *menu bar*:
+The Cate UI user interface basically comprises *panels*, *views*, and a *menu bar*:
 
-.. _gui_initial:
+.. _ui_initial:
 
-.. figure:: ../_static/figures/user_manual/gui_initial.png
+.. figure:: ../_static/figures/user_manual/ui_initial.png
    :width: 1024px
    :align: center
 
-   Cate SaaS initial layout
+   Cate UI initial layout
 
 ------
 Panels
@@ -96,13 +96,13 @@ Menu Bar
 Cate's menu currently comprises the **Workspaces**, **Logout**, and **Preferences** menus. The **Workspaces** menu comprises
 *Workspace*-related commands:
 
-.. _gui_menu_file:
+.. _ui_menu_file:
 
-.. figure:: ../_static/figures/user_manual/saas_workspaces.png
+.. figure:: ../_static/figures/user_manual/ui_workspaces.png
    :scale: 100 %
    :align: center
 
-   Cate SaaS's Workspaces menu
+   Cate UI's Workspaces menu
 
 ======================   ===============
 Menu item                Description
@@ -145,9 +145,9 @@ Index
 DATA SOURCES Panel
 ------------------
 
-.. _gui_panel_data_sources_odp:
+.. _ui_panel_data_sources_odp:
 
-.. figure:: ../_static/figures/user_manual/gui_panel_data_sources_odp.png
+.. figure:: ../_static/figures/user_manual/ui_panel_data_sources_odp.png
    :scale: 100 %
    :align: left
 
@@ -177,11 +177,11 @@ explained in the following:
 
 
 After selecting a remote data source, press the **Download** button to open the *Download Dataset** dialog shown
-in :numref:`gui_dialog_download_dataset` to use the first option.
+in :numref:`ui_dialog_download_dataset` to use the first option.
 
-.. _gui_dialog_download_dataset:
+.. _ui_dialog_download_dataset:
 
-.. figure:: ../_static/figures/user_manual/gui_dialog_download_dataset.png
+.. figure:: ../_static/figures/user_manual/ui_dialog_download_dataset.png
    :scale: 100 %
    :align: center
 
@@ -208,11 +208,11 @@ Once the download is finished, a notification will be displayed and a new local 
 
 To choose the second option described above, press the **Download** button to open the **Download Dataset** dialog, and
 then uncheck **Download and make local data source (allocates space on disk)** as shown in
-:ref:`gui_dialog_open_remote_dataset`.
+:ref:`ui_dialog_open_remote_dataset`.
 
-.. _gui_dialog_open_remote_dataset:
+.. _ui_dialog_open_remote_dataset:
 
-.. figure:: ../_static/figures/user_manual/gui_dialog_open_remote_dataset.png
+.. figure:: ../_static/figures/user_manual/ui_dialog_open_remote_dataset.png
    :scale: 100 %
    :align: center
 
@@ -222,16 +222,16 @@ It provides the same constraint settings as the former download dialog. After co
 will be started that directly streams the remote data into your computer's local memory. If the open task finishes,
 a new dataset *resource* is available from the :ref:`workspace_panel`.
 
-.. _gui_panel_data_sources_local:
+.. _ui_panel_data_sources_local:
 
-.. figure:: ../_static/figures/user_manual/gui_panel_data_sources_local.png
+.. figure:: ../_static/figures/user_manual/ui_panel_data_sources_local.png
    :scale: 100 %
    :align: left
 
    Data Sources panel for ``local``
 
 Switching the data store selector to *Local Data Sources* lists all currently available local data sources as shown in
-:numref:`gui_panel_data_sources_local`. These are the ones downloaded from remote sources, or ones that you can
+:numref:`ui_panel_data_sources_local`. These are the ones downloaded from remote sources, or ones that you can
 create from local data files.
 
 Press the **Add** button to open the **Add Local Data Source** dialog that is used to create a new local data source.
@@ -239,18 +239,18 @@ A data source may be composed of one or more data files that can be stacked toge
 to form a single unique multi-file dataset. At the time of writing, only NetCDF (``*.nc``) data sources are supported.
 
 Pressing the **Open** button will bring up the **Open Local Dataset** dialog as
-shown in :numref:`gui_dialog_open_local_dataset` below:
+shown in :numref:`ui_dialog_open_local_dataset` below:
 
-.. _gui_dialog_open_local_dataset:
+.. _ui_dialog_open_local_dataset:
 
-.. figure:: ../_static/figures/user_manual/gui_dialog_open_local_dataset.png
+.. figure:: ../_static/figures/user_manual/ui_dialog_open_local_dataset.png
    :scale: 100 %
    :align: center
 
    Open Local Dataset dialog
 
 Confirming the dialog will create a new in-memory dataset *resource* which will be available from the **WORKSPACE**
-panel as shown in :numref:`gui_panel_workspace_res`.
+panel as shown in :numref:`ui_panel_workspace_res`.
 
 Note, that **Cate will load into memory only those slices of a dataset, which are required to
 perform some action**. For example, to display an image layer on the 3D Globe view, Cate only loads the 2D image for
@@ -285,9 +285,9 @@ The **Details** section provides a description about the operation including its
    ``@op_output`` to add that meta-information to turn it into Cate *operations*.
 
 
-.. _gui_panel_operations:
+.. _ui_panel_operations:
 
-.. figure:: ../_static/figures/user_manual/gui_panel_operations.png
+.. figure:: ../_static/figures/user_manual/ui_panel_operations.png
    :scale: 100 %
    :align: left
 
@@ -307,9 +307,9 @@ Most commonly, these will be resources of type
 Note that every parameter value can be set to a resource by checking the switch to right of the parameter field.
 This will exchange the input field by a resource selector.
 
-.. _gui_dialog_new_op_step:
+.. _ui_dialog_new_op_step:
 
-.. figure:: ../_static/figures/user_manual/gui_dialog_new_op_step.png
+.. figure:: ../_static/figures/user_manual/ui_dialog_new_op_step.png
    :scale: 100 %
    :align: center
 
@@ -321,9 +321,9 @@ will be added to the workspace. For any operations returning a value a new *reso
 
 The new *workflow step* and the new *resource*, if any, are shown in the **WORKSPACE** panel.
 
-.. _gui_dialog_new_op_step_applied:
+.. _ui_dialog_new_op_step_applied:
 
-.. figure:: ../_static/figures/user_manual/gui_dialog_new_op_step_applied.png
+.. figure:: ../_static/figures/user_manual/ui_dialog_new_op_step_applied.png
    :width: 1024px
    :align: center
 
@@ -360,9 +360,9 @@ This panel lists all the workflow steps originating from opening datasets and ap
 order. The **Details** section displays the used parameter values of a selected workflow step.
 
 
-.. _gui_panel_workspace_steps:
+.. _ui_panel_workspace_steps:
 
-.. figure:: ../_static/figures/user_manual/gui_panel_workspace_steps.png
+.. figure:: ../_static/figures/user_manual/ui_panel_workspace_steps.png
    :scale: 100 %
    :align: left
 
@@ -378,9 +378,9 @@ properties and metadata of the selected data resource.
 A data resource may contain any number of *data variables*. This is usually the case for any resource of type
 ``Dataset`` or ``DataFrame``. The contained variables of a selected data resource are shown in the **VARIABLES** panel.
 
-.. _gui_panel_workspace_res:
+.. _ui_panel_workspace_res:
 
-.. figure:: ../_static/figures/user_manual/gui_panel_workspace_res.png
+.. figure:: ../_static/figures/user_manual/ui_panel_workspace_res.png
    :scale: 100 %
    :align: right
 
@@ -398,7 +398,7 @@ The toolbar to the lower right of the list of workflow steps or resources offers
   especially for data resources that are expensive to recompute.
 * **Edit operation parameters** of a selected workflow step or resource: Brings up a the **Edit Operation Step**
   dialog similar to the
-  :ref:`gui_dialog_new_op_step`. Confirming the dialog by pressing **Apply** will invoke workflow step
+  :ref:`ui_dialog_new_op_step`. Confirming the dialog by pressing **Apply** will invoke workflow step
   and compute a new resource value. All workflow step that depend on this resource will also
   be executed again possibly triggering other workflow step executions.
 * **Remove** a selected workflow step or resource. Removal will fail if other steps depend on it.
@@ -424,9 +424,9 @@ The toolbar to the lower right of the list of variables offers the following fun
 * **Create histogram plot**. Adds a new workflow step which calls the ``plot_hist()`` operation.
 * **Show data in table view**. Displays 2D variables of type ``DataFrame`` in a table view.
 
-.. _gui_panel_variables:
+.. _ui_panel_variables:
 
-.. figure:: ../_static/figures/user_manual/gui_panel_variables.png
+.. figure:: ../_static/figures/user_manual/ui_panel_variables.png
    :scale: 100 %
    :align: right
 
@@ -463,7 +463,7 @@ The **Details** of the **LAYERS** panel lists several layer settings:
   the selected layer and the other side showing only the globe.
 
 
-.. figure:: ../_static/figures/user_manual/gui_panel_layers.png
+.. figure:: ../_static/figures/user_manual/ui_panel_layers.png
    :scale: 100 %
    :align: center
 
@@ -495,7 +495,7 @@ To add a new marker, click **New marker** button (the left-most), and then click
 added to the list of placemarks in Placemarks Panel. When the Details toggle is enabled, you can modify the
 name and coordinates (in longitude and latitude) of this marker.
 
-.. figure:: ../_static/figures/user_manual/gui_panel_placemarks_marker.png
+.. figure:: ../_static/figures/user_manual/ui_panel_placemarks_marker.png
    :width: 1024px
    :align: center
 
@@ -505,7 +505,7 @@ To add a new polyline, click **New polyline** button (the second left-most). Cli
 line, and then click the next n-lines as you wish. To finish, double-click at your final point. When the Details toggle
 is enabled, you can modify the name of this polyline.
 
-.. figure:: ../_static/figures/user_manual/gui_panel_placemarks_line.png
+.. figure:: ../_static/figures/user_manual/ui_panel_placemarks_line.png
    :width: 1024px
    :align: center
 
@@ -515,7 +515,7 @@ To add a new polygon, click the **New polygon** button (the third left-most). As
 point in the Globe to start the line, and then click the next n-lines as you wish. To finish, double-click at your final
 point.  When the Details toggle is enabled, you can modify the name of this polygon.
 
-.. figure:: ../_static/figures/user_manual/gui_panel_placemarks_polygon.png
+.. figure:: ../_static/figures/user_manual/ui_panel_placemarks_polygon.png
    :width: 1024px
    :align: center
 
@@ -525,7 +525,7 @@ To add a new polygon, click the **New box** button (the fourth left-most). To st
 This will be one of the vertices of the box you are going to create. Drag it to satisfy the region you desire, and click
 once more to confirm the box selection.  When the Details toggle is enabled, you can modify the name of this box.
 
-.. figure:: ../_static/figures/user_manual/gui_panel_placemarks_box.png
+.. figure:: ../_static/figures/user_manual/ui_panel_placemarks_box.png
    :width: 1024px
    :align: center
 
@@ -535,7 +535,7 @@ once more to confirm the box selection.  When the Details toggle is enabled, you
 To copy the selected placemark to clipboard, click the right-most button. There are three options how the selected
 placemark can be represented in three different formats: CSV, WKT, and GeoJSON.
 
-.. figure:: ../_static/figures/user_manual/gui_panel_placemarks_copy.png
+.. figure:: ../_static/figures/user_manual/ui_panel_placemarks_copy.png
    :scale: 100 %
    :align: center
 
@@ -555,13 +555,13 @@ image or a vector layer is selected. Here are the available settings for a vecto
 * *Marker* controls the colour, size, and caption of the placemark. The symbol can be either a single digit of number,
   a letter, or any valid **Maki** identifier (more information `here <https://www.mapbox.com/maki-icons/>`_)
 
-.. figure:: ../_static/figures/user_manual/gui_panel_styles_placemark.png
+.. figure:: ../_static/figures/user_manual/ui_panel_styles_placemark.png
    :width: 1024px
    :align: center
 
    Styles Panel for styling a placemark
 
-.. figure:: ../_static/figures/user_manual/gui_panel_styles_vector.png
+.. figure:: ../_static/figures/user_manual/ui_panel_styles_vector.png
    :width: 1024px
    :align: center
 
@@ -602,7 +602,7 @@ change plot styles and size.
 *Table Views* also don't provide any special settings yet. However, in future releases, you will be able to specify
 the subset of the data ypou want to see in the table.
 
-.. figure:: ../_static/figures/user_manual/gui_panel_view.png
+.. figure:: ../_static/figures/user_manual/ui_panel_view.png
    :scale: 100 %
    :align: center
 
@@ -620,7 +620,7 @@ The **TASKS** panel shows all active tasks. Long running tasks are usually origi
 from downloading datasets or performing operations on datasets. Some running
 tasks may be cancelled, others not.
 
-.. figure:: ../_static/figures/user_manual/gui_panel_tasks.png
+.. figure:: ../_static/figures/user_manual/ui_panel_tasks.png
    :scale: 100 %
    :align: center
 
@@ -644,7 +644,7 @@ On the **General** tab you can specify the following settings:
   Therefore the background satellite imagery used for the 2D/3D maps falls back to a static, low resolution
   map.
 
-.. figure:: ../_static/figures/user_manual/gui_dialog_preferences.png
+.. figure:: ../_static/figures/user_manual/ui_dialog_preferences.png
    :scale: 100 %
    :align: center
 
@@ -662,7 +662,7 @@ On the **Data Management** tab you can specify the following settings:
 * The *resource name prefix* which will be used by default for new resources
   originating from opening datasets or executing operations.
 
-.. figure:: ../_static/figures/user_manual/gui_dialog_preferences_2.png
+.. figure:: ../_static/figures/user_manual/ui_dialog_preferences_2.png
    :scale: 100 %
    :align: center
 
@@ -670,9 +670,55 @@ On the **Data Management** tab you can specify the following settings:
 
 On the **Proxy Configuration** tab you can specify the proxy URL if required.
 
-.. figure:: ../_static/figures/user_manual/gui_dialog_preferences_3.png
+.. figure:: ../_static/figures/user_manual/ui_dialog_preferences_3.png
    :scale: 100 %
    :align: center
 
    Preferences Dialog / Proxy Configuration
 
+*Cate User Interface* is a desktop application and is intended to serve as a graphical user interface (GUI)
+for the CCI Toolbox.
+
+It provides all the Cate CLI and almost all Cate Python API functionality through a interactive and user friendly
+interface and adds some unique imaging and visual data analysis features.
+
+The basic idea of Cate Desktop is to allow access all remote CCI data sources and calling all Cate operations
+through a consistent interface. The results of opening a data source or applying an operations is usually
+an in-memory dataset representation - this is what Cate calls a *resource*. Usually, a resource refers to
+a (NetCDF/CF) dataset comprising one or more geo-physical variables, but a resource can virtually be of any (Python)
+data type.
+
+Cate UI is constructed the same way as Cate Software-as-a-Service, and may be installed from the webinterface
+by clicking on `Install App` in the upper right corner:
+
+.. _ui_install:
+
+.. figure:: ../_static/figures/user_manual/ui_install.png
+   :width: 1024px
+   :align: center
+
+   Cate UI installation
+
+Once installed, it will open in a new browser window and added to the applications on the desktop,
+here an example for linux:
+
+.. _ui_on_desktop:
+
+.. figure:: ../_static/figures/user_manual/ui_on_desktop.png
+   :width: 1024px
+   :align: center
+
+   Cate UI on Desktop
+
+
+In order to uninstall the Cate UI from the machine, launch Cate and it can be removed via `Settings`:
+
+.. _ui_uninstall:
+
+.. figure:: ../_static/figures/user_manual/ui_uninstall.png
+   :width: 1024px
+   :align: center
+
+   Cate UI uninstallation
+
+For the functionalities of Cate UI please refer to Cate Software-as-a-Service :doc:`user_manual/um_saas`

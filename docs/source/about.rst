@@ -30,15 +30,15 @@ Cate comprises four major software interfaces:
    Currently, users will need to apply for access.
 
 
-2. **Cate Desktop** is a cross-platform desktop application for users who wish to use Cate predominantly with their
+2. **Cate UI** is a cross-platform web-application which may be used as a desktop app for users who wish to use Cate predominantly with their
    local data sources. The application can also connect to the remote Cate services of Cate SaaS.
 
 
-.. figure:: _static/figures/about-gui.png
+.. figure:: _static/figures/about-ui.png
    :width: 1024px
    :align: center
 
-   The GUI ( desktop or web browser) of the CCI Toolbox
+   The UI (desktop or web browser) of the CCI Toolbox
 
 
 3. The Cate **Command-Line Interface** (CLI) from a local Cate installation can be used to access and process data
