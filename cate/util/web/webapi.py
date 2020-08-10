@@ -637,10 +637,14 @@ class WebAPIRequestHandler(RequestHandler):
                 return dict(status='error', error=dict(message=message))
         return dict(status='error')
 
+    def options(self, *args, **kwargs):
+        self.set_status(204)
+        self.finish()
+
     def set_default_headers(self) -> None:
         self.set_header("Access-Control-Allow-Origin", "*")
-        self.set_header("Access-Control-Allow-Headers", "x-requested-with")
-        self.set_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+        self.set_header("Access-Control-Allow-Headers", "Content-Type, x-requested-with")
+        self.set_header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
         self.set_header('User-Agent', f'Cate WebAPI/{__version__}')
 
 
