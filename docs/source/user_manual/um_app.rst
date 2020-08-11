@@ -1,5 +1,5 @@
 ==================
-Cate User Interface (Cate UI)
+Cate App
 ==================
 
 *Applies to Cate Webversion, version 2.0.0*
@@ -7,26 +7,26 @@ Cate User Interface (Cate UI)
 Overview
 ========
 
-**Cate User Interface** (Cate UI) provides to users access to the Cate software without any
-installation and configuration. Cate UI also provides some computational resources free of charge,
+**Cate App** provides to users access to the Cate software without any
+installation and configuration. Cate App also provides some computational resources free of charge,
 however service capacities might be throttled depending on the number of concurrent users logged
 into the system. In the future, this will be the recommended way to use Cate for most users.
 
 .. warning::
-   The Cate UI is still in development. A demo can be accessed at: https://cate-webui.brockmann-consult.de/.
+   The Cate App is still in development. A demo can be accessed at: https://cate-webui.brockmann-consult.de/.
    Currently, users will need to apply for access.
 
 
 It provides all the Cate CLI and almost all Cate Python API functionality through a interactive and user friendly
 interface and adds some unique imaging and visual data analysis features.
 
-The basic idea of Cate UI is to allow access all remote CCI data sources and calling all Cate operations
+The basic idea of Cate App is to allow access all remote CCI data sources and calling all Cate operations
 through a consistent interface. The results of opening a data source or applying an operations is usually
 an in-memory dataset representation - this is what Cate calls a *resource*. Usually, a resource refers to
 a (NetCDF/CF) dataset comprising one or more geo-physical variables, but a resource can virtually be of any (Python)
 data type.
 
-The Cate UI user interface basically comprises *panels*, *views*, and a *menu bar*:
+The Cate App user interface basically comprises *panels*, *views*, and a *menu bar*:
 
 .. _ui_initial:
 
@@ -34,7 +34,7 @@ The Cate UI user interface basically comprises *panels*, *views*, and a *menu ba
    :width: 1024px
    :align: center
 
-   Cate UI initial layout
+   Cate App initial layout
 
 ------
 Panels
@@ -102,7 +102,7 @@ Cate's menu currently comprises the **Workspaces**, **Logout**, and **Preference
    :scale: 100 %
    :align: center
 
-   Cate UI's Workspaces menu
+   Cate App's Workspaces menu
 
 ======================   ===============
 Menu item                Description
@@ -676,7 +676,7 @@ On the **Proxy Configuration** tab you can specify the proxy URL if required.
 
    Preferences Dialog / Proxy Configuration
 
-*Cate User Interface* is a desktop application and is intended to serve as a graphical user interface (GUI)
+*Cate App* is a desktop application and is intended to serve as a graphical user interface (GUI)
 for the CCI Toolbox.
 
 It provides all the Cate CLI and almost all Cate Python API functionality through a interactive and user friendly
@@ -688,7 +688,7 @@ an in-memory dataset representation - this is what Cate calls a *resource*. Usua
 a (NetCDF/CF) dataset comprising one or more geo-physical variables, but a resource can virtually be of any (Python)
 data type.
 
-Cate UI is constructed the same way as Cate Software-as-a-Service, and may be installed from the webinterface
+Cate App can be used locally as well and may be installed from the webinterface
 by clicking on `Install App` in the upper right corner:
 
 .. _ui_install:
@@ -697,7 +697,7 @@ by clicking on `Install App` in the upper right corner:
    :width: 1024px
    :align: center
 
-   Cate UI installation
+   Cate App installation
 
 Once installed, it will open in a new browser window and added to the applications on the desktop,
 here an example for linux:
@@ -708,10 +708,10 @@ here an example for linux:
    :width: 1024px
    :align: center
 
-   Cate UI on Desktop
+   Cate App on Desktop
 
 
-In order to uninstall the Cate UI from the machine, launch Cate and it can be removed via `Settings`:
+In order to uninstall the Cate App from the machine, launch Cate and it can be removed via `Settings`:
 
 .. _ui_uninstall:
 
@@ -719,6 +719,4 @@ In order to uninstall the Cate UI from the machine, launch Cate and it can be re
    :width: 1024px
    :align: center
 
-   Cate UI uninstallation
-
-For the functionalities of Cate UI please refer to Cate Software-as-a-Service :doc:`user_manual/um_saas`
+   Cate App uninstallation

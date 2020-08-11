@@ -537,10 +537,9 @@ Cate Software-as-a-Service (SaaS) has been designed to deliver Cate software ins
 to users, so they do not need to install and configure the software on their own.
 
 Cate SaaS does this by providing individual Cate service instances to logged-in users.
-These instances serve as backends for the Cate GUI (access via the Cate CLI
-will follow soon). The Cate GUI can now be accessed via a dedicated URL in an
-internet browser (*Cate WebUI*) or traditionally installed as a desktop
-application (*Cate Desktop*).
+These instances serve as backends for the Cate App.
+The Cate App can now be accessed via a dedicated URL in an internet browser or traditionally
+installed as a desktop application.
 
 The design of the Cate SaaS and the utilized software components makes it independent
 of the cloud providers. Cate SaaS tenants may be deployed on AWS, GCP, OTC,
@@ -614,21 +613,21 @@ helm charts at: https://zero-to-jupyterhub.readthedocs.io/en/latest/ and overidi
         cmd: ["/bin/bash", "-c", "source activate cate-env && cate-webapi-start -v -p 8888 -a 0.0.0.0"]
 
 
-Cate WebUI
+Cate App
 ----------
 
-The Cate WebUI is the Single Page Application (SPA) that acts as a user's web frontend to the Cate SaaS.
+The Cate App is Progressive Web App (PWA) that acts as a user's web frontend to the Cate SaaS.
 This is also deployed on the Kubernetes cluster and is, thereby, load balanced by a so-called Ingress component
 (default is a NGINX server) of Kubernetes. In fact, all the requests to CaaS are load balanced by Ingress.
-Upon authentication, WebUI makes request to CateHub to start Cate WebAPI service and from there on communicates to the
+Upon authentication, Cate App makes request to CateHub to start Cate WebAPI service and from there on communicates to the
 pod containing Cate WebAPI using WebSockets.
 
-The source for Cate WebUI is hosted at: https://github.com/CCI-Tools/cate-webui. This will in future be used to replace
-render elements of Cate Desktop.
+The source for Cate App is hosted at: https://github.com/CCI-Tools/cate-webui. The Cate App may be installed locally
+via the web-interface.
 
-This paragraph summarizes the flow of requests from perspective of Cate WebUI. When a user submits a username
-and password in Cate WebUI (or even Cate Desktop), Keycloak or authentication component of CateHub authenticates the
-credentials and returns an access token that permits further requests to CateHub. Cate WebUI makes request to REST API of
+This paragraph summarizes the flow of requests from perspective of Cate App. When a user submits a username
+and password in Cate App (or even Cate Desktop), Keycloak or authentication component of CateHub authenticates the
+credentials and returns an access token that permits further requests to CateHub. Cate App makes request to REST API of
 CateHub to spawn a WebAPI service with resources. The spawner component of CateHub facilitates this request to
 Kubernetes. Upon success, Hub component of CateHub makes changes to the proxy component to
 reverse proxy all the requests on ``/user/${username}`` to the pod.
@@ -663,7 +662,7 @@ This chapter describes and illustrates the interactions between different Cate S
 
    Cate SaaS Component Interactions.
 
-The Cate GUI is started by the user either by using the Cate Web UI from an internet browser or Cate Desktop.
+The Cate GUI is started by the user either by using the Cate App from an internet browser or on the local machine.
 By logging into the CateHub server from the Cate GUI, a new Cate Web API service will be spawned and "owned"
 by the user for the duration of the session.
 
