@@ -22,7 +22,7 @@ class PathManager:
         normed_path = os.path.normpath(joined_path)
 
         if self._escapes(normed_path):
-            raise ValidationError("Resolves to path outside root path")
+            raise ValidationError(f'resolves to path outside root path: {rel_path}')
 
         return normed_path
 
@@ -31,7 +31,7 @@ class PathManager:
         common_prefix = os.path.commonprefix([self._root_path, abs_path])
 
         if common_prefix != self._root_path:
-            raise ValidationError("Resolves to path outside root path")
+            raise ValidationError(f'resolves to path outside root path: {path}')
 
         return os.path.relpath(abs_path, common_prefix)
 

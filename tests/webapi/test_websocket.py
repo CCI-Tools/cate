@@ -1,7 +1,9 @@
-import unittest
-
 import os
+import os.path
+import platform
 import shutil
+import unittest
+from typing import Dict
 
 from cate.core.wsmanag import FSWorkspaceManager
 from cate.util.monitor import Monitor
@@ -132,3 +134,60 @@ class WebSocketServiceTest(unittest.TestCase):
                                             res_name='ds',
                                             overwrite=False,
                                             monitor=Monitor.NONE)
+
+    def test_update_file_node(self):
+
+        if platform.system() == 'Windows':
+            path = ''
+            node = self.service.update_file_node(path)
+            self._assert_dir_node_props(node, '', no_stats=True)
+            # print(node)
+
+            path = 'C:'
+            node = self.service.update_file_node(path)
+            self._assert_dir_node_props(node, 'C:')
+            # print(node)
+        else:
+            path = ''
+            node = self.service.update_file_node(path)
+            self._assert_dir_node_props(node, '')
+            # print(node)
+
+        path = __file__
+        node = self.service.update_file_node(path)
+        self._assert_file_node_props(node, os.path.basename(path))
+        # print(node)
+
+        path = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..'))
+        node = self.service.update_file_node(path)
+        self._assert_dir_node_props(node, os.path.basename(path))
+        # print(node)
+
+        with self.assertRaises(ValueError):
+            self.service.update_file_node('..')
+
+    def _assert_file_node_props(self, file_node: Dict, name: str):
+        self._assert_file_node_props_base(file_node, name)
+        self.assertIn('isDir', file_node)
+        self.assertEqual(file_node['isDir'], False)
+        self.assertNotIn('childNodes', file_node)
+
+    def _assert_dir_node_props(self, file_node: Dict, name: str, no_stats=False):
+        self._assert_file_node_props_base(file_node, name, no_stats=no_stats)
+        self.assertIn('isDir', file_node)
+        self.assertEqual(file_node['isDir'], True)
+        self.assertIn('childNodes', file_node)
+        self.assertIsNotNone(file_node['childNodes'])
+
+    def _assert_file_node_props_base(self, file_node: Dict, name: str, no_stats=False):
+        self.assertIsNotNone(file_node)
+        self.assertIn('name', file_node)
+        self.assertEqual(file_node['name'], name)
+        if no_stats:
+            self.assertNotIn('size', file_node)
+            self.assertNotIn('lastModified', file_node)
+        else:
+            self.assertIn('size', file_node)
+            self.assertIn('lastModified', file_node)
+        self.assertIn('isDir', file_node)
+
