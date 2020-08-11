@@ -176,14 +176,14 @@ class WriteFeatureCollectionTest(TestCase):
             pass
 
         file = os.path.join(os.path.dirname(__file__), '..', '..', 'cate', 'ds', 'data', 'countries',
-                            'countries.geojson')
+                            'countries-110m.geojson')
 
         collection = fiona.open(file)
 
         from io import StringIO
         string_io = StringIO()
         num_written = write_feature_collection(collection, string_io, conservation_ratio=0)
-        self.assertEqual(num_written, 179)
+        self.assertEqual(num_written, 175)
 
 
 class SimplifyGeometryTest(TestCase):

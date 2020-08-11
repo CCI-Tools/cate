@@ -75,11 +75,11 @@ class TestIO(TestCase):
 
     def test_read_geo_data_frame(self):
         file = os.path.join(os.path.dirname(__file__), '..', '..', 'cate', 'ds', 'data', 'countries',
-                            'countries.geojson')
+                            'countries-110m.geojson')
 
         data_frame = read_geo_data_frame(file=file)
         self.assertIsInstance(data_frame, gpd.GeoDataFrame)
-        self.assertEqual(len(data_frame), 179)
+        self.assertEqual(len(data_frame), 175)
         data_frame.close()
 
     def test_write_geo_data_frame(self):
