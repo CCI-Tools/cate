@@ -13,7 +13,7 @@ however service capacities might be throttled depending on the number of concurr
 into the system. In the future, this will be the recommended way to use Cate for most users.
 
 .. warning::
-   The Cate App is still in development. A demo can be accessed at: https://cate-webui.brockmann-consult.de/.
+   The Cate App is still in development. A demo can be accessed at: https://cate.climate.esa.int .
    Currently, users will need to apply for access.
 
 
