@@ -33,7 +33,7 @@ from cate.conf.userprefs import set_user_prefs, get_user_prefs
 from cate.core.ds import DATA_STORE_REGISTRY
 from cate.core.op import OP_REGISTRY
 from cate.core.workspace import OpKwArgs
-from cate.core.wsmanag import WorkspaceManager
+from cate.core.wsmanag import WorkspaceManager, RelativeFSWorkspaceManager
 from cate.util.misc import cwd, filter_fileset
 from cate.util.monitor import Monitor
 from cate.util.sround import sround_range
@@ -376,7 +376,11 @@ class WebSocketService:
     def update_file_node(self, path: str) -> dict:
         if path and '..' in path:
             # Make it a little securer
-            raise ValueError('illegal path')
+            raise ValueError(f'illegal path: {path}')
+
+        if isinstance(self.workspace_manager, RelativeFSWorkspaceManager):
+            path = self.workspace_manager.resolve_path(path)
+
         if platform.system() == 'Windows':
             drive_letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
             if not path:
