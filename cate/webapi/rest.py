@@ -539,17 +539,21 @@ class FilesUploadHandler(WebAPIRequestHandler):
 
         def receiver(chunk):
             nonlocal index
+            workspace_manager = self.application.workspace_manager
             if index == 0:
                 index += 1
                 split_chunk = chunk.split(separate)
                 self.meta['boundary'] = separate + split_chunk[0] + b'--' + separate
-                self.meta['header'] = separate.join(split_chunk[0:3])
+                self.meta['header'] = separate.join(split_chunk[0:7])
                 self.meta['header'] += separate * 2
-                self.meta['filename'] = split_chunk[1].split(b'=')[-1].replace(b'"', b'').decode()
+                self.meta['dir'] = split_chunk[3].decode()
+                self.meta['filename'] = split_chunk[5].split(b'=')[-1].replace(b'"', b'').decode()
 
                 chunk = chunk[len(self.meta['header']):]  # Stream
+                # chunk = split_chunk[8]
                 import os
-                self.fp = open(os.path.join('helge', self.meta['filename']), "wb")
+                fn = workspace_manager.resolve_path(os.path.join(self.meta['dir'], self.meta['filename']))
+                self.fp = open(fn, "wb")
                 self.fp.write(chunk)
             else:
                 self.fp.write(chunk)
