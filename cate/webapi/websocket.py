@@ -18,6 +18,10 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+
+import datetime
+import os
+import platform
 from collections import OrderedDict
 from typing import List, Sequence, Optional, Any, Tuple, Dict
 
@@ -25,11 +29,11 @@ import xarray as xr
 
 from cate.conf import conf
 from cate.conf.defaults import GLOBAL_CONF_FILE
+from cate.conf.userprefs import set_user_prefs, get_user_prefs
 from cate.core.ds import DATA_STORE_REGISTRY
 from cate.core.op import OP_REGISTRY
 from cate.core.workspace import OpKwArgs
-from cate.core.wsmanag import WorkspaceManager
-from cate.conf.userprefs import set_user_prefs, get_user_prefs
+from cate.core.wsmanag import WorkspaceManager, RelativeFSWorkspaceManager
 from cate.util.misc import cwd, filter_fileset
 from cate.util.monitor import Monitor
 from cate.util.sround import sround_range
@@ -317,7 +321,7 @@ class WebSocketService:
             return self.workspace_manager.run_op_in_workspace(base_dir, op_name, op_args, monitor=monitor)
 
     def extract_pixel_values(self, base_dir: str, source: str,
-                             point: Tuple[float, float], indexers: dict) -> Dict[str, Any]:
+                             point: Tuple[float, float], indexers: dict) -> dict:
         with cwd(base_dir):
             from cate.ops.subset import extract_point
             ds = self.workspace_manager.get_workspace(base_dir).resource_cache.get(source)
@@ -366,5 +370,119 @@ class WebSocketService:
     def set_preferences(self, prefs: dict):
         return set_user_prefs(prefs)
 
-    def get_preferences(self):
+    def get_preferences(self) -> dict:
         return get_user_prefs()
+
+    def update_file_node(self, path: str) -> dict:
+        if path and '..' in path:
+            # Make it a little securer
+            raise ValueError(f'illegal path: {path}')
+
+        if isinstance(self.workspace_manager, RelativeFSWorkspaceManager):
+            path = self.workspace_manager.resolve_path(path)
+
+        if platform.system() == 'Windows':
+            drive_letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            if not path:
+                child_nodes = []
+                for letter in drive_letters:
+                    drive_path = f'{letter}:/'
+                    if os.path.exists(drive_path):
+                        child_node = _new_file_node(f'{letter}:', is_dir=True)
+                        try:
+                            stat_result = os.stat(drive_path)
+                            _update_file_node_stat_result(child_node, stat_result)
+                        except OSError as error:
+                            _update_file_node_error(child_node, error)
+                        child_nodes.append(child_node)
+                return _new_file_node('', is_dir=True, child_nodes=child_nodes, status="ready")
+            if len(path) == 2 and path[0] in drive_letters and path[1] == ':':
+                basename = path
+                path = basename + '/'
+            else:
+                basename = os.path.basename(path)
+        else:
+            if not path:
+                path = '/'
+                basename = ''
+            else:
+                basename = os.path.basename(path)
+
+        if basename.startswith('.'):
+            # Make it a little securer
+            raise ValueError('cannot update hidden files')
+
+        child_nodes = None
+        is_dir = os.path.isdir(path)
+        if is_dir:
+            child_nodes = []
+            dir_it = None
+            try:
+                dir_it = os.scandir(path)
+                for dir_entry in dir_it:
+                    name = str(dir_entry.name)
+                    if name.startswith('.'):
+                        continue
+                    child_node = _new_file_node(name,
+                                                is_dir=dir_entry.is_dir(),
+                                                status=None)
+                    try:
+                        stat_result = dir_entry.stat()
+                        _update_file_node_stat_result(child_node, stat_result=stat_result)
+                    except OSError as error:
+                        _update_file_node_error(child_node, error)
+                    child_nodes.append(child_node)
+            except OSError as error:
+                file_node = _new_file_node(basename, is_dir=is_dir)
+                return _update_file_node_error(file_node, error)
+            finally:
+                if dir_it is not None:
+                    # noinspection PyUnresolvedReferences
+                    dir_it.close()
+        file_node = _new_file_node(basename,
+                                   is_dir=is_dir,
+                                   child_nodes=child_nodes,
+                                   status='ready')
+        try:
+            stat_result = os.stat(path)
+            return _update_file_node_stat_result(file_node, stat_result)
+        except OSError as error:
+            return _update_file_node_error(file_node, error)
+
+
+def _new_file_node(name: str,
+                   is_dir: bool = False,
+                   child_nodes: List[Dict] = None,
+                   status=None) -> Dict:
+    file_node = {
+        "name": name,
+        "lastModified": "",
+        "size": 0,
+        "isDirectory": is_dir
+    }
+    if child_nodes is not None:
+        file_node["childNodes"] = child_nodes
+    if status is not None:
+        file_node["status"] = status
+    return file_node
+
+
+def _update_file_node_stat_result(file_node: Dict, stat_result) -> Dict:
+    file_node["lastModified"] = _format_time(stat_result.st_mtime)
+    file_node["size"] = stat_result.st_size
+    return file_node
+
+
+def _update_file_node_error(file_node: Dict, error) -> Dict:
+    file_node["status"] = "error"
+    file_node["message"] = f'{error}'
+    return file_node
+
+
+def _format_time(seconds):
+    text = datetime.datetime.fromtimestamp(seconds).isoformat()
+    if '.' in text:
+        text = text[0:text.rindex('.')]
+    if 'T' in text:
+        text = text.replace('T', ' ')
+    return text
