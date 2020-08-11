@@ -137,17 +137,20 @@ class WebSocketServiceTest(unittest.TestCase):
 
     def test_update_file_node(self):
 
-        # Currently, the following are all smoke tests:
-
-        path = ''
-        node = self.service.update_file_node(path)
-        self._assert_dir_node_props(node, '')
-        # print(node)
-
         if platform.system() == 'Windows':
+            path = ''
+            node = self.service.update_file_node(path)
+            self._assert_dir_node_props(node, '', no_stats=True)
+            # print(node)
+
             path = 'C:'
             node = self.service.update_file_node(path)
             self._assert_dir_node_props(node, 'C:')
+            # print(node)
+        else:
+            path = ''
+            node = self.service.update_file_node(path)
+            self._assert_dir_node_props(node, '')
             # print(node)
 
         path = __file__
@@ -165,22 +168,26 @@ class WebSocketServiceTest(unittest.TestCase):
 
     def _assert_file_node_props(self, file_node: Dict, name: str):
         self._assert_file_node_props_base(file_node, name)
-        self.assertIn('isDirectory', file_node)
-        self.assertEqual(file_node['isDirectory'], False)
+        self.assertIn('isDir', file_node)
+        self.assertEqual(file_node['isDir'], False)
         self.assertNotIn('childNodes', file_node)
 
-    def _assert_dir_node_props(self, file_node: Dict, name: str):
-        self._assert_file_node_props_base(file_node, name)
-        self.assertIn('isDirectory', file_node)
-        self.assertEqual(file_node['isDirectory'], True)
+    def _assert_dir_node_props(self, file_node: Dict, name: str, no_stats=False):
+        self._assert_file_node_props_base(file_node, name, no_stats=no_stats)
+        self.assertIn('isDir', file_node)
+        self.assertEqual(file_node['isDir'], True)
         self.assertIn('childNodes', file_node)
         self.assertIsNotNone(file_node['childNodes'])
 
-    def _assert_file_node_props_base(self, file_node: Dict, name: str):
+    def _assert_file_node_props_base(self, file_node: Dict, name: str, no_stats=False):
         self.assertIsNotNone(file_node)
         self.assertIn('name', file_node)
         self.assertEqual(file_node['name'], name)
-        self.assertIn('size', file_node)
-        self.assertIn('lastModified', file_node)
-        self.assertIn('isDirectory', file_node)
+        if no_stats:
+            self.assertNotIn('size', file_node)
+            self.assertNotIn('lastModified', file_node)
+        else:
+            self.assertIn('size', file_node)
+            self.assertIn('lastModified', file_node)
+        self.assertIn('isDir', file_node)
 

@@ -379,7 +379,11 @@ class WebSocketService:
             raise ValueError(f'illegal path: {path}')
 
         if isinstance(self.workspace_manager, RelativeFSWorkspaceManager):
+            # path is relative, in any case
             path = self.workspace_manager.resolve_path(path)
+        elif platform.system() != 'Windows':
+            # On Unixes, make path absolute
+            path = '/' + path
 
         if platform.system() == 'Windows':
             drive_letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -401,12 +405,10 @@ class WebSocketService:
                 path = basename + '/'
             else:
                 basename = os.path.basename(path)
+        elif path == '/':
+            basename = ''
         else:
-            if not path:
-                path = '/'
-                basename = ''
-            else:
-                basename = os.path.basename(path)
+            basename = os.path.basename(path)
 
         if basename.startswith('.'):
             # Make it a little securer
@@ -456,9 +458,7 @@ def _new_file_node(name: str,
                    status=None) -> Dict:
     file_node = {
         "name": name,
-        "lastModified": "",
-        "size": 0,
-        "isDirectory": is_dir
+        "isDir": is_dir
     }
     if child_nodes is not None:
         file_node["childNodes"] = child_nodes
