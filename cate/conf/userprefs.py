@@ -107,10 +107,12 @@ def set_user_prefs(prefs: dict, user_prefs_file: str = None):
 
     if not os.path.isfile(user_prefs_file):
         _write_user_prefs_file(user_prefs_file, _DEFAULT_USER_PREFS)
+    else:
+        _prefs = get_user_prefs(user_prefs_file)
+        _prefs.update(prefs)
+        _write_user_prefs_file(user_prefs_file, _prefs)
 
-    _write_user_prefs_file(user_prefs_file, prefs)
-
-    return get_user_prefs()
+    return get_user_prefs(user_prefs_file)
 
 
 def get_user_prefs(user_prefs_file: str = None) -> dict:

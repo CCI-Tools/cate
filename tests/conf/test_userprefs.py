@@ -92,6 +92,7 @@ class MyTestCase(unittest.TestCase):
         self.assertDictEqual(n_prefs, prefs)
 
     def test_set_user_prefs(self):
+        self.maxDiff = None
         tdir = tempfile.gettempdir()
         tfile = os.path.join(tdir, 'test_set_prefs.txt')
         prefs = set_user_prefs(_TEST_USER_PREFS, tfile)
@@ -102,6 +103,13 @@ class MyTestCase(unittest.TestCase):
         n_prefs['autoUpdateSoftware'] = True
 
         prefs = set_user_prefs(n_prefs)
+
+        self.assertDictEqual(n_prefs, prefs)
+
+        n_prefs = _TEST_USER_PREFS.copy()
+        n_prefs['autoUpdateSoftware'] = True
+
+        prefs = set_user_prefs({'autoUpdateSoftware': True})
 
         self.assertDictEqual(n_prefs, prefs)
 
