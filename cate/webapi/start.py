@@ -40,11 +40,13 @@ for extra code coverage information.
 Components
 ==========
 """
-import os
 import warnings
 
 warnings.filterwarnings("ignore")  # never print any warnings to users
+
+import os
 import sys
+import platform
 from datetime import date
 
 from tornado.web import Application, StaticFileHandler
@@ -79,7 +81,8 @@ class WebAPIInfoHandler(WebAPIRequestHandler):
         self.write_status_ok(content={'name': SERVICE_NAME,
                                       'version': __version__,
                                       'timestamp': date.today().isoformat(),
-                                      'user_root_mode': user_root_mode})
+                                      'user_root_mode': user_root_mode,
+                                      'host_os': platform.system()})
 
         self.finish()
 
