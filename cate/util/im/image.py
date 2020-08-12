@@ -729,7 +729,7 @@ class ImagePyramid:
 
     @classmethod
     def create_from_array(cls,
-                          array: [np.ndarray],
+                          array: np.ndarray,
                           tiling_scheme: TilingScheme,
                           level_image_id_factory: LevelImageIdFactory = None,
                           **kwargs) -> 'ImagePyramid':
