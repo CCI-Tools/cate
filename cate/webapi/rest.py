@@ -523,14 +523,15 @@ MAX_STREAMED_SIZE = 1024 * 1024 * 1024 * 1024
 @tornado.web.stream_request_body
 class FilesUploadHandler(WebAPIRequestHandler):
     def initialize(self):
+        # Member to collect meta info of the streaming process
         self.bytes_read = 0
         self.meta = dict()
         self.receiver = self.get_receiver()
-
-    # def prepare(self):
-    #     self.request.connection.set_max_body_size(MAX_STREAMED_SIZE)
+        self.error = False
+        self.fp = None
 
     def data_received(self, chunk):
+        # Call get_receiver on received chunk
         self.receiver(chunk)
 
     def get_receiver(self):
@@ -540,6 +541,7 @@ class FilesUploadHandler(WebAPIRequestHandler):
         def receiver(chunk):
             nonlocal index
             workspace_manager = self.application.workspace_manager
+            # Unfortunately we have to parse the header ourselves as we are streaming.
             if index == 0:
                 index += 1
                 split_chunk = chunk.split(separate)
@@ -550,15 +552,23 @@ class FilesUploadHandler(WebAPIRequestHandler):
                 self.meta['filename'] = split_chunk[5].split(b'=')[-1].replace(b'"', b'').decode()
 
                 chunk = chunk[len(self.meta['header']):]  # Stream
-                # chunk = split_chunk[8]
                 import os
                 fn = workspace_manager.resolve_path(os.path.join(self.meta['dir'], self.meta['filename']))
-                self.fp = open(fn, "wb")
-                self.fp.write(chunk)
+                try:
+                    self.fp = open(fn, "wb")
+                    self.fp.write(chunk)
+                except FileNotFoundError as e:
+                    self.error = str(e)
             else:
                 self.fp.write(chunk)
 
         return receiver
+
+    def truncate_fp(self):
+        if self.fp:
+            self.fp.seek(self.meta['content_length'], 0)
+            self.fp.truncate()
+            self.fp.close()
 
     def post(self):
         # Stream
@@ -566,12 +576,15 @@ class FilesUploadHandler(WebAPIRequestHandler):
                                       len(self.meta['header']) - \
                                       len(self.meta['boundary'])
 
+        self.truncate_fp()
         megabytes = int(self.meta['content_length'] / 2**20)
-        self.fp.seek(self.meta['content_length'], 0)
-        self.fp.truncate()
-        self.fp.close()
-        self.finish(
-            json.dumps({'status': 'success', 'error': '', 'message': str(megabytes) + 'MBs uploaded.'}))
+        if self.error:
+            self.set_status(400)
+            self.finish(
+                json.dumps({'status': 'error', 'error': self.error, 'message': ''}))
+        else:
+            self.finish(
+                json.dumps({'status': 'success', 'error': self.error, 'message': str(megabytes) + 'MBs uploaded.'}))
 
 
 # noinspection PyAbstractClass
