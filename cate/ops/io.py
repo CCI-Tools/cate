@@ -477,7 +477,10 @@ def write_geo_data_frame(gdf: gpd.GeoDataFrame,
 
 
 @op(tags=['input'], res_pattern='ds_{index}')
-@op_input('path', file_open_mode='r', file_filters=[dict(name='Zarr', extensions=['zarr'])])
+@op_input('path',
+          file_open_mode='r',
+          file_filters=[dict(name='Zarr', extensions=['zarr'])],
+          file_props=['openDirectory'])
 @op_input('file_system', value_set=['Local', 'S3', 'OBS'])
 @op_input('drop_variables', data_type=VarNamesLike)
 def read_zarr(path: str,
