@@ -28,7 +28,6 @@ from typing import Tuple, Sequence, Union, Any, Callable, Optional
 import matplotlib.cm as cm
 import numpy as np
 from PIL import Image
-from xarray import DataArray
 
 from .cmaps import ensure_cmaps_loaded
 from .geoextent import GeoExtent
@@ -730,7 +729,7 @@ class ImagePyramid:
 
     @classmethod
     def create_from_array(cls,
-                          array: [np.ndarray, DataArray],
+                          array: [np.ndarray],
                           tiling_scheme: TilingScheme,
                           level_image_id_factory: LevelImageIdFactory = None,
                           **kwargs) -> 'ImagePyramid':
