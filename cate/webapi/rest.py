@@ -195,7 +195,7 @@ class ResVarTileHandler(WorkspaceResourceHandler):
                     return
 
                 # print('tiling_scheme =', repr(tiling_scheme))
-                pyramid = ImagePyramid.create_from_array(array, tiling_scheme,
+                pyramid = ImagePyramid.create_from_array(array.values, tiling_scheme,
                                                          level_image_id_factory=array_image_id_factory)
                 pyramid = pyramid.apply(lambda image, level:
                                         TransformArrayImage(image,
@@ -541,7 +541,7 @@ class FilesUploadHandler(WebAPIRequestHandler):
         def receiver(chunk):
             nonlocal index
             workspace_manager = self.application.workspace_manager
-            # Unfortunately we have to parse the header ourselves as we are streaming.
+            # Unfortunately we have to parse the header from teh first chunk ourselves as we are streaming.
             if index == 0:
                 index += 1
                 split_chunk = chunk.split(separate)
@@ -589,13 +589,15 @@ class FilesUploadHandler(WebAPIRequestHandler):
 
 # noinspection PyAbstractClass
 class FilesDownloadHandler(WebAPIRequestHandler):
-    def _zip_files(self, file_names: Sequence[str]):
+    def _zip_files(self, target_dir: str):
         zip_file_path = tempfile.mktemp('.zip')
 
         with zipfile.ZipFile(zip_file_path, "w") as zip_file:
-            for file_name in file_names:
-                if os.path.isfile(file_name):
-                    zip_file.write(file_name, file_name)
+            for root, dirs, files in os.walk(target_dir):
+                for name in files:
+                    file_name = os.path.join(target_dir, name)
+                    if os.path.isfile(file_name):
+                        zip_file.write(file_name, file_name)
 
         return zip_file
 
@@ -610,26 +612,28 @@ class FilesDownloadHandler(WebAPIRequestHandler):
         os.remove(result.filename)
 
     def _stream_file_content(self, result):
+        monitor = _new_monitor()
+        file_size = os.path.getsize(result.filename)
+        monitor.start('file download', 100)
         with open(result.filename, 'rb') as f:
             while True:
+                monitor.progress(100*32768 / file_size)
                 data = f.read(32768)
                 if not data:
                     break
                 self.write(data)
 
     def post(self):
-        try:
-            body_dict = escape.json_decode(self.request.body)
+        body_dict = escape.json_decode(self.request.body)
 
-            file_names = body_dict.get('filenames')
+        target_dir = body_dict.get('target_dir')
 
-            zip_file = self._zip_files(file_names)
-            self._return_zip_file(zip_file)
+        target_dir = self.application.workspace_manager.resolve_path(target_dir)
 
-            self.finish(json.dumps({'status': 'success', 'error': '', 'content': 'Done'}))
-        except Exception as e:
-            self.write_status_error(exc_info=sys.exc_info())
-            self.finish()
+        zip_file = self._zip_files(target_dir)
+        self._return_zip_file(zip_file)
+
+        self.finish(json.dumps({'status': 'success', 'error': '', 'message': 'Done'}))
 
 
 def _new_monitor() -> Monitor:
