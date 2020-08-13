@@ -195,7 +195,7 @@ class ResVarTileHandler(WorkspaceResourceHandler):
                     return
 
                 # print('tiling_scheme =', repr(tiling_scheme))
-                pyramid = ImagePyramid.create_from_array(array.values, tiling_scheme,
+                pyramid = ImagePyramid.create_from_array(array, tiling_scheme,
                                                          level_image_id_factory=array_image_id_factory)
                 pyramid = pyramid.apply(lambda image, level:
                                         TransformArrayImage(image,
@@ -522,6 +522,7 @@ MAX_STREAMED_SIZE = 1024 * 1024 * 1024 * 1024
 # noinspection PyAbstractClass,PyBroadException
 @tornado.web.stream_request_body
 class FilesUploadHandler(WebAPIRequestHandler):
+    # noinspection PyAttributeOutsideInit
     def initialize(self):
         # Member to collect meta info of the streaming process
         self.bytes_read = 0
