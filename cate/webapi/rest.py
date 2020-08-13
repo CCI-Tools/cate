@@ -30,6 +30,7 @@ import os
 import sys
 import tempfile
 import time
+import uuid
 import zipfile
 from typing import Sequence, Any
 
@@ -42,6 +43,7 @@ from tornado import escape
 import xarray as xr
 
 from .geojson import write_feature_collection, write_feature
+from .websocket import ProcessRegistry
 from ..conf import get_config
 from ..conf.defaults import \
     WORKSPACE_CACHE_DIR_NAME, \
@@ -519,7 +521,6 @@ def ensure_str(value: Any) -> str:
 MAX_STREAMED_SIZE = 1024 * 1024 * 1024 * 1024
 
 
-# noinspection PyAbstractClass,PyBroadException
 @tornado.web.stream_request_body
 class FilesUploadHandler(WebAPIRequestHandler):
     # noinspection PyAttributeOutsideInit
@@ -553,8 +554,8 @@ class FilesUploadHandler(WebAPIRequestHandler):
                 self.meta['filename'] = split_chunk[5].split(b'=')[-1].replace(b'"', b'').decode()
 
                 chunk = chunk[len(self.meta['header']):]  # Stream
-                import os
                 fn = workspace_manager.resolve_path(os.path.join(self.meta['dir'], self.meta['filename']))
+
                 try:
                     self.fp = open(fn, "wb")
                     self.fp.write(chunk)
@@ -592,47 +593,61 @@ class FilesUploadHandler(WebAPIRequestHandler):
 class FilesDownloadHandler(WebAPIRequestHandler):
     def _zip_files(self, target_dir: str):
         zip_file_path = tempfile.mktemp('.zip')
+        zip_root_dir = os.path.basename(target_dir)
 
         with zipfile.ZipFile(zip_file_path, "w") as zip_file:
             for root, dirs, files in os.walk(target_dir):
                 for name in files:
-                    file_name = os.path.join(target_dir, name)
+                    zip_target_dir = root.replace(target_dir, '')
+                    if len(zip_target_dir) > 0 and zip_target_dir[0] == '/':
+                        zip_target_dir = zip_target_dir[1:]
+
+                    zip_file_name = os.path.join(zip_root_dir, zip_target_dir, name)
+
+                    file_name = os.path.join(root, name)
                     if os.path.isfile(file_name):
-                        zip_file.write(file_name, file_name)
+                        zip_file.write(file_name, zip_file_name)
 
         return zip_file
 
-    def _return_zip_file(self, result):
+    def _return_zip_file(self, result, target_dir):
         if result is None:
             return
 
         self.set_header('Content-Type', 'application/zip')
-        path, filename = os.path.split(result.filename)
-        self.set_header("Content-Disposition", "attachment; filename=%s" % filename)
+        self.set_header("Content-Disposition", "attachment; filename=%s" % target_dir + '.zip')
+
         self._stream_file_content(result)
         os.remove(result.filename)
 
     def _stream_file_content(self, result):
-        monitor = _new_monitor()
         file_size = os.path.getsize(result.filename)
-        monitor.start('file download', 100)
+        total_progress = 0
         with open(result.filename, 'rb') as f:
             while True:
-                monitor.progress(100*32768 / file_size)
+                progress = (100*32768 / file_size)
+                total_progress += progress
+                ProcessRegistry.set_progress('test', progress, total_progress)
                 data = f.read(32768)
                 if not data:
                     break
                 self.write(data)
 
+    def put(self):
+        process_id = str(uuid.uuid4())
+        ProcessRegistry.set_progress(process_id, 0, 0)
+        self.finish(json.dumps({'status': 'success', 'error': '', 'message': process_id}))
+
     def post(self):
         body_dict = escape.json_decode(self.request.body)
 
         target_dir = body_dict.get('target_dir')
+        process_id = body_dict.get('process_id')
 
-        target_dir = self.application.workspace_manager.resolve_path(target_dir)
+        full_target_dir = self.application.workspace_manager.resolve_path(target_dir)
 
-        zip_file = self._zip_files(target_dir)
-        self._return_zip_file(zip_file)
+        zip_file = self._zip_files(full_target_dir)
+        self._return_zip_file(zip_file, target_dir)
 
         self.finish(json.dumps({'status': 'success', 'error': '', 'message': 'Done'}))
 
