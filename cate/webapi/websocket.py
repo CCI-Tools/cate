@@ -51,7 +51,8 @@ class ProcessRegistry:
 
     @classmethod
     def set_progress(cls, process_id: str, progress: float, total_progress: float):
-        cls.processes[process_id] = [progress, total_progress]
+        cls.processes[process_id] = [] if process_id not in cls.processes else cls.processes[process_id]
+        cls.processes[process_id].append([progress, total_progress])
 
 
 # noinspection PyMethodMayBeStatic
@@ -267,10 +268,14 @@ class WebSocketService:
     def monitor_download_files(self, process_id: str, monitor: Monitor) -> None:
         with monitor.starting("Downloading files", 100):
             total_progress = 0
+            last_monitor = 0
             while 0 <= total_progress < 100:
                 progress = ProcessRegistry.get_progress(process_id)
-                monitor.progress(progress[0])
-                total_progress = progress[1]
+                for p in progress[last_monitor+1:]:
+                    monitor.progress(p[0])
+                    total_progress = p[1]
+                    last_monitor += 1
+                    print(total_progress)
 
     # see cate-desktop: src/renderer.states.WorkspaceState
     def close_workspace(self, base_dir: str) -> None:

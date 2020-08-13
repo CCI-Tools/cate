@@ -610,24 +610,24 @@ class FilesDownloadHandler(WebAPIRequestHandler):
 
         return zip_file
 
-    def _return_zip_file(self, result, target_dir):
+    def _return_zip_file(self, result, target_dir, process_id):
         if result is None:
             return
 
         self.set_header('Content-Type', 'application/zip')
         self.set_header("Content-Disposition", "attachment; filename=%s" % target_dir + '.zip')
 
-        self._stream_file_content(result)
+        self._stream_file_content(result, process_id)
         os.remove(result.filename)
 
-    def _stream_file_content(self, result):
+    def _stream_file_content(self, result, process_id):
         file_size = os.path.getsize(result.filename)
         total_progress = 0
         with open(result.filename, 'rb') as f:
             while True:
                 progress = (100*32768 / file_size)
                 total_progress += progress
-                ProcessRegistry.set_progress('test', progress, total_progress)
+                ProcessRegistry.set_progress(process_id, progress, total_progress)
                 data = f.read(32768)
                 if not data:
                     break
@@ -636,7 +636,8 @@ class FilesDownloadHandler(WebAPIRequestHandler):
     def put(self):
         process_id = str(uuid.uuid4())
         ProcessRegistry.set_progress(process_id, 0, 0)
-        self.finish(json.dumps({'status': 'success', 'error': '', 'message': process_id}))
+        # self.finish(json.dumps({'status': 'success', 'error': '', 'message': process_id}))
+        self.finish(json.dumps({'status': 'success', 'error': '', 'process_id': process_id}))
 
     def post(self):
         body_dict = escape.json_decode(self.request.body)
@@ -647,7 +648,7 @@ class FilesDownloadHandler(WebAPIRequestHandler):
         full_target_dir = self.application.workspace_manager.resolve_path(target_dir)
 
         zip_file = self._zip_files(full_target_dir)
-        self._return_zip_file(zip_file, target_dir)
+        self._return_zip_file(zip_file, target_dir, process_id)
 
         self.finish(json.dumps({'status': 'success', 'error': '', 'message': 'Done'}))
 
