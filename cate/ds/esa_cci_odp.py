@@ -37,6 +37,8 @@ and may be executed using
 Components
 ==========
 """
+import contextlib
+
 import aiofiles
 import aiohttp
 import asyncio
@@ -1253,6 +1255,7 @@ class EsaCciOdpDataSource(DataSource):
                 bytes_to_download = sum([file_rec[3] for file_rec in outdated_file_list])
                 dl_stat = _DownloadStatistics(bytes_to_download)
                 file_number = 1
+                http_redirect = None
                 for filename, coverage_from, coverage_to, file_size, url in outdated_file_list:
                     dataset_file = os.path.join(local_path, filename)
                     child_monitor = monitor.child(work=1.0)
@@ -1265,19 +1268,29 @@ class EsaCciOdpDataSource(DataSource):
                     sub_monitor_msg = "file %d of %d" % (file_number, len(outdated_file_list))
                     with child_monitor.starting(sub_monitor_msg, file_size):
                         actual_url = url[_ODP_PROTOCOL_HTTP]
-                        _LOG.info(f"Downloading {actual_url} to {dataset_file}")
+
+                        if http_redirect:
+                            urlpart = actual_url.split('/', 2)[2]
+                            actual_url = f'https://{urlpart}'
+                    _LOG.info(f"Downloading {actual_url} to {dataset_file}")
+                    try:
+                        urllib.request.urlretrieve(actual_url, filename=dataset_file, reporthook=reporthook)
+                    except HTTPError as e:
                         try:
+                            actual_url = e.headers['Location']
                             urllib.request.urlretrieve(actual_url, filename=dataset_file, reporthook=reporthook)
+                            http_redirect = True
                         except HTTPError as e:
+
                             raise self._cannot_access_error(time_range, region, var_names,
                                                             verb="synchronize", cause=e) from e
-                        except (URLError, socket.timeout) as e:
-                            raise self._cannot_access_error(time_range, region, var_names,
-                                                            verb="synchronize", cause=e,
-                                                            error_cls=NetworkError) from e
-                        except OSError as e:
-                            raise self._cannot_access_error(time_range, region, var_names,
-                                                            verb="synchronize", cause=e) from e
+                    except (URLError, socket.timeout) as e:
+                        raise self._cannot_access_error(time_range, region, var_names,
+                                                        verb="synchronize", cause=e,
+                                                        error_cls=NetworkError) from e
+                    except OSError as e:
+                        raise self._cannot_access_error(time_range, region, var_names,
+                                                        verb="synchronize", cause=e) from e
                     file_number += 1
                     local_ds.add_dataset(os.path.join(local_ds.id, filename), (coverage_from, coverage_to))
                     if do_update_of_verified_time_coverage_start_once:
@@ -1356,18 +1369,18 @@ class EsaCciOdpDataSource(DataSource):
             return
         # todo set True when dimensions shall be read during meta data fetching
         self._json_dict = await _load_or_fetch_json(_fetch_meta_info,
-                                                         fetch_json_args=[self._raw_id,
-                                                                          self._json_dict['odd_url'],
-                                                                          self._json_dict['metadata_url'],
-                                                                          self._json_dict['variables'],
-                                                                          # True],
-                                                                          False],
-                                                         fetch_json_kwargs=dict(),
-                                                         cache_used=self._data_store.index_cache_used,
-                                                         cache_dir=self.local_metadata_dataset_dir(),
-                                                         cache_json_filename='meta-info.json',
-                                                         cache_timestamp_filename='meta-info-timestamp.txt',
-                                                         cache_expiration_days=self._data_store.index_cache_expiration_days)
+                                                    fetch_json_args=[self._raw_id,
+                                                                     self._json_dict['odd_url'],
+                                                                     self._json_dict['metadata_url'],
+                                                                     self._json_dict['variables'],
+                                                                     # True],
+                                                                     False],
+                                                    fetch_json_kwargs=dict(),
+                                                    cache_used=self._data_store.index_cache_used,
+                                                    cache_dir=self.local_metadata_dataset_dir(),
+                                                    cache_json_filename='meta-info.json',
+                                                    cache_timestamp_filename='meta-info-timestamp.txt',
+                                                    cache_expiration_days=self._data_store.index_cache_expiration_days)
 
     async def _init_file_list(self, monitor: Monitor = Monitor.NONE):
         await self.ensure_meta_info_set()

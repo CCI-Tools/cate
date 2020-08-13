@@ -27,6 +27,7 @@
     - Removed `encoding` keyword argument from `xarray.DataArray` constructor calls.
     - No longer writing to `xarray.DataArray.values` property (e.g. Pearson's
       computation)
+* Downloading of remote data from ODP now handles redirect of url from http to https [#919](https://github.com/CCI-Tools/cate/issues/919)
 
 ## Version 2.0.0
 
