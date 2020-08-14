@@ -30,7 +30,6 @@ import os
 import sys
 import tempfile
 import time
-import uuid
 import zipfile
 from typing import Sequence, Any
 
@@ -620,16 +619,22 @@ class FilesDownloadHandler(WebAPIRequestHandler):
         os.remove(result.filename)
 
     def _stream_file_content(self, result, process_id):
-        file_size = os.path.getsize(result.filename)
-        total_progress = 0
+        # file_size = os.path.getsize(result.filename)
+        # total_progress = 0
         with open(result.filename, 'rb') as f:
             while True:
-                progress = (100*32768 / file_size)
-                total_progress += progress
+                # progress = (100*32768 / file_size)
+                # total_progress += progress
                 data = f.read(32768)
                 if not data:
                     break
                 self.write(data)
+
+    # def put(self):
+    #     process_id = str(uuid.uuid4())
+    #     ProcessRegistry.set_progress(process_id, 0, 0)
+    #     # self.finish(json.dumps({'status': 'success', 'error': '', 'message': process_id}))
+    #     self.finish(json.dumps({'status': 'success', 'error': '', 'process_id': process_id}))
 
     def post(self):
         body_dict = escape.json_decode(self.request.body)
