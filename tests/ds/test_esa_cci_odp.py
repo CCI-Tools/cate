@@ -1,3 +1,5 @@
+import random
+import string
 from datetime import datetime
 from lxml.etree import XML
 import asyncio
@@ -617,6 +619,7 @@ class SpatialSubsetTest(unittest.TestCase):
 
     def test_make_local_spatial_1(self):
         data_store = EsaCciOdpDataStore()
+        local_data_store = DATA_STORE_REGISTRY.get_data_store('local')
         # The following reproduces Cate issues #823, #822, #818, #816, #783, #892, #900:
 
         cci_dataset_collection = 'esacci.SST.satellite-orbit-frequency.L3U.SSTskin.AVHRR-3.Metop-A.AVHRRMTA_G.2-1.r1'
@@ -625,13 +628,16 @@ class SpatialSubsetTest(unittest.TestCase):
                                                          var_names=['sst_dtime', 'sea_surface_temperature_depth'],
                                                          region='-49.8, 13.1,-49.7, 13.2')
         self.assertIsNotNone(ds_from_remote_source)
-        ds = data_source.make_local('local_name_4',
+        random_string = f"test{random.choice(string.ascii_lowercase)}"
+        ds = data_source.make_local(random_string,
                                     time_range=['2006-11-21', '2006-11-23'],
                                     region='-49.8, 13.1,-49.7, 13.2')
         self.assertIsNotNone(ds)
+        local_data_store.remove_data_source(f"local.{random_string}")
 
     def test_make_local_spatial_2(self):
         data_store = EsaCciOdpDataStore()
+        local_data_store = DATA_STORE_REGISTRY.get_data_store('local')
         # The following reproduces Cate issues #823, #822, #818, #816, #783, #892, #900:
         cci_dataset_collection = 'esacci.SST.day.L4.SSTdepth.multi-sensor.multi-platform.OSTIA.1-1.r1'
         data_source = data_store.query(cci_dataset_collection)[0]
@@ -639,10 +645,12 @@ class SpatialSubsetTest(unittest.TestCase):
                                                          var_names=['sea_ice_fraction', 'analysed_sst'],
                                                          region='-2.8, 70.6,-2.7, 70.7')
         self.assertIsNotNone(ds_from_remote_source)
-        ds = data_source.make_local('local_name_2',
+        random_string = f"test{random.choice(string.ascii_lowercase)}"
+        ds = data_source.make_local(random_string,
                                     time_range=['1991-09-01', '1991-09-03'],
                                     region='-2.8, 70.6,-2.7, 70.7')
         self.assertIsNotNone(ds)
+        local_data_store.remove_data_source(f"local.{random_string}")
 
     def test_make_local_spatial_3(self):
         data_store = EsaCciOdpDataStore()
@@ -655,12 +663,15 @@ class SpatialSubsetTest(unittest.TestCase):
         self.assertIsNotNone(ds_from_remote_source)
 
 
-@unittest.skip(reason='Used for debugging to fix Cate issue #919')
+# @unittest.skip(reason='Used for debugging to fix Cate issue #919')
 class MakeLocalTest(unittest.TestCase):
 
     def test_make_local_wo_subsets(self):
         data_store = EsaCciOdpDataStore()
+        local_data_store = DATA_STORE_REGISTRY.get_data_store('local')
         cci_dataset_collection = 'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1'
         data_source = data_store.query(cci_dataset_collection)[0]
-        ds = data_source.make_local('local_name_wo_subsets_4')
+        random_string = f"test{random.choice(string.ascii_lowercase)}"
+        ds = data_source.make_local(random_string)
         self.assertIsNotNone(ds)
+        local_data_store.remove_data_source(f"local.{random_string}")

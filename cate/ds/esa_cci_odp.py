@@ -1255,7 +1255,7 @@ class EsaCciOdpDataSource(DataSource):
                 bytes_to_download = sum([file_rec[3] for file_rec in outdated_file_list])
                 dl_stat = _DownloadStatistics(bytes_to_download)
                 file_number = 1
-                http_redirect = None
+                url_scheme = None
                 for filename, coverage_from, coverage_to, file_size, url in outdated_file_list:
                     dataset_file = os.path.join(local_path, filename)
                     child_monitor = monitor.child(work=1.0)
@@ -1269,9 +1269,11 @@ class EsaCciOdpDataSource(DataSource):
                     with child_monitor.starting(sub_monitor_msg, file_size):
                         actual_url = url[_ODP_PROTOCOL_HTTP]
 
-                        if http_redirect:
-                            urlpart = actual_url.split('/', 2)[2]
-                            actual_url = f'https://{urlpart}'
+                        if url_scheme:
+                            url_object = urllib.parse.urlparse(actual_url)
+                            url_object = url_object._replace(scheme=url_scheme)
+                            actual_url = urllib.parse.urlunparse(url_object)
+
                     _LOG.info(f"Downloading {actual_url} to {dataset_file}")
                     try:
                         urllib.request.urlretrieve(actual_url, filename=dataset_file, reporthook=reporthook)
@@ -1279,9 +1281,11 @@ class EsaCciOdpDataSource(DataSource):
                         try:
                             actual_url = e.headers['Location']
                             urllib.request.urlretrieve(actual_url, filename=dataset_file, reporthook=reporthook)
-                            http_redirect = True
+                            # the following presumption has been made in order to save runtime: if a HTTP Error 308
+                            # occurs, it's assumed to be due to protocol change and that for all downloads within this
+                            # download que the redirect will be true.
+                            url_scheme = urllib.parse.urlparse(actual_url).scheme
                         except HTTPError as e:
-
                             raise self._cannot_access_error(time_range, region, var_names,
                                                             verb="synchronize", cause=e) from e
                     except (URLError, socket.timeout) as e:
