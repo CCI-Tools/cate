@@ -141,6 +141,7 @@ class GeoExtent:
         x_norm = False
         if x.size > 1:
             dx = np.gradient(x)
+            # noinspection PyArgumentList
             if (dx.max() - dx.min()) >= eps:
                 fail = True
                 # this may happened because we cross the antimeridian
@@ -150,6 +151,7 @@ class GeoExtent:
                     x_norm = True
                     # and test once more
                     dx = np.gradient(x)
+                    # noinspection PyArgumentList
                     fail = (dx.max() - dx.min()) >= eps
                 if fail:
                     raise ValueError('coordinate variable "lon" is not equi-distant')
@@ -158,6 +160,7 @@ class GeoExtent:
         dy = None
         if y.size > 1:
             dy = np.gradient(y)
+            # noinspection PyArgumentList
             if (dy.max() - dy.min()) >= eps:
                 # print('dy =', dy)
                 raise ValueError('coordinate variable "lat" is not equi-distant')

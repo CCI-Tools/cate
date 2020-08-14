@@ -23,7 +23,7 @@ import io
 import time
 import uuid
 from abc import ABCMeta, abstractmethod
-from typing import Tuple, Sequence, Union, Any, Callable, Optional
+from typing import Tuple, Sequence, Union, Any, Callable, Optional, List
 
 import matplotlib.cm as cm
 import numpy as np
@@ -50,7 +50,7 @@ Number = Union[int, float]
 Tile = Any
 TileQuad = Tuple[Tile, Tile, Tile, Tile]
 TiledImageCollection = Sequence['TiledImage']
-LevelTransformer = Callable[['TiledImage', 'TiledImage', int, Optional[Any]], 'TiledImage']
+LevelTransformer = Callable[['TiledImage', 'TiledImage', int], 'TiledImage']
 LevelMapper = Callable[['TiledImage', int, Optional[Any]], 'TiledImage']
 TileAggregator = Callable[[Tile, Tile, Tile, Tile], Tile]
 LevelImageIdFactory = Callable[[int], str]
@@ -66,7 +66,7 @@ def set_default_tile_cache(cache=None, no_cache=False, capacity=64 * 1024 * 1024
         _DEFAULT_TILE_CACHE = cache
 
 
-def get_default_tile_cache() -> Cache:
+def get_default_tile_cache() -> Optional[Cache]:
     global _DEFAULT_TILE_CACHE
     return _DEFAULT_TILE_CACHE
 
@@ -335,7 +335,7 @@ class TransformArrayImage(DecoratorImage):
                  force_masked: bool = True,
                  force_2d: bool = False,
                  no_data_value: Number = None,
-                 valid_range: Tuple[Number] = None,
+                 valid_range: Tuple[Number, Number] = None,
                  tile_cache: Cache = None):
         super().__init__(source_image, image_id=image_id, tile_cache=tile_cache)
         self._force_masked = force_masked
@@ -716,13 +716,14 @@ class ImagePyramid:
         tiling_scheme = TilingScheme.create(source_image.size[0], source_image.size[1],
                                             source_image.tile_size[0], source_image.tile_size[1],
                                             geo_extent)
-        level_images = [None] * tiling_scheme.num_levels
+        level_images: List[Optional[TiledImage]] = [None] * tiling_scheme.num_levels
         z_index_max = tiling_scheme.num_levels - 1
         level_images[z_index_max] = source_image
         level_image = source_image
         for i in range(1, tiling_scheme.num_levels):
             z_index = z_index_max - i
             image_id = '%s/%d' % (source_image.id, z_index)
+            # noinspection PyArgumentList
             level_images[z_index] = level_image = level_transformer(source_image, level_image, i,
                                                                     image_id=image_id, **kwargs)
         return ImagePyramid(tiling_scheme, level_images)
@@ -749,7 +750,7 @@ class ImagePyramid:
         """
         tile_size = tiling_scheme.tile_size
         num_levels = tiling_scheme.num_levels
-        level_images = [None] * num_levels
+        level_images: List[Optional[TiledImage]] = [None] * num_levels
         z_index_max = num_levels - 1
         for i in range(0, num_levels):
             z_index = z_index_max - i
