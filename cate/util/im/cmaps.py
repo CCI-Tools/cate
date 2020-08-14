@@ -23,69 +23,79 @@ import base64
 import io
 import logging
 from threading import Lock
+from typing import Sequence, Tuple, List, Optional
 
 import matplotlib
 import matplotlib.cm as cm
+import matplotlib.colors
 import numpy as np
 from PIL import Image
 
 from .cmap_lc import register_lc_color_map, LAND_COVER_CCI_CMAP
 
+
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 _LOG = logging.getLogger('cate')
 
+CMapTemplateEntry = Tuple[str, str, Sequence[str]]
+CMapEntry = Tuple[str, str, Sequence[Tuple[str, str]]]
+
 # Have colormaps separated into categories:
 # (taken from http://matplotlib.org/examples/color/colormaps_reference.html)
 
-_CMAPS = (('Perceptually Uniform Sequential',
-           'For many applications, a perceptually uniform colormap is the best choice - '
-           'one in which equal steps in data are perceived as equal steps in the color space',
-           ('viridis', 'inferno', 'plasma', 'magma')),
-          ('Sequential 1',
-           'These colormaps are approximately monochromatic colormaps varying smoothly '
-           'between two color tones - usually from low saturation (e.g. white) to high '
-           'saturation (e.g. a bright blue). Sequential colormaps are ideal for '
-           'representing most scientific data since they show a clear progression from '
-           'low-to-high values.',
-           ('Blues', 'BuGn', 'BuPu',
-            'GnBu', 'Greens', 'Greys', 'Oranges', 'OrRd',
-            'PuBu', 'PuBuGn', 'PuRd', 'Purples', 'RdPu',
-            'Reds', 'YlGn', 'YlGnBu', 'YlOrBr', 'YlOrRd')),
-          ('Sequential 2',
-           'Many of the values from the Sequential 2 plots are monotonically increasing.',
-           ('afmhot', 'autumn', 'bone', 'cool',
-            'copper', 'gist_heat', 'gray', 'hot',
-            'pink', 'spring', 'summer', 'winter')),
-          ('Diverging',
-           'These colormaps have a median value (usually light in color) and vary '
-           'smoothly to two different color tones at high and low values. Diverging '
-           'colormaps are ideal when your data has a median value that is significant '
-           '(e.g.  0, such that positive and negative values are represented by '
-           'different colors of the colormap).',
-           ('BrBG', 'bwr', 'coolwarm', 'PiYG', 'PRGn', 'PuOr',
-            'RdBu', 'RdGy', 'RdYlBu', 'RdYlGn', 'Spectral',
-            'seismic')),
-          ('Qualitative',
-           'These colormaps vary rapidly in color. Qualitative colormaps are useful for '
-           'choosing a set of discrete colors.',
-           ('Accent', 'Dark2', 'Paired', 'Pastel1',
-            'Pastel2', 'Set1', 'Set2', 'Set3')),
-          ('Miscellaneous',
-           'Colormaps that don\'t fit into the categories above.',
-           (LAND_COVER_CCI_CMAP, 'gist_earth', 'terrain', 'ocean', 'gist_stern',
-            'brg', 'CMRmap', 'cubehelix',
-            'gnuplot', 'gnuplot2', 'gist_ncar',
-            'nipy_spectral', 'jet', 'rainbow',
-            'gist_rainbow', 'hsv', 'flag', 'prism')))
+_CMAP_TEMPLATES: Sequence[CMapTemplateEntry] = (
+    ('Perceptually Uniform Sequential',
+     'For many applications, a perceptually uniform colormap is the best choice - '
+     'one in which equal steps in data are perceived as equal steps in the color space',
+     ('viridis', 'inferno', 'plasma', 'magma')),
+    ('Sequential 1',
+     'These colormaps are approximately monochromatic colormaps varying smoothly '
+     'between two color tones - usually from low saturation (e.g. white) to high '
+     'saturation (e.g. a bright blue). Sequential colormaps are ideal for '
+     'representing most scientific data since they show a clear progression from '
+     'low-to-high values.',
+     ('Blues', 'BuGn', 'BuPu',
+      'GnBu', 'Greens', 'Greys', 'Oranges', 'OrRd',
+      'PuBu', 'PuBuGn', 'PuRd', 'Purples', 'RdPu',
+      'Reds', 'YlGn', 'YlGnBu', 'YlOrBr', 'YlOrRd')),
+    ('Sequential 2',
+     'Many of the values from the Sequential 2 plots are monotonically increasing.',
+     ('afmhot', 'autumn', 'bone', 'cool',
+      'copper', 'gist_heat', 'gray', 'hot',
+      'pink', 'spring', 'summer', 'winter')),
+    ('Diverging',
+     'These colormaps have a median value (usually light in color) and vary '
+     'smoothly to two different color tones at high and low values. Diverging '
+     'colormaps are ideal when your data has a median value that is significant '
+     '(e.g.  0, such that positive and negative values are represented by '
+     'different colors of the colormap).',
+     ('BrBG', 'bwr', 'coolwarm', 'PiYG', 'PRGn', 'PuOr',
+      'RdBu', 'RdGy', 'RdYlBu', 'RdYlGn', 'Spectral',
+      'seismic')),
+    ('Qualitative',
+     'These colormaps vary rapidly in color. Qualitative colormaps are useful for '
+     'choosing a set of discrete colors.',
+     ('Accent', 'Dark2', 'Paired', 'Pastel1',
+      'Pastel2', 'Set1', 'Set2', 'Set3')),
+    ('Miscellaneous',
+     'Colormaps that don\'t fit into the categories above.',
+     (LAND_COVER_CCI_CMAP, 'gist_earth', 'terrain', 'ocean', 'gist_stern',
+      'brg', 'CMRmap', 'cubehelix',
+      'gnuplot', 'gnuplot2', 'gist_ncar',
+      'nipy_spectral', 'jet', 'rainbow',
+      'gist_rainbow', 'hsv', 'flag', 'prism'))
+)
 
-_CBARS_LOADED = False
+_CMAPS: Optional[Sequence[CMapEntry]] = None
+
 _LOCK = Lock()
 
 
 def get_cmaps():
     """
-    Return a JSON-serializable tuple containing records of the form: (<cmap-category>, <cmap-category-description>, <cmap-tuples>),
+    Return a JSON-serializable tuple containing records of the form:
+        (<cmap-category>, <cmap-category-description>, <cmap-tuples>),
     where <cmap-tuples> is a tuple containing records of the form (<cmap-name>, <cbar-png-bytes>), and where
     <cbar-png-bytes> are encoded PNG images of size 256 x 2 pixels,
     :return: all known matplotlib color maps
@@ -100,13 +110,13 @@ def ensure_cmaps_loaded():
     """
     Loads all color maps from matplotlip and registers additional ones, if not done before.
     """
-    global _CBARS_LOADED, _CMAPS
-    if not _CBARS_LOADED:
+    global _CMAP_TEMPLATES, _CMAPS
+    if _CMAPS is None:
         _LOCK.acquire()
-        if not _CBARS_LOADED:
+        if _CMAPS is None:
             register_lc_color_map()
-            new_cmaps = []
-            for cmap_category, cmap_description, cmap_names in _CMAPS:
+            new_cmaps: List[CMapEntry] = []
+            for cmap_category, cmap_description, cmap_names in _CMAP_TEMPLATES:
                 cbar_list = []
                 for cmap_name in cmap_names:
                     # noinspection PyBroadException
@@ -120,6 +130,7 @@ def ensure_cmaps_loaded():
                     # see http://matplotlib.org/api/colors_api.html
                     if type(cmap) == matplotlib.colors.LinearSegmentedColormap:
                         new_name = cmap.name + '_alpha'
+                        # noinspection PyProtectedMember
                         new_segmentdata = dict(cmap._segmentdata)
                         # let alpha increase from 0.0 to 0.5
                         new_segmentdata['alpha'] = ((0.0, 0.0, 0.0),
@@ -130,13 +141,14 @@ def ensure_cmaps_loaded():
                         # print("INFO: new colormap '" + new_name + "'")
                     elif type(cmap) == matplotlib.colors.ListedColormap:
                         new_name = cmap.name + '_alpha'
-                        new_colors = list(cmap.colors)
+                        new_colors: List[Sequence[float]] = list(cmap.colors)
                         a_slope = 2.0 / cmap.N
                         a = 0
                         for i in range(len(new_colors)):
                             new_color = new_colors[i]
                             if not isinstance(new_color, str):
                                 if len(new_color) == 3:
+                                    # noinspection PyTupleAssignmentBalance
                                     r, g, b = new_color
                                     new_colors[i] = r, g, b, a
                                 elif len(new_color) == 4:
@@ -172,7 +184,6 @@ def ensure_cmaps_loaded():
                     cbar_list.append((cmap_name, cbar_png_bytes))
                 new_cmaps.append((cmap_category, cmap_description, tuple(cbar_list)))
             _CMAPS = tuple(new_cmaps)
-            _CBARS_LOADED = True
             # import pprint
             # pprint.pprint(_CMAPS)
         _LOCK.release()
