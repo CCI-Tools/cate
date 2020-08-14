@@ -554,11 +554,8 @@ class FilesUploadHandler(WebAPIRequestHandler):
                 chunk = chunk[len(self.meta['header']):]  # Stream
                 fn = workspace_manager.resolve_path(os.path.join(self.meta['dir'], self.meta['filename']))
 
-                try:
-                    self.fp = open(fn, "wb")
-                    self.fp.write(chunk)
-                except FileNotFoundError as e:
-                    self.error = str(e)
+                self.fp = open(fn, "wb")
+                self.fp.write(chunk)
             else:
                 self.fp.write(chunk)
 
@@ -578,13 +575,7 @@ class FilesUploadHandler(WebAPIRequestHandler):
 
         self.truncate_fp()
         megabytes = int(self.meta['content_length'] / 2**20)
-        if self.error:
-            self.set_status(400)
-            self.finish(
-                json.dumps({'status': 'error', 'error': self.error, 'message': ''}))
-        else:
-            self.finish(
-                json.dumps({'status': 'success', 'error': self.error, 'message': str(megabytes) + 'MBs uploaded.'}))
+        self.finish(json.dumps({'status': 'success', 'message': str(megabytes) + 'MBs uploaded.'}))
 
 
 # noinspection PyAbstractClass
