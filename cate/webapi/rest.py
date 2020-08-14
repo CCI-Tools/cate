@@ -43,7 +43,6 @@ from tornado import escape
 import xarray as xr
 
 from .geojson import write_feature_collection, write_feature
-from .websocket import ProcessRegistry
 from ..conf import get_config
 from ..conf.defaults import \
     WORKSPACE_CACHE_DIR_NAME, \
@@ -627,17 +626,10 @@ class FilesDownloadHandler(WebAPIRequestHandler):
             while True:
                 progress = (100*32768 / file_size)
                 total_progress += progress
-                ProcessRegistry.set_progress(process_id, progress, total_progress)
                 data = f.read(32768)
                 if not data:
                     break
                 self.write(data)
-
-    def put(self):
-        process_id = str(uuid.uuid4())
-        ProcessRegistry.set_progress(process_id, 0, 0)
-        # self.finish(json.dumps({'status': 'success', 'error': '', 'message': process_id}))
-        self.finish(json.dumps({'status': 'success', 'error': '', 'process_id': process_id}))
 
     def post(self):
         body_dict = escape.json_decode(self.request.body)

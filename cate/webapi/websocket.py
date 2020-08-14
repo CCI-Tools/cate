@@ -42,19 +42,6 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH)"
 
 
-class ProcessRegistry:
-    processes: Dict = {}
-
-    @classmethod
-    def get_progress(cls, process_id: str):
-        return cls.processes[process_id]
-
-    @classmethod
-    def set_progress(cls, process_id: str, progress: float, total_progress: float):
-        cls.processes[process_id] = [] if process_id not in cls.processes else cls.processes[process_id]
-        cls.processes[process_id].append([progress, total_progress])
-
-
 # noinspection PyMethodMayBeStatic
 class WebSocketService:
     """
@@ -264,18 +251,6 @@ class WebSocketService:
     def open_workspace(self, base_dir: str, monitor: Monitor) -> dict:
         workspace = self.workspace_manager.open_workspace(base_dir, monitor=monitor)
         return workspace.to_json_dict()
-
-    def monitor_download_files(self, process_id: str, monitor: Monitor) -> None:
-        with monitor.starting("Downloading files", 100):
-            total_progress = 0
-            last_monitor = 0
-            while 0 <= total_progress < 100:
-                progress = ProcessRegistry.get_progress(process_id)
-                for p in progress[last_monitor+1:]:
-                    monitor.progress(p[0])
-                    total_progress = p[1]
-                    last_monitor += 1
-                    print(total_progress)
 
     # see cate-desktop: src/renderer.states.WorkspaceState
     def close_workspace(self, base_dir: str) -> None:
