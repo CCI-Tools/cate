@@ -663,7 +663,7 @@ class SpatialSubsetTest(unittest.TestCase):
         self.assertIsNotNone(ds_from_remote_source)
 
 
-# @unittest.skip(reason='Used for debugging to fix Cate issue #919')
+@unittest.skip(reason='Used for debugging to fix Cate issue #919')
 class MakeLocalTest(unittest.TestCase):
 
     def test_make_local_wo_subsets(self):
