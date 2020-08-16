@@ -1,9 +1,8 @@
-import unittest
-
 import os
 import shutil
 import signal
 import tempfile
+import unittest
 
 from cate.util.web.serviceinfo import read_service_info
 from cate.util.web.webapi import find_free_port, WebAPI
@@ -15,11 +14,6 @@ _SERVICE_INFO_FILE = 'pytest-service-info.json'
 
 @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
 class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
-
-    def __init__(self, methodName: str = ...) -> None:
-        super().__init__(methodName)
-        self._is_relative = False
-        self._path_manager = None
 
     def setUp(self):
         self._root_dir = tempfile.mkdtemp()
@@ -41,3 +35,8 @@ class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
 
     def new_workspace_manager(self):
         return WebAPIWorkspaceManager(dict(port=self.port), rpc_timeout=2)
+
+    def test_resolve_path(self):
+        ws_manag = self.new_workspace_manager()
+        self.assertIsNone(ws_manag.root_path)
+        self.assertIs('data', ws_manag.resolve_path('data'))

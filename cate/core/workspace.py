@@ -36,7 +36,7 @@ import xarray as xr
 
 from .workflow import Workflow, OpStep, NodePort, ValueCache
 from ..conf import conf
-from ..conf.defaults import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, SCRATCH_WORKSPACES_PATH
+from ..conf.defaults import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, DEFAULT_SCRATCH_WORKSPACES_PATH
 from ..core.cdm import get_tiling_scheme
 from ..core.op import OP_REGISTRY
 #from ..core.pathmanag import PathManager
@@ -102,7 +102,7 @@ class Workspace:
         assert workflow
         self._base_dir = base_dir
         self._workflow = workflow
-        self._is_scratch = (base_dir or '').startswith(SCRATCH_WORKSPACES_PATH)
+        self._is_scratch = (base_dir or '').startswith(DEFAULT_SCRATCH_WORKSPACES_PATH)
         self._is_modified = is_modified
         self._is_closed = False
         self._resource_cache = ValueCache()
@@ -114,7 +114,7 @@ class Workspace:
 
     @property
     def base_dir(self) -> str:
-        """The Workspace's workflow."""
+        """The Workspace's container directory."""
         return self._base_dir
 
     @property
@@ -145,8 +145,8 @@ class Workspace:
         return self._is_modified
 
     @property
-    def workspace_dir(self) -> str:
-        return self.get_workspace_dir(self.base_dir)
+    def workspace_data_dir(self) -> str:
+        return self.get_workspace_data_dir(self.base_dir)
 
     @property
     def workflow_file(self) -> str:
@@ -157,12 +157,12 @@ class Workspace:
         return self._user_data
 
     @classmethod
-    def get_workspace_dir(cls, base_dir) -> str:
+    def get_workspace_data_dir(cls, base_dir) -> str:
         return os.path.join(base_dir, WORKSPACE_DATA_DIR_NAME)
 
     @classmethod
     def get_workflow_file(cls, base_dir) -> str:
-        return os.path.join(cls.get_workspace_dir(base_dir), WORKSPACE_WORKFLOW_FILE_NAME)
+        return os.path.join(cls.get_workspace_data_dir(base_dir), WORKSPACE_WORKFLOW_FILE_NAME)
 
     @classmethod
     def new_workflow(cls, header: dict = None) -> Workflow:
@@ -176,7 +176,7 @@ class Workspace:
 
     @classmethod
     def open(cls, base_dir: str, monitor: Monitor = Monitor.NONE) -> 'Workspace':
-        if not os.path.isdir(cls.get_workspace_dir(base_dir)):
+        if not os.path.isdir(cls.get_workspace_data_dir(base_dir)):
             raise ValidationError('Not a valid workspace: %s' % base_dir)
         workflow_file = cls.get_workflow_file(base_dir)
         workflow = Workflow.load(workflow_file)
@@ -198,10 +198,10 @@ class Workspace:
         with self._lock:
             self._resource_cache.close()
             # Remove all resource files that are no longer required
-            if os.path.isdir(self.workspace_dir):
+            if os.path.isdir(self.workspace_data_dir):
                 persistent_ids = {step.id for step in self.workflow.steps if step.persistent}
-                for filename in os.listdir(self.workspace_dir):
-                    res_file = os.path.join(self.workspace_dir, filename)
+                for filename in os.listdir(self.workspace_data_dir):
+                    res_file = os.path.join(self.workspace_data_dir, filename)
                     if os.path.isfile(res_file) and filename.endswith('.nc'):
                         res_name = filename[0: -3]
                         if res_name not in persistent_ids:
@@ -216,9 +216,9 @@ class Workspace:
             base_dir = self.base_dir
             if not os.path.isdir(base_dir):
                 os.makedirs(base_dir)
-            workspace_dir = self.workspace_dir
-            if not os.path.isdir(workspace_dir):
-                os.mkdir(workspace_dir)
+            workspace_data_dir = self.workspace_data_dir
+            if not os.path.isdir(workspace_data_dir):
+                os.mkdir(workspace_data_dir)
             self.workflow.store(self.workflow_file)
 
             # Write resources for all persistent steps
@@ -241,14 +241,14 @@ class Workspace:
                     write_method = getattr(res_value, write_attr)
                     # noinspection PyBroadException
                     try:
-                        resource_file = os.path.join(self.workspace_dir, res_name + '.' + ext)
+                        resource_file = os.path.join(self.workspace_data_dir, res_name + '.' + ext)
                         write_method(resource_file)
                     except Exception:
                         _LOG.exception('writing resource "%s" to file failed' % res_name)
 
     def _read_resource_from_file(self, res_name):
         for ext, open_dataset, _ in _RESOURCE_PERSISTENCE_FORMATS.values():
-            res_file = os.path.join(self.workspace_dir, res_name + '.' + ext)
+            res_file = os.path.join(self.workspace_data_dir, res_name + '.' + ext)
             if os.path.exists(res_file):
                 # noinspection PyBroadException
                 try:
@@ -281,7 +281,7 @@ class Workspace:
             return OrderedDict([('base_dir', self.base_dir),
                                 ('is_scratch', self.is_scratch),
                                 ('is_modified', self.is_modified),
-                                ('is_saved', os.path.exists(self.workspace_dir)),
+                                ('is_saved', os.path.exists(self.workspace_data_dir)),
                                 ('workflow', self.workflow.to_json_dict()),
                                 ('resources', self._resources_to_json_list())
                                 ])
@@ -474,7 +474,7 @@ class Workspace:
     def delete(self):
         with self._lock:
             self.close()
-            shutil.rmtree(self.workspace_dir)
+            shutil.rmtree(self.workspace_data_dir)
 
     def delete_resource(self, res_name: str):
         with self._lock:
