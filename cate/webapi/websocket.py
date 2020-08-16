@@ -253,8 +253,8 @@ class WebSocketService:
         return workspace_names
 
     # see cate-desktop: src/renderer.states.WorkspaceState
-    def new_workspace(self, base_dir: str, description: str = None) -> dict:
-        base_dir = self._resolve_path(base_dir)
+    def new_workspace(self, base_dir: Optional[str], description: str = None) -> dict:
+        base_dir = self._resolve_path(base_dir) if base_dir else None
         workspace = self.workspace_manager.new_workspace(base_dir, description)
         return self._serialize_workspace(workspace)
 
