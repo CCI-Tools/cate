@@ -259,12 +259,10 @@ class WebSocketService:
     def close_all_workspaces(self) -> None:
         self.workspace_manager.close_all_workspaces()
 
-    # see cate-desktop: src/renderer.states.WorkspaceState
     def save_workspace(self, base_dir: str, monitor: Monitor) -> dict:
         workspace = self.workspace_manager.save_workspace(base_dir, monitor=monitor)
         return workspace.to_json_dict()
 
-    # see cate-desktop: src/renderer.states.WorkspaceState
     def save_workspace_as(self, base_dir: str, to_dir: str, monitor: Monitor) -> dict:
         workspace = self.workspace_manager.save_workspace_as(base_dir, to_dir, monitor=monitor)
         return workspace.to_json_dict()
