@@ -97,7 +97,7 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def clean_workspace(self, base_dir: str) -> None:
+    def clean_workspace(self, base_dir: str) -> Workspace:
         pass
 
     @abstractmethod
