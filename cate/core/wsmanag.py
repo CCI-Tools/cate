@@ -26,16 +26,16 @@ import pprint
 import shutil
 import uuid
 from abc import ABCMeta, abstractmethod
-from typing import Union, Dict
+from typing import Dict
 from typing import List, Optional, Tuple, Any
 
-from util.misc import cwd
 from .objectio import write_object
 from .workflow import Workflow
 from .workspace import Workspace, OpKwArgs
 from ..conf.defaults import DEFAULT_SCRATCH_WORKSPACES_PATH, WORKSPACE_DATA_DIR_NAME, WORKSPACES_DIR_NAME, \
     DEFAULT_WORKSPACES_PATH, SCRATCH_WORKSPACES_DIR_NAME
 from ..core.types import ValidationError
+from ..util.misc import cwd
 from ..util.monitor import Monitor
 from ..util.safe import safe_eval
 from ..util.undefined import UNDEFINED
