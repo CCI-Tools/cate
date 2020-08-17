@@ -29,6 +29,7 @@ from abc import ABCMeta, abstractmethod
 from typing import Union, Dict
 from typing import List, Optional, Tuple, Any
 
+from util.misc import cwd
 from .objectio import write_object
 from .workflow import Workflow
 from .workspace import Workspace, OpKwArgs
@@ -387,14 +388,23 @@ class FSWorkspaceManager(WorkspaceManager):
             # Copy all files to new location to_dir
             shutil.copytree(workspace_dir, new_workspace_dir)
             monitor.progress(work=10)
-            # Reopen from new location
-            new_workspace = self.open_workspace(new_workspace_dir, monitor=monitor.child(work=50))
+
+            # TODO (forman): with cwd() is a dirty hack here. A real solution finds the location of
+            #   new_workspace_dir in relation to workspace_dir and applies the delta to all
+            #   paths values in the workspace's workflow JSON. This is a bit of a pain, because
+            #   we must to the replacement only for operation parameters of type 'file'.
+            #
+            with cwd(new_workspace_dir):
+                # Reopen from new location
+                new_workspace = self.open_workspace(new_workspace_dir, monitor=monitor.child(work=50))
+
             # If it was a scratch workspace, delete the original
             if workspace.is_scratch:
                 try:
                     shutil.rmtree(workspace_dir, ignore_errors=True)
                 except (PermissionError, OSError):
                     pass
+
             monitor.progress(work=5)
             return new_workspace
 

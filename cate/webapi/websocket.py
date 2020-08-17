@@ -440,7 +440,8 @@ class WebSocketService:
         :param path: A normalized, absolute path that never has a trailing "/".
         :return: A JSON dictionary containing an updated file node at *path*.
         """
-        path = self._resolve_path(path) if self.workspace_manager.root_path else path
+        if self.workspace_manager.root_path:
+            path = self._resolve_path(path)
 
         if platform.system() == 'Windows':
             drive_letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -462,6 +463,9 @@ class WebSocketService:
                 path = basename + '/'
             else:
                 basename = os.path.basename(path)
+        elif path == '':
+            path = '/'
+            basename = ''
         elif path == '/':
             basename = ''
         else:
