@@ -747,6 +747,10 @@ class EsaCciOdpDataStore(DataStore):
         for drs_id in drs_ids:
             if drs_id not in self._drs_ids:
                 continue
+            # todo remove as soon as the double occurrence of the drs id is removed from the odp
+            if drs_id == 'esacci.AEROSOL.satellite-orbit-frequency.L2P.AER_PRODUCTS.ATSR-2.ERS-2.SU.4-21.r1' and \
+                    datasource_id == '59f3a38819e140b49ffe46f32176709e':
+                continue
             meta_info = meta_info.copy()
             meta_info.update(json_dict)
             self._adjust_json_dict(meta_info, drs_id)
