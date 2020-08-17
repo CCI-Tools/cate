@@ -45,6 +45,7 @@ from ..conf.defaults import \
     WEBAPI_USE_WORKSPACE_IMAGERY_CACHE
 from ..core.cdm import get_tiling_scheme
 from ..core.types import GeoDataFrame
+from ..core.wsmanag import WorkspaceManager
 from ..util.cache import Cache, MemoryCacheStore, FileCacheStore
 from ..util.im import ImagePyramid, TransformArrayImage, ColorMappedRgbaImage
 from ..util.im.ds import NaturalEarth2Image
@@ -93,6 +94,7 @@ class WorkspaceResourceHandler(WebAPIRequestHandler):
     def get_workspace_resource(self, base_dir, res_id: str):
         res_id = self.to_int("res_id", res_id)
         workspace_manager = self.application.workspace_manager
+        base_dir = workspace_manager.resolve_path(base_dir)
         workspace = workspace_manager.get_workspace(base_dir)
         res_name = workspace.resource_cache.get_key(res_id)
         resource = workspace.resource_cache[res_name]
@@ -238,10 +240,10 @@ class ResVarTileHandler(WorkspaceResourceHandler):
 class ResourcePlotHandler(WorkspaceResourceHandler):
     def get(self, base_dir, res_name):
         try:
+            workspace_manager: WorkspaceManager = self.application.workspace_manager
             var_name = self.get_query_argument('var_name', default=None)
             file_path = self.get_query_argument('file_path', default=None)
             with cwd(base_dir):
-                workspace_manager = self.application.workspace_manager
                 workspace_manager.plot_workspace_resource(base_dir, res_name,
                                                           var_name=var_name,
                                                           file_path=file_path)
