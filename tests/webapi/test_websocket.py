@@ -210,9 +210,21 @@ class SandboxedWebSocketServiceTest(WebSocketServiceTest):
         node = self.service.update_file_node(path)
         self._assert_dir_node_props(node, '')
 
-        path = __file__
+        path = '/'
         node = self.service.update_file_node(path)
-        self._assert_file_node_props(node, os.path.basename(path))
+        self._assert_dir_node_props(node, '')
+
+        path = '.'
+        node = self.service.update_file_node(path)
+        self._assert_dir_node_props(node, '')
+
+        path = os.path.basename(__file__)
+        node = self.service.update_file_node(path)
+        self._assert_file_node_props(node, path)
+
+        path = os.path.basename(__file__)
+        node = self.service.update_file_node(os.path.sep + path)
+        self._assert_file_node_props(node, path)
 
         if platform.system() == 'Windows':
             # Test with just drive letter prefix
@@ -221,11 +233,10 @@ class SandboxedWebSocketServiceTest(WebSocketServiceTest):
                 self.service.update_file_node(path)
             self.assertTrue(f'{cm.exception}'.startswith('access denied: '))
 
-        path = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..'))
         with self.assertRaises(ValueError) as cm:
-            self.service.update_file_node(path)
+            self.service.update_file_node('..')
         self.assertTrue(f'{cm.exception}'.startswith('access denied: '))
 
         with self.assertRaises(ValueError) as cm:
-            self.service.update_file_node('..')
+            self.service.update_file_node(os.path.sep + '..')
         self.assertTrue(f'{cm.exception}'.startswith('access denied: '))
