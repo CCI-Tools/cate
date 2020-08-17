@@ -554,8 +554,11 @@ class FilesUploadHandler(WebAPIRequestHandler):
                 self.meta['filename'] = split_chunk[5].split(b'=')[-1].replace(b'"', b'').decode()
 
                 chunk = chunk[len(self.meta['header']):]  # Stream
-                fn = workspace_manager.resolve_path(os.path.join(self.meta['dir'], self.meta['filename']))
+                fn = workspace_manager.resolve_path(os.path.join(self.meta['dir']))
+                if not os.path.isdir(fn):
+                    os.mkdir(fn)
 
+                fn = os.path.join(fn, self.meta['filename'])
                 self.fp = open(fn, "wb")
                 self.fp.write(chunk)
             else:

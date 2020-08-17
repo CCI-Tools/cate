@@ -26,8 +26,7 @@ import pprint
 import shutil
 import uuid
 from abc import ABCMeta, abstractmethod
-from typing import List, Union, Optional, Tuple, Any, Dict
-from collections import OrderedDict
+from typing import Union, Dict
 from typing import List, Optional, Tuple, Any
 
 from .objectio import write_object
@@ -76,7 +75,6 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def new_workspace(self, base_dir: Optional[str], description: str = None) -> Workspace:
     def new_workspace(self,
                       workspace_dir: Optional[str],
                       description: str = None) -> Workspace:
@@ -128,9 +126,6 @@ class WorkspaceManager(metaclass=ABCMeta):
                             workspace_dir: str,
                             op_name: str,
                             op_args: OpKwArgs,
-                            monitor: Monitor = Monitor.NONE) -> Union[Any, None]:
-    def run_op_in_workspace(self, base_dir: str,
-                            op_name: str, op_args: OpKwArgs,
                             monitor: Monitor = Monitor.NONE) -> Optional[Any]:
         pass
 
@@ -451,12 +446,8 @@ class FSWorkspaceManager(WorkspaceManager):
                             workspace_dir: str,
                             op_name: str,
                             op_args: OpKwArgs,
-                            monitor: Monitor = Monitor.NONE) -> Union[Any, None]:
-        workspace = self.get_workspace(workspace_dir)
-    def run_op_in_workspace(self, base_dir: str,
-                            op_name: str, op_args: OpKwArgs,
                             monitor: Monitor = Monitor.NONE) -> Optional[Any]:
-        workspace = self.get_workspace(base_dir)
+        workspace = self.get_workspace(workspace_dir)
         return workspace.run_op(op_name, op_args, monitor=monitor)
 
     def set_workspace_resource(self,
