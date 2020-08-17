@@ -238,10 +238,13 @@ class FSWorkspaceManager(WorkspaceManager):
             except ValueError:
                 # E.g. on Windows we can observe error "ValueError: Paths don't have the same drive"
                 # raise ValueError('access denied: ' + path)
-                common_path = ''
+                common_path = None
             if common_path == self._root_path:
                 # Return normalized absolute path as it resides safely under root path.
                 return path
+            # If the
+            if common_path and len(common_path) < len(self._root_path):
+                raise ValueError('access denied: ' + path)
             # From here on, is ok for path to be absolute only with respect to root path.
             if platform.system() == 'Windows':
                 # Special case on Windows: make sure that path is really a "relative absolute" path
@@ -250,7 +253,7 @@ class FSWorkspaceManager(WorkspaceManager):
                 is_rel_abs_path = path.startswith('\\') and not is_network_path
                 if not is_rel_abs_path:
                     raise ValueError('access denied: ' + path)
-            # Make it relative to root path
+            # Make it relative to root path, as we now know path starts with a trailing '/' or '\'
             path = path[1:]
         # Now construct the absolute path
         path = os.path.join(self._root_path, path)
