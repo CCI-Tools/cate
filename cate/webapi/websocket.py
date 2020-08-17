@@ -56,14 +56,17 @@ class WebSocketService:
     def __init__(self, workspace_manager: WorkspaceManager):
         self.workspace_manager = workspace_manager
 
-    def _serialize_workspace(self, workspace: Workspace) -> dict:
-        d = workspace.to_json_dict()
-        if self.workspace_manager.root_path:
-            d['base_dir'] = '/' + os.path.relpath(d['base_dir'], self.workspace_manager.root_path)
-        return d
-
     def _resolve_path(self, path: str) -> str:
+        """Resolve incoming path against workspace manager's root path."""
         return self.workspace_manager.resolve_path(path)
+
+    def _serialize_workspace(self, workspace: Workspace) -> dict:
+        """Serialize outgoing workspace JSON to have base_dir relative to workspace manager's root path."""
+        workspace_json = workspace.to_json_dict()
+        if self.workspace_manager.root_path:
+            workspace_json['base_dir'] = '/' + os.path.relpath(workspace_json['base_dir'],
+                                                               self.workspace_manager.root_path)
+        return workspace_json
 
     def get_config(self) -> dict:
         return dict(data_stores_path=conf.get_data_stores_path(),
@@ -403,7 +406,7 @@ class WebSocketService:
         :param path: A normalized, absolute path that never has a trailing "/".
         :return: A JSON dictionary containing an updated file node at *path*.
         """
-        path = self.workspace_manager.resolve_path(path)
+        path = self._resolve_path(path) if self.workspace_manager.root_path else path
 
         if platform.system() == 'Windows':
             drive_letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -430,7 +433,7 @@ class WebSocketService:
         else:
             basename = os.path.basename(path)
 
-        if path == self.workspace_manager.root_path:
+        if path == self.workspace_manager.root_path or basename == '.':
             basename = ''
 
         if basename.startswith('.'):

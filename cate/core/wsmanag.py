@@ -210,14 +210,49 @@ class FSWorkspaceManager(WorkspaceManager):
         return self._root_path
 
     def resolve_path(self, path: str) -> str:
-        if self._root_path:
-            norm_path = os.path.normpath(os.path.join(self._root_path, path))
-            rel_path = os.path.relpath(norm_path, self._root_path)
-            if rel_path.startswith('..'):
-                # Permit escaping from self._root_path
-                raise ValueError(f'access denied: {path}')
-            return norm_path
+        """Turn path into a normalized, absolute path."""
+
+        if not self._root_path:
+            # Not in sandbox mode, return normalized, absolute path
+            return os.path.normpath(os.path.abspath(path))
+
+        # In sandbox mode!
+
+        # Normalize path, empty paths stay empty (not converted to '.')
+        path = '' if path == '.' else (os.path.normpath(path) if path != '' else path)
+        if self._is_abs_path(path):
+            try:
+                # Identify common path to see if it is root path
+                common_path = os.path.commonpath([path, self._root_path])
+            except ValueError:
+                # E.g. on Windows we can observe error "ValueError: Paths don't have the same drive"
+                # raise ValueError('access denied: ' + path)
+                common_path = ''
+            if common_path == self._root_path:
+                # Return normalized absolute path as it resides safely under root path.
+                return path
+            # From here on, is ok for path to be absolute only with respect to root path.
+            if platform.system() == 'Windows':
+                # Special case on Windows: make sure that path is really a "relative absolute" path
+                # but not "absolute absolute".
+                is_network_path = path.startswith('\\\\')
+                is_rel_abs_path = path.startswith('\\') and not is_network_path
+                if not is_rel_abs_path:
+                    raise ValueError('access denied: ' + path)
+            # Make it relative to root path
+            path = path[1:]
+        # Now construct the absolute path
+        path = os.path.join(self._root_path, path)
+        # An make sure we do not escape from root path
+        rel_path = os.path.relpath(path, self._root_path)
+        if rel_path.startswith('..'):
+            # Permit escaping from self._root_path
+            raise ValueError('access denied: ' + path)
         return path
+
+    @classmethod
+    def _is_abs_path(self, path):
+        return os.path.isabs(path) or (platform == 'Windows' and os.path.isabs(path + '\\'))
 
     def num_open_workspaces(self) -> int:
         return len(self._open_workspaces)
@@ -240,7 +275,6 @@ class FSWorkspaceManager(WorkspaceManager):
         return dir_list
 
     def get_workspace(self, workspace_dir: str) -> Workspace:
-        workspace_dir = self.resolve_path(workspace_dir)
         workspace = self._open_workspaces.get(workspace_dir, None)
         if workspace is None:
             raise ValidationError('Workspace does not exist: %s' % workspace_dir)
@@ -248,18 +282,18 @@ class FSWorkspaceManager(WorkspaceManager):
         # noinspection PyTypeChecker
         return workspace
 
-    def new_workspace(self, workspace_dir: Optional[str], description: str = None) -> Workspace:
+    def new_workspace(self, workspace_dir_or_name: Optional[str], description: str = None) -> Workspace:
         is_scratch = False
-        if workspace_dir is None:
+        if workspace_dir_or_name is None:
             scratch_dir_name = str(uuid.uuid4())
             workspace_dir = os.path.join(self.scratch_workspaces_dir_path, scratch_dir_name)
             os.makedirs(workspace_dir, exist_ok=True)
             is_scratch = True
-        elif not os.path.isabs(workspace_dir):
+        elif self._is_no_path(workspace_dir_or_name):
             # Just a name
-            workspace_dir = os.path.join(self.workspaces_dir, workspace_dir)
+            workspace_dir = os.path.normpath(os.path.join(self.workspaces_dir, workspace_dir_or_name))
         else:
-            workspace_dir = self.resolve_path(workspace_dir)
+            workspace_dir = os.path.normpath(workspace_dir_or_name)
 
         if workspace_dir in self._open_workspaces:
             raise ValidationError('Workspace already opened: %s' % workspace_dir)
@@ -274,8 +308,11 @@ class FSWorkspaceManager(WorkspaceManager):
         self._open_workspaces[workspace_dir] = workspace
         return workspace
 
+    @classmethod
+    def _is_no_path(self, path_or_name):
+        return '/' not in path_or_name and '\\' not in path_or_name
+
     def open_workspace(self, workspace_dir: str, monitor: Monitor = Monitor.NONE) -> Workspace:
-        workspace_dir = self.resolve_path(workspace_dir)
         workspace = self._open_workspaces.get(workspace_dir, None)
         if workspace is not None:
             assert not workspace.is_closed
@@ -288,7 +325,6 @@ class FSWorkspaceManager(WorkspaceManager):
         return workspace
 
     def close_workspace(self, workspace_dir: str) -> None:
-        workspace_dir = self.resolve_path(workspace_dir)
         workspace = self._open_workspaces.pop(workspace_dir, None)
         if workspace is not None:
             workspace.close()
@@ -301,15 +337,14 @@ class FSWorkspaceManager(WorkspaceManager):
 
     def save_workspace_as(self,
                           workspace_dir: str,
-                          new_workspace_dir: str,
+                          new_workspace_dir_or_name: str,
                           monitor: Monitor = Monitor.NONE) -> Workspace:
-        workspace_dir = self.resolve_path(workspace_dir)
         workspace = self.get_workspace(workspace_dir)
 
-        if '/' not in new_workspace_dir:
-            new_workspace_dir = os.path.join(self.workspaces_dir, new_workspace_dir)
+        if self._is_no_path(new_workspace_dir_or_name):
+            new_workspace_dir = os.path.normpath(os.path.join(self.workspaces_dir, new_workspace_dir_or_name))
         else:
-            new_workspace_dir = self.resolve_path(new_workspace_dir)
+            new_workspace_dir = os.path.normpath(new_workspace_dir_or_name)
 
         empty_dir_exists = False
         if os.path.realpath(workspace_dir) == os.path.realpath(new_workspace_dir):
@@ -353,7 +388,6 @@ class FSWorkspaceManager(WorkspaceManager):
             return new_workspace
 
     def save_workspace(self, workspace_dir: str, monitor: Monitor = Monitor.NONE) -> Workspace:
-        workspace_dir = self.resolve_path(workspace_dir)
         workspace = self.get_workspace(workspace_dir)
         if workspace:
             workspace.save(monitor=monitor)
@@ -367,7 +401,6 @@ class FSWorkspaceManager(WorkspaceManager):
                 workspace.save(monitor=monitor.child(work=1))
 
     def clean_workspace(self, workspace_dir: str) -> Workspace:
-        workspace_dir = self.resolve_path(workspace_dir)
         workflow_file = Workspace.get_workflow_file(workspace_dir)
         old_workflow = None
         if os.path.isfile(workflow_file):
@@ -388,7 +421,6 @@ class FSWorkspaceManager(WorkspaceManager):
         return workspace
 
     def delete_workspace(self, workspace_dir: str, remove_completely: bool = False) -> None:
-        workspace_dir = self.resolve_path(workspace_dir)
         self.close_workspace(workspace_dir)
 
         if remove_completely:
@@ -404,7 +436,6 @@ class FSWorkspaceManager(WorkspaceManager):
                             op_name: str,
                             op_args: OpKwArgs,
                             monitor: Monitor = Monitor.NONE) -> Union[Any, None]:
-        workspace_dir = self.resolve_path(workspace_dir)
         workspace = self.get_workspace(workspace_dir)
         return workspace.run_op(op_name, op_args, monitor=monitor)
 
@@ -415,7 +446,6 @@ class FSWorkspaceManager(WorkspaceManager):
                                res_name: Optional[str] = None,
                                overwrite: bool = False,
                                monitor: Monitor = Monitor.NONE) -> Tuple[Workspace, str]:
-        workspace_dir = self.resolve_path(workspace_dir)
         workspace = self.get_workspace(workspace_dir)
         res_name = workspace.set_resource(op_name, op_args, res_name, overwrite=overwrite, validate_args=True)
         workspace.execute_workflow(res_name=res_name, monitor=monitor)
@@ -423,13 +453,11 @@ class FSWorkspaceManager(WorkspaceManager):
 
     def rename_workspace_resource(self, workspace_dir: str,
                                   res_name: str, new_res_name: str) -> Workspace:
-        workspace_dir = self.resolve_path(workspace_dir)
         workspace = self.get_workspace(workspace_dir)
         workspace.rename_resource(res_name, new_res_name)
         return workspace
 
     def delete_workspace_resource(self, workspace_dir: str, res_name: str) -> Workspace:
-        workspace_dir = self.resolve_path(workspace_dir)
         workspace = self.get_workspace(workspace_dir)
         workspace.delete_resource(res_name)
         return workspace
@@ -438,7 +466,6 @@ class FSWorkspaceManager(WorkspaceManager):
                                            workspace_dir: str,
                                            res_name: str,
                                            persistent: bool) -> Workspace:
-        workspace_dir = self.resolve_path(workspace_dir)
         workspace = self.get_workspace(workspace_dir)
         workspace.set_resource_persistence(res_name, persistent)
         return workspace
@@ -449,9 +476,8 @@ class FSWorkspaceManager(WorkspaceManager):
                                  file_path: str,
                                  format_name: str = None,
                                  monitor: Monitor = Monitor.NONE) -> None:
-        workspace_dir = self.resolve_path(workspace_dir)
         workspace = self.get_workspace(workspace_dir)
-        target_path = self.resolve_path(file_path)
+        target_path = file_path
         with monitor.starting('Writing resource "%s"' % res_name, total_work=10):
             obj = workspace.execute_workflow(res_name=res_name, monitor=monitor.child(work=9))
             if obj is not None:
@@ -466,7 +492,6 @@ class FSWorkspaceManager(WorkspaceManager):
                                 var_name: str = None,
                                 file_path: str = None,
                                 monitor: Monitor = Monitor.NONE) -> None:
-        workspace_dir = self.resolve_path(workspace_dir)
         workspace = self.get_workspace(workspace_dir)
         obj = self._get_resource_value(workspace, res_name, monitor)
 
@@ -503,7 +528,6 @@ class FSWorkspaceManager(WorkspaceManager):
                                  workspace_dir: str,
                                  res_name_or_expr: str = None,
                                  monitor: Monitor = Monitor.NONE) -> None:
-        workspace_dir = self.resolve_path(workspace_dir)
         workspace = self.get_workspace(workspace_dir)
         value = self._get_resource_value(workspace, res_name_or_expr, monitor)
         pprint.pprint(value)

@@ -149,41 +149,24 @@ class WebSocketServiceTest(unittest.TestCase):
         return workspace_json
 
     def test_update_file_node(self):
-
-        if platform.system() == 'Windows':
-            path = ''
-            node = self.service.update_file_node(path)
-            self._assert_dir_node_props(node, '', no_stats=True)
-            # print(node)
-
-            if self.root_path is None:
-                path = os.path.abspath('.')[0:2]
-                node = self.service.update_file_node(path)
-                self._assert_dir_node_props(node, path)
-                # print(node)
-        else:
-            path = ''
-            node = self.service.update_file_node(path)
-            self._assert_dir_node_props(node, '')
-            # print(node)
+        path = ''
+        node = self.service.update_file_node(path)
+        self._assert_dir_node_props(node, '', no_stats=True)
 
         path = __file__
         node = self.service.update_file_node(path)
         self._assert_file_node_props(node, os.path.basename(path))
-        # print(node)
+
+        if platform.system() == 'Windows':
+            # Test with just drive letter prefix
+            path = os.path.abspath('.')[0:2]
+            node = self.service.update_file_node(path)
+            self._assert_dir_node_props(node, path)
 
         path = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..'))
-        if self.root_path:
-            with self.assertRaises(ValueError) as cm:
-                self.service.update_file_node(path)
-            self.assertTrue(f'{cm.exception}'.startswith('access denied: '))
-        else:
-            node = self.service.update_file_node(path)
-            self._assert_dir_node_props(node, os.path.basename(path))
-            # print(node)
+        node = self.service.update_file_node(path)
+        self._assert_dir_node_props(node, os.path.basename(path))
 
-        with self.assertRaises(ValueError):
-            self.service.update_file_node('..')
 
     def _assert_file_node_props(self, file_node: Dict, name: str):
         self._assert_file_node_props_base(file_node, name)
@@ -220,3 +203,28 @@ class SandboxedWebSocketServiceTest(WebSocketServiceTest):
         self.assertIn('base_dir', workspace_json)
         self.assertEqual('/SandboxedWebSocketServiceTest', workspace_json['base_dir'])
 
+    def test_update_file_node(self):
+
+        path = ''
+        node = self.service.update_file_node(path)
+        self._assert_dir_node_props(node, '')
+
+        path = __file__
+        node = self.service.update_file_node(path)
+        self._assert_file_node_props(node, os.path.basename(path))
+
+        if platform.system() == 'Windows':
+            # Test with just drive letter prefix
+            path = os.path.abspath('.')[0:2] + '\\'
+            with self.assertRaises(ValueError) as cm:
+                self.service.update_file_node(path)
+            self.assertTrue(f'{cm.exception}'.startswith('access denied: '))
+
+        path = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..'))
+        with self.assertRaises(ValueError) as cm:
+            self.service.update_file_node(path)
+        self.assertTrue(f'{cm.exception}'.startswith('access denied: '))
+
+        with self.assertRaises(ValueError) as cm:
+            self.service.update_file_node('..')
+        self.assertTrue(f'{cm.exception}'.startswith('access denied: '))

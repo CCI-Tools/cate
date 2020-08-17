@@ -1,4 +1,5 @@
 import os
+import platform
 import shutil
 import tempfile
 import unittest
@@ -361,14 +362,22 @@ class FSWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
         # manager with root_path
         ws_manag = self.new_workspace_manager()
         self.assertEqual(self._root_path, ws_manag.root_path)
-        self.assertEqual(os.path.join(self._root_path, 'data'),
+        expected_path = os.path.join(self._root_path, 'data')
+        self.assertEqual(expected_path,
                          ws_manag.resolve_path('data'))
+        self.assertEqual(expected_path,
+                         ws_manag.resolve_path('/data'))
+        if platform.system() == 'Windows':
+            self.assertEqual(expected_path,
+                             ws_manag.resolve_path('\\data'))
 
         # manager without root_path
         ws_manag = FSWorkspaceManager()
         self.assertEqual(None, ws_manag.root_path)
-        self.assertEqual(os.path.abspath('./data'),
-                         ws_manag.resolve_path(os.path.abspath('./data')))
+        self.assertEqual(os.path.abspath('data'),
+                         ws_manag.resolve_path(os.path.abspath('data')))
+        self.assertEqual(os.path.abspath('data'),
+                         ws_manag.resolve_path('data'))
 
     def test_resolve_path_permits_access(self):
         ws_manag = self.new_workspace_manager()
