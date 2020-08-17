@@ -26,8 +26,7 @@ import pprint
 import shutil
 import uuid
 from abc import ABCMeta, abstractmethod
-from typing import Dict
-from typing import List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Tuple, Any
 
 from .objectio import write_object
 from .workflow import Workflow
