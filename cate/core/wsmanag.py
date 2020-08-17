@@ -229,39 +229,27 @@ class FSWorkspaceManager(WorkspaceManager):
 
         # In sandbox mode!
 
-        # Normalize path, empty paths stay empty (not converted to '.')
-        path = '' if path == '.' else (os.path.normpath(path) if path != '' else path)
-        if self._is_abs_path(path):
-            try:
-                # Identify common path to see if it is root path
-                common_path = os.path.commonpath([path, self._root_path])
-            except ValueError:
-                # E.g. on Windows we can observe error "ValueError: Paths don't have the same drive"
-                # raise ValueError('access denied: ' + path)
-                common_path = None
-            if common_path == self._root_path:
-                # Return normalized absolute path as it resides safely under root path.
-                return path
-            # If the
-            if common_path and len(common_path) < len(self._root_path):
-                raise ValueError('access denied: ' + path)
-            # From here on, is ok for path to be absolute only with respect to root path.
-            if platform.system() == 'Windows':
-                # Special case on Windows: make sure that path is really a "relative absolute" path
-                # but not "absolute absolute".
-                is_network_path = path.startswith('\\\\')
-                is_rel_abs_path = path.startswith('\\') and not is_network_path
-                if not is_rel_abs_path:
-                    raise ValueError('access denied: ' + path)
-            # Make it relative to root path, as we now know path starts with a trailing '/' or '\'
+        is_win = platform.system() == 'Windows'
+
+        # If path is empty or root return root path.
+        # Return root path also for '.', because this does not exist in sandbox mode.
+        if path == '' or path == '.' or path == '/' or (is_win and path == '\\'):
+            return self._root_path
+
+        # Test if absolute path. In sandbox mode, absolute paths are prefixed by just a slash.
+        if path.startswith('/') or (is_win and path.startswith('\\')):
+            # Trim trailing slash
             path = path[1:]
-        # Now construct the absolute path
-        path = os.path.join(self._root_path, path)
-        # An make sure we do not escape from root path
+
+        # Normalize path
+        path = os.path.normpath(os.path.join(self._root_path, path))
+
+        # Make sure we do not escape from root path
         rel_path = os.path.relpath(path, self._root_path)
         if rel_path.startswith('..'):
             # Permit escaping from self._root_path
             raise ValueError('access denied: ' + path)
+
         return path
 
     @classmethod

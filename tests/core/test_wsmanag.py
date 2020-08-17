@@ -384,13 +384,12 @@ class FSWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
 
         # absolute path escapes root_path
         with self.assertRaises(ValueError) as cm:
-            ws_manag.resolve_path(f'{self._root_path}/../data')
+            ws_manag.resolve_path(f'/../data')
         self.assertTrue(f'{cm.exception}'.startswith('access denied: '))
 
         # relative path escapes root_path
-        num_root_dir_comp = len(os.path.split(self._root_path))
         with self.assertRaises(ValueError) as cm:
-            ws_manag.resolve_path((num_root_dir_comp + 1) * '../' + 'data')
+            ws_manag.resolve_path('../data')
         self.assertTrue(f'{cm.exception}'.startswith('access denied: '))
 
     def test_resolve_workspace_dir(self):
