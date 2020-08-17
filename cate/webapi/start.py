@@ -53,9 +53,8 @@ from tornado.web import Application, StaticFileHandler
 from matplotlib.backends.backend_webagg_core import FigureManagerWebAgg
 
 from cate.conf.defaults import WEBAPI_LOG_FILE_PREFIX, WEBAPI_PROGRESS_DEFER_PERIOD
-from cate.core.pathmanag import PathManager
 from cate.core.types import ValidationError
-from cate.core.wsmanag import FSWorkspaceManager, RelativeFSWorkspaceManager
+from cate.core.wsmanag import FSWorkspaceManager
 from cate.util.web import JsonRpcWebSocketHandler
 from cate.util.web.webapi import run_start, url_pattern, WebAPIRequestHandler, WebAPIExitHandler
 from cate.version import __version__
@@ -76,7 +75,9 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
 # noinspection PyAbstractClass
 class WebAPIInfoHandler(WebAPIRequestHandler):
     def get(self):
-        user_root_mode = isinstance(self.application.workspace_manager, RelativeFSWorkspaceManager)
+        # noinspection PyUnresolvedReferences
+        user_root_mode = isinstance(self.application.workspace_manager, FSWorkspaceManager) \
+                         and self.application.workspace_manager.root_path is not None
 
         self.write_status_ok(content={'name': SERVICE_NAME,
                                       'version': __version__,
@@ -135,10 +136,7 @@ def create_application(user_root_path: str = None):
     elif default_user_root_path:
         print(f"warning: user root path given by environment variable CATE_USER_ROOT superseded by {user_root_path}")
 
-    if user_root_path is None:
-        application.workspace_manager = FSWorkspaceManager()
-    else:
-        application.workspace_manager = RelativeFSWorkspaceManager(PathManager(user_root_path))
+    application.workspace_manager = FSWorkspaceManager(user_root_path)
 
     return application
 

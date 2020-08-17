@@ -21,19 +21,20 @@
 
 import logging
 import os
+import platform
 import pprint
 import shutil
 import uuid
 from abc import ABCMeta, abstractmethod
-from collections import OrderedDict
-from typing import List, Union, Optional, Tuple, Any
+from typing import List, Union, Optional, Tuple, Any, Dict
 
 from .objectio import write_object
 from .workflow import Workflow
 from .workspace import Workspace, OpKwArgs
-from ..conf.defaults import SCRATCH_WORKSPACES_PATH, WORKSPACE_DATA_DIR_NAME, WORKSPACES_DIR_NAME
-from ..core.pathmanag import PathManager
+from ..conf.defaults import DEFAULT_SCRATCH_WORKSPACES_PATH, WORKSPACE_DATA_DIR_NAME, WORKSPACES_DIR_NAME, \
+    DEFAULT_WORKSPACES_PATH, SCRATCH_WORKSPACES_DIR_NAME
 from ..core.types import ValidationError
+from ..util.misc import cwd
 from ..util.monitor import Monitor
 from ..util.safe import safe_eval
 from ..util.undefined import UNDEFINED
@@ -48,12 +49,25 @@ class WorkspaceManager(metaclass=ABCMeta):
     Abstract base class which represents the ``WorkspaceManager`` interface.
     """
 
+    @property
+    @abstractmethod
+    def root_path(self) -> Optional[str]:
+        pass
+
+    @abstractmethod
+    def resolve_path(self, path: str) -> str:
+        pass
+
+    @abstractmethod
+    def resolve_workspace_dir(self, path_or_name: str) -> str:
+        pass
+
     @abstractmethod
     def get_open_workspaces(self) -> List[Workspace]:
         pass
 
     @abstractmethod
-    def get_workspace(self, base_dir: str) -> Workspace:
+    def get_workspace(self, workspace_dir: str) -> Workspace:
         pass
 
     @abstractmethod
@@ -61,16 +75,19 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def new_workspace(self, base_dir: Union[str, None], description: str = None) -> Workspace:
+    def new_workspace(self,
+                      workspace_dir: Optional[str],
+                      description: str = None) -> Workspace:
         pass
 
     @abstractmethod
-    def open_workspace(self, base_dir: str,
+    def open_workspace(self,
+                       workspace_dir: str,
                        monitor: Monitor = Monitor.NONE) -> Workspace:
         pass
 
     @abstractmethod
-    def close_workspace(self, base_dir: str) -> None:
+    def close_workspace(self, workspace_dir: str) -> None:
         pass
 
     @abstractmethod
@@ -78,37 +95,43 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def save_workspace_as(self, base_dir: str, to_dir: str,
+    def save_workspace_as(self,
+                          workspace_dir: str,
+                          new_workspace_dir: str,
                           monitor: Monitor = Monitor.NONE) -> Workspace:
         pass
 
     @abstractmethod
-    def save_workspace(self, base_dir: str,
+    def save_workspace(self,
+                       workspace_dir: str,
                        monitor: Monitor = Monitor.NONE) -> Workspace:
         pass
 
     @abstractmethod
-    def save_all_workspaces(self,
-                            monitor: Monitor = Monitor.NONE) -> None:
+    def save_all_workspaces(self, monitor: Monitor = Monitor.NONE) -> None:
         pass
 
     @abstractmethod
-    def delete_workspace(self, base_dir: str, remove_completely: bool = False) -> None:
+    def delete_workspace(self,
+                         workspace_dir: str,
+                         remove_completely: bool = False) -> None:
         pass
 
     @abstractmethod
-    def clean_workspace(self, base_dir: str) -> None:
+    def clean_workspace(self, base_dir: str) -> Workspace:
         pass
 
     @abstractmethod
-    def run_op_in_workspace(self, base_dir: str,
-                            op_name: str, op_args: OpKwArgs,
+    def run_op_in_workspace(self,
+                            workspace_dir: str,
+                            op_name: str,
+                            op_args: OpKwArgs,
                             monitor: Monitor = Monitor.NONE) -> Union[Any, None]:
         pass
 
     @abstractmethod
     def set_workspace_resource(self,
-                               base_dir: str,
+                               workspace_dir: str,
                                op_name: str,
                                op_args: OpKwArgs,
                                res_name: Optional[str] = None,
@@ -117,54 +140,121 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def rename_workspace_resource(self, base_dir: str,
-                                  res_name: str, new_res_name: str) -> Workspace:
+    def rename_workspace_resource(self,
+                                  workspace_dir: str,
+                                  res_name: str,
+                                  new_res_name: str) -> Workspace:
         pass
 
     @abstractmethod
-    def delete_workspace_resource(self, base_dir: str, res_name: str) -> Workspace:
+    def delete_workspace_resource(self,
+                                  workspace_dir: str,
+                                  res_name: str) -> Workspace:
         pass
 
     @abstractmethod
-    def set_workspace_resource_persistence(self, base_dir: str, res_name: str, persistent: bool) -> Workspace:
+    def set_workspace_resource_persistence(self,
+                                           workspace_dir: str,
+                                           res_name: str,
+                                           persistent: bool) -> Workspace:
         pass
 
     @abstractmethod
-    def write_workspace_resource(self, base_dir: str, res_name: str,
-                                 file_path: str, format_name: str = None,
+    def write_workspace_resource(self,
+                                 workspace_dir: str,
+                                 res_name: str,
+                                 file_path: str,
+                                 format_name: str = None,
                                  monitor: Monitor = Monitor.NONE) -> None:
         pass
 
     @abstractmethod
-    def plot_workspace_resource(self, base_dir: str, res_name: str,
-                                var_name: str = None, file_path: str = None,
+    def plot_workspace_resource(self,
+                                workspace_dir: str,
+                                res_name: str,
+                                var_name: str = None,
+                                file_path: str = None,
                                 monitor: Monitor = Monitor.NONE) -> None:
         pass
 
     @abstractmethod
-    def print_workspace_resource(self, base_dir: str, res_name_or_expr: str = None,
+    def print_workspace_resource(self,
+                                 workspace_dir: str,
+                                 res_name_or_expr: str = None,
                                  monitor: Monitor = Monitor.NONE) -> None:
-        pass
-
-    @abstractmethod
-    def _create_scratch_dir(self, scratch_dir_name: str) -> str:
-        pass
-
-    @abstractmethod
-    def _resolve_target_path(self, target_dir: str) -> str:
         pass
 
 
 class FSWorkspaceManager(WorkspaceManager):
-    # TODO (forman, 20160908): implement file lock for opened workspaces (issue #26)
-    def __init__(self, resolve_dir: str = None):
-        self._open_workspaces = OrderedDict()
-        self._resolve_dir = os.path.abspath(resolve_dir or os.curdir)
 
-    def resolve_path(self, dir_path):
-        if dir_path and os.path.isabs(dir_path):
-            return os.path.normpath(dir_path)
-        return os.path.abspath(os.path.join(self._resolve_dir, dir_path or ''))
+    def __init__(self, root_path: str = None):
+        self._open_workspaces: Dict[str, Workspace] = {}
+        self._root_path: Optional[str] = None
+        if root_path:
+            root_path = os.path.normpath(root_path)
+            if not os.path.isabs(root_path):
+                raise ValueError('root directory must be given as absolute path')
+            if not os.path.isdir(root_path):
+                raise ValueError('root directory does not exist')
+            self._root_path = root_path
+
+    @property
+    def scratch_workspaces_dir_path(self) -> str:
+        if self._root_path:
+            return os.path.join(self._root_path, SCRATCH_WORKSPACES_DIR_NAME)
+        return DEFAULT_SCRATCH_WORKSPACES_PATH
+
+    @property
+    def workspaces_dir(self) -> str:
+        if self._root_path:
+            return os.path.join(self._root_path, WORKSPACES_DIR_NAME)
+        return DEFAULT_WORKSPACES_PATH
+
+    @property
+    def root_path(self) -> Optional[str]:
+        return self._root_path
+
+    def resolve_workspace_dir(self, path_or_name: str) -> str:
+        if self._is_no_path(path_or_name):
+            return os.path.join(self.workspaces_dir, path_or_name)
+        else:
+            return self.resolve_path(path_or_name)
+
+    def resolve_path(self, path: str) -> str:
+        """Turn path into a normalized, absolute path."""
+
+        if not self._root_path:
+            # Not in sandbox mode, return normalized, absolute path
+            return os.path.normpath(os.path.abspath(path))
+
+        # In sandbox mode!
+
+        is_win = platform.system() == 'Windows'
+
+        # If path is empty or root return root path.
+        # Return root path also for '.', because this does not exist in sandbox mode.
+        if path == '' or path == '.' or path == '/' or (is_win and path == '\\'):
+            return self._root_path
+
+        # Test if absolute path. In sandbox mode, absolute paths are prefixed by just a slash.
+        if path.startswith('/') or (is_win and path.startswith('\\')):
+            # Trim trailing slash
+            path = path[1:]
+
+        # Normalize path
+        path = os.path.normpath(os.path.join(self._root_path, path))
+
+        # Make sure we do not escape from root path
+        rel_path = os.path.relpath(path, self._root_path)
+        if rel_path.startswith('..'):
+            # Permit escaping from self._root_path
+            raise ValueError('access denied: ' + path)
+
+        return path
+
+    @classmethod
+    def _is_abs_path(self, path):
+        return os.path.isabs(path) or (platform == 'Windows' and os.path.isabs(path + '\\'))
 
     def num_open_workspaces(self) -> int:
         return len(self._open_workspaces)
@@ -172,78 +262,72 @@ class FSWorkspaceManager(WorkspaceManager):
     def get_open_workspaces(self) -> List[Workspace]:
         return list(self._open_workspaces.values())
 
-    def get_workspace(self, base_dir: str) -> Workspace:
-        base_dir = self.resolve_path(base_dir)
-        workspace = self._open_workspaces.get(base_dir, None)
+    def list_workspace_names(self) -> List[str]:
+        workspaces_dir = self.workspaces_dir
+        if not os.path.isdir(workspaces_dir):
+            return []
+
+        dir_list = []
+        with os.scandir(workspaces_dir) as scan_list:
+            for entry in scan_list:
+                if entry.is_dir() \
+                        and os.path.isdir(os.path.join(workspaces_dir, entry.name, WORKSPACE_DATA_DIR_NAME)):
+                    dir_list.append(entry.name)
+
+        return dir_list
+
+    def get_workspace(self, workspace_dir: str) -> Workspace:
+        workspace = self._open_workspaces.get(workspace_dir, None)
         if workspace is None:
-            raise ValidationError('Workspace does not exist: %s' % base_dir)
+            raise ValidationError('Workspace does not exist: %s' % workspace_dir)
         assert not workspace.is_closed
         # noinspection PyTypeChecker
         return workspace
 
-    def list_workspace_names(self) -> List[str]:
-        dir_list = []
-        workspaces_dir = os.path.join(self._resolve_dir, WORKSPACES_DIR_NAME)
-        search_dir = self.resolve_path(workspaces_dir)
-        if not os.path.isdir(search_dir):
-            return dir_list
-
-        scan_list = os.scandir(search_dir)
-        for entry in scan_list:
-            if entry.is_dir():
-                content_list = os.scandir(entry)
-                for cont in content_list:
-                    if cont.name == WORKSPACE_DATA_DIR_NAME:
-                        dir_list.append(entry.name)
-
-        return dir_list
-
-    def new_workspace(self, base_dir: str, description: str = None) -> Workspace:
+    def new_workspace(self, workspace_dir_or_name: Optional[str], description: str = None) -> Workspace:
         is_scratch = False
-        if base_dir is None:
+        if workspace_dir_or_name is None:
             scratch_dir_name = str(uuid.uuid4())
-            base_dir = self._create_scratch_dir(scratch_dir_name)
+            workspace_dir = os.path.join(self.scratch_workspaces_dir_path, scratch_dir_name)
+            os.makedirs(workspace_dir, exist_ok=True)
             is_scratch = True
-        elif not os.path.isabs(base_dir):
-            base_dir = os.path.join(WORKSPACES_DIR_NAME, base_dir)
+        elif self._is_no_path(workspace_dir_or_name):
+            # Just a name
+            workspace_dir = os.path.normpath(os.path.join(self.workspaces_dir, workspace_dir_or_name))
+        else:
+            workspace_dir = os.path.normpath(workspace_dir_or_name)
 
-        base_dir = self.resolve_path(base_dir)
-        if base_dir in self._open_workspaces:
-            raise ValidationError('Workspace already opened: %s' % base_dir)
-        workspace_dir = Workspace.get_workspace_dir(base_dir)
-        if os.path.isdir(workspace_dir):
-            raise ValidationError('Workspace exists, consider opening it: %s' % base_dir)
-        workspace = Workspace.create(base_dir, description=description)
+        if workspace_dir in self._open_workspaces:
+            raise ValidationError('Workspace already opened: %s' % workspace_dir)
+        workspace_data_dir = Workspace.get_workspace_data_dir(workspace_dir)
+        if os.path.isdir(workspace_data_dir):
+            raise ValidationError('Workspace exists, consider opening it: %s' % workspace_dir)
+        workspace = Workspace.create(workspace_dir, description=description)
         if is_scratch:
             workspace.is_scratch = True
 
-        assert base_dir not in self._open_workspaces
-        self._open_workspaces[base_dir] = workspace
+        assert workspace_dir not in self._open_workspaces
+        self._open_workspaces[workspace_dir] = workspace
         return workspace
 
-    def open_workspace(self, base_dir: str, monitor: Monitor = Monitor.NONE) -> Workspace:
-        if not os.path.isabs(base_dir):
-            base_dir = os.path.join(WORKSPACES_DIR_NAME, base_dir)
+    @classmethod
+    def _is_no_path(self, path_or_name):
+        return '/' not in path_or_name and '\\' not in path_or_name
 
-        base_dir = self.resolve_path(base_dir)
-        workspace = self._open_workspaces.get(base_dir, None)
+    def open_workspace(self, workspace_dir: str, monitor: Monitor = Monitor.NONE) -> Workspace:
+        workspace = self._open_workspaces.get(workspace_dir, None)
         if workspace is not None:
             assert not workspace.is_closed
-            # noinspection PyTypeChecker
             return workspace
         with monitor.starting("Opening workspace", 100):
-            workspace = Workspace.open(base_dir, monitor=monitor.child(50))
-            assert base_dir not in self._open_workspaces
+            workspace = Workspace.open(workspace_dir, monitor=monitor.child(50))
+            assert workspace_dir not in self._open_workspaces
             workspace.execute_workflow(monitor=monitor.child(50))
-        self._open_workspaces[base_dir] = workspace
+        self._open_workspaces[workspace_dir] = workspace
         return workspace
 
-    def close_workspace(self, base_dir: str) -> None:
-        if not os.path.isabs(base_dir):
-            base_dir = os.path.join(WORKSPACES_DIR_NAME, base_dir)
-        base_dir = self.resolve_path(base_dir)
-
-        workspace = self._open_workspaces.pop(base_dir, None)
+    def close_workspace(self, workspace_dir: str) -> None:
+        workspace = self._open_workspaces.pop(workspace_dir, None)
         if workspace is not None:
             workspace.close()
 
@@ -253,30 +337,32 @@ class FSWorkspaceManager(WorkspaceManager):
         for workspace in workspaces:
             workspace.close()
 
-    def save_workspace_as(self, base_dir: str, to_dir: str,
+    def save_workspace_as(self,
+                          workspace_dir: str,
+                          new_workspace_dir_or_name: str,
                           monitor: Monitor = Monitor.NONE) -> Workspace:
-        base_dir = self.resolve_path(base_dir)
-        workspace = self.get_workspace(base_dir)
-        if not os.path.isabs(to_dir):
-            to_dir = os.path.join(WORKSPACES_DIR_NAME, to_dir)
+        workspace = self.get_workspace(workspace_dir)
 
-        to_dir = self._resolve_target_path(to_dir)
+        if self._is_no_path(new_workspace_dir_or_name):
+            new_workspace_dir = os.path.normpath(os.path.join(self.workspaces_dir, new_workspace_dir_or_name))
+        else:
+            new_workspace_dir = os.path.normpath(new_workspace_dir_or_name)
 
         empty_dir_exists = False
-        if os.path.realpath(base_dir) == os.path.realpath(to_dir):
+        if os.path.realpath(workspace_dir) == os.path.realpath(new_workspace_dir):
             return workspace
 
-        with monitor.starting('opening "%s"' % to_dir, 100):
-            if os.path.exists(to_dir):
-                if os.path.isdir(to_dir):
-                    entries = list(os.listdir(to_dir))
+        with monitor.starting('opening "%s"' % new_workspace_dir, 100):
+            if os.path.exists(new_workspace_dir):
+                if os.path.isdir(new_workspace_dir):
+                    entries = list(os.listdir(new_workspace_dir))
                     monitor.progress(work=5)
                     if len(entries) == 0:
                         empty_dir_exists = True
                     else:
-                        raise ValidationError('Directory is not empty: %s' % to_dir)
+                        raise ValidationError('Directory is not empty: %s' % new_workspace_dir)
                 else:
-                    raise ValidationError('A file with same name already exists: %s' % to_dir)
+                    raise ValidationError('A file with same name already exists: %s' % new_workspace_dir)
             else:
                 monitor.progress(work=5)
 
@@ -285,27 +371,35 @@ class FSWorkspaceManager(WorkspaceManager):
             workspace.close()
 
             # if the given directory exists and is empty, we must delete it because
-            # shutil.copytree(base_dir, to_dir) expects to_dir to be non-existent
+            # shutil.copytree(workspace_dir, to_dir) expects to_dir to be non-existent
             if empty_dir_exists:
-                os.rmdir(to_dir)
+                os.rmdir(new_workspace_dir)
             monitor.progress(work=5)
             # Copy all files to new location to_dir
-            shutil.copytree(base_dir, to_dir)
+            shutil.copytree(workspace_dir, new_workspace_dir)
             monitor.progress(work=10)
-            # Reopen from new location
-            new_workspace = self.open_workspace(to_dir, monitor=monitor.child(work=50))
+
+            # TODO (forman): with cwd() is a dirty hack here. A real solution finds the location of
+            #   new_workspace_dir in relation to workspace_dir and applies the delta to all
+            #   paths values in the workspace's workflow JSON. This is a bit of a pain, because
+            #   we must to the replacement only for operation parameters of type 'file'.
+            #
+            with cwd(new_workspace_dir):
+                # Reopen from new location
+                new_workspace = self.open_workspace(new_workspace_dir, monitor=monitor.child(work=50))
+
             # If it was a scratch workspace, delete the original
             if workspace.is_scratch:
                 try:
-                    shutil.rmtree(base_dir, ignore_errors=True)
+                    shutil.rmtree(workspace_dir, ignore_errors=True)
                 except (PermissionError, OSError):
                     pass
+
             monitor.progress(work=5)
             return new_workspace
 
-    def save_workspace(self, base_dir: str, monitor: Monitor = Monitor.NONE) -> Workspace:
-        base_dir = self.resolve_path(base_dir)
-        workspace = self.get_workspace(base_dir)
+    def save_workspace(self, workspace_dir: str, monitor: Monitor = Monitor.NONE) -> Workspace:
+        workspace = self.get_workspace(workspace_dir)
         if workspace:
             workspace.save(monitor=monitor)
         return workspace
@@ -317,9 +411,8 @@ class FSWorkspaceManager(WorkspaceManager):
             for workspace in workspaces:
                 workspace.save(monitor=monitor.child(work=1))
 
-    def clean_workspace(self, base_dir: str) -> Workspace:
-        base_dir = self.resolve_path(base_dir)
-        workflow_file = Workspace.get_workflow_file(base_dir)
+    def clean_workspace(self, workspace_dir: str) -> Workspace:
+        workflow_file = Workspace.get_workflow_file(workspace_dir)
         old_workflow = None
         if os.path.isfile(workflow_file):
             # noinspection PyBroadException
@@ -328,70 +421,74 @@ class FSWorkspaceManager(WorkspaceManager):
             except Exception:
                 pass
             os.remove(workflow_file)
-        old_workspace = self._open_workspaces.get(base_dir)
+        old_workspace = self._open_workspaces.get(workspace_dir)
         if old_workspace:
             old_workspace.resource_cache.close()
         # Create new workflow but keep old header info
         workflow = Workspace.new_workflow(header=old_workflow.op_meta_info.header if old_workflow else None)
-        workspace = Workspace(base_dir, workflow)
-        self._open_workspaces[base_dir] = workspace
+        workspace = Workspace(workspace_dir, workflow)
+        self._open_workspaces[workspace_dir] = workspace
         workspace.save()
         return workspace
 
-    def delete_workspace(self, base_dir: str, remove_completely: bool = False) -> None:
-        self.close_workspace(base_dir)
-        if not os.path.isabs(base_dir):
-            base_dir = os.path.join(WORKSPACES_DIR_NAME, base_dir)
-
-        base_dir = self.resolve_path(base_dir)
+    def delete_workspace(self, workspace_dir: str, remove_completely: bool = False) -> None:
+        self.close_workspace(workspace_dir)
 
         if remove_completely:
-            shutil.rmtree(base_dir)
-        else:
-            workspace_dir = Workspace.get_workspace_dir(base_dir)
-            if not os.path.isdir(workspace_dir):
-                raise ValidationError('Not a workspace: %s' % base_dir)
             shutil.rmtree(workspace_dir)
+        else:
+            workspace_data_dir = Workspace.get_workspace_data_dir(workspace_dir)
+            if not os.path.isdir(workspace_data_dir):
+                raise ValidationError('Not a workspace: %s' % workspace_dir)
+            shutil.rmtree(workspace_data_dir)
 
-    def run_op_in_workspace(self, base_dir: str,
-                            op_name: str, op_args: OpKwArgs,
+    def run_op_in_workspace(self,
+                            workspace_dir: str,
+                            op_name: str,
+                            op_args: OpKwArgs,
                             monitor: Monitor = Monitor.NONE) -> Union[Any, None]:
-        workspace = self.get_workspace(base_dir)
+        workspace = self.get_workspace(workspace_dir)
         return workspace.run_op(op_name, op_args, monitor=monitor)
 
     def set_workspace_resource(self,
-                               base_dir: str,
+                               workspace_dir: str,
                                op_name: str,
                                op_args: OpKwArgs,
                                res_name: Optional[str] = None,
                                overwrite: bool = False,
                                monitor: Monitor = Monitor.NONE) -> Tuple[Workspace, str]:
-        workspace = self.get_workspace(base_dir)
+        workspace = self.get_workspace(workspace_dir)
         res_name = workspace.set_resource(op_name, op_args, res_name, overwrite=overwrite, validate_args=True)
         workspace.execute_workflow(res_name=res_name, monitor=monitor)
         return workspace, res_name
 
-    def rename_workspace_resource(self, base_dir: str,
+    def rename_workspace_resource(self, workspace_dir: str,
                                   res_name: str, new_res_name: str) -> Workspace:
-        workspace = self.get_workspace(base_dir)
+        workspace = self.get_workspace(workspace_dir)
         workspace.rename_resource(res_name, new_res_name)
         return workspace
 
-    def delete_workspace_resource(self, base_dir: str, res_name: str) -> Workspace:
-        workspace = self.get_workspace(base_dir)
+    def delete_workspace_resource(self, workspace_dir: str, res_name: str) -> Workspace:
+        workspace = self.get_workspace(workspace_dir)
         workspace.delete_resource(res_name)
         return workspace
 
-    def set_workspace_resource_persistence(self, base_dir: str, res_name: str, persistent: bool) -> Workspace:
-        workspace = self.get_workspace(base_dir)
+    def set_workspace_resource_persistence(self,
+                                           workspace_dir: str,
+                                           res_name: str,
+                                           persistent: bool) -> Workspace:
+        workspace = self.get_workspace(workspace_dir)
         workspace.set_resource_persistence(res_name, persistent)
         return workspace
 
-    def write_workspace_resource(self, base_dir: str, res_name: str,
-                                 file_path: str, format_name: str = None,
+    def write_workspace_resource(self,
+                                 workspace_dir: str,
+                                 res_name: str,
+                                 file_path: str,
+                                 format_name: str = None,
                                  monitor: Monitor = Monitor.NONE) -> None:
-        workspace = self.get_workspace(base_dir)
-        target_path = self._resolve_target_path(file_path)
+        workspace = self.get_workspace(workspace_dir)
+        target_path = file_path
         with monitor.starting('Writing resource "%s"' % res_name, total_work=10):
             obj = workspace.execute_workflow(res_name=res_name, monitor=monitor.child(work=9))
             if obj is not None:
@@ -400,10 +497,13 @@ class FSWorkspaceManager(WorkspaceManager):
             else:
                 monitor.progress(work=1, msg='No output, file %s NOT written' % target_path)
 
-    def plot_workspace_resource(self, base_dir: str, res_name: str,
-                                var_name: str = None, file_path: str = None,
+    def plot_workspace_resource(self,
+                                workspace_dir: str,
+                                res_name: str,
+                                var_name: str = None,
+                                file_path: str = None,
                                 monitor: Monitor = Monitor.NONE) -> None:
-        workspace = self.get_workspace(base_dir)
+        workspace = self.get_workspace(workspace_dir)
         obj = self._get_resource_value(workspace, res_name, monitor)
 
         import xarray as xr
@@ -435,14 +535,19 @@ class FSWorkspaceManager(WorkspaceManager):
         else:
             raise ValidationError("Don't know how to plot an object of type \"%s\"" % type(obj))
 
-    def print_workspace_resource(self, base_dir: str, res_name_or_expr: str = None,
+    def print_workspace_resource(self,
+                                 workspace_dir: str,
+                                 res_name_or_expr: str = None,
                                  monitor: Monitor = Monitor.NONE) -> None:
-        workspace = self.get_workspace(base_dir)
+        workspace = self.get_workspace(workspace_dir)
         value = self._get_resource_value(workspace, res_name_or_expr, monitor)
         pprint.pprint(value)
 
     # noinspection PyMethodMayBeStatic
-    def _get_resource_value(self, workspace, res_name_or_expr, monitor):
+    def _get_resource_value(self,
+                            workspace: Workspace,
+                            res_name_or_expr: str,
+                            monitor: Monitor):
         value = UNDEFINED
         if res_name_or_expr is None:
             value = workspace.resource_cache
@@ -452,29 +557,20 @@ class FSWorkspaceManager(WorkspaceManager):
             value = safe_eval(res_name_or_expr, workspace.resource_cache)
         return value
 
-    def _create_scratch_dir(self, scratch_dir_name: str) -> str:
-        scratch_dir_path = os.path.join(SCRATCH_WORKSPACES_PATH, scratch_dir_name)
-        os.makedirs(scratch_dir_path, exist_ok=True)
-        return scratch_dir_path
 
-    def _resolve_target_path(self, target_dir: str) -> str:
-        return target_dir
+def is_abs_windows_path(path: str) -> bool:
+    """
+    If normalized *path* an absolute path on Windows OS?
+    :param path: normalized path
+    :return: True, if so
+    """
+    return platform.system() == 'Windows' and is_abs_path(path)
 
 
-class RelativeFSWorkspaceManager(FSWorkspaceManager):
-    # TODO (forman, 20160908): implement file lock for opened workspaces (issue #26)
-
-    def __init__(self, path_manager: PathManager):
-        super().__init__(path_manager.get_root_path())
-        self._path_manager = path_manager
-
-    def resolve_path(self, dir_path):
-        return self._path_manager.resolve(dir_path)
-
-    def _create_scratch_dir(self, scratch_dir_name: str) -> str:
-        scratch_dir_path = os.path.join(self._path_manager.get_scratch_dir_root(), scratch_dir_name)
-        os.makedirs(scratch_dir_path, exist_ok=True)
-        return scratch_dir_path
-
-    def _resolve_target_path(self, target_dir: str) -> str:
-        return self._path_manager.resolve(target_dir)
+def is_abs_path(path: str) -> bool:
+    """
+    If normalized *path* an absolute path on Windows OS?
+    :param path: normalized path
+    :return: True, if so
+    """
+    return path.startswith('//') or os.path.isabs(path)
