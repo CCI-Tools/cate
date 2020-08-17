@@ -15,19 +15,18 @@ class WebSocketServiceTest(unittest.TestCase):
         return None
 
     def get_workspace_path(self):
-        return os.path.abspath('WebSocketServiceTest')
+        return os.path.join(os.path.dirname(__file__), 'WebSocketServiceTest')
 
     def setUp(self):
-        self.root_path = self.get_root_path()
-        self.service = WebSocketService(FSWorkspaceManager(root_path=self.root_path))
-        self.workspace_dir = self.get_workspace_path()
-        if os.path.exists(self.workspace_dir):
-            shutil.rmtree(self.workspace_dir)
-        os.mkdir(self.workspace_dir)
+        manager = FSWorkspaceManager(root_path=self.get_root_path())
+        self.service = WebSocketService(manager)
+        self._workspace_dir = manager.resolve_path(self.get_workspace_path())
+        if os.path.exists(self._workspace_dir):
+            shutil.rmtree(self._workspace_dir)
 
     def tearDown(self):
-        if os.path.exists(self.workspace_dir):
-            shutil.rmtree(self.workspace_dir)
+        if os.path.exists(self._workspace_dir):
+            shutil.rmtree(self._workspace_dir)
 
     @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
     def test_get_data_stores(self):
@@ -101,7 +100,7 @@ class WebSocketServiceTest(unittest.TestCase):
 
     def test_get_workspace_variable_statistics(self):
         self._load_precip_dataset_in_workspace()
-        stat = self.service.get_workspace_variable_statistics(self.workspace_dir,
+        stat = self.service.get_workspace_variable_statistics(self.get_workspace_path(),
                                                               res_name='ds',
                                                               var_name='temperature',
                                                               var_index=[0])
@@ -116,31 +115,33 @@ class WebSocketServiceTest(unittest.TestCase):
         self.assertEqual(1, len(workspaces))
         self.assertEqual(1, len(workspaces[0]['workflow']['steps']))
 
-        values = self.service.extract_pixel_values(self.workspace_dir, 'ds', (10.22, 34.52), dict(time='2014-09-11'))
+        values = self.service.extract_pixel_values(self.get_workspace_path(), 'ds', (10.22, 34.52), dict(time='2014-09-11'))
 
         self.assertAlmostEqual(values['lat'], 34.5)
         self.assertAlmostEqual(values['lon'], 10.2)
         self.assertAlmostEqual(values['precipitation'], 5.5)
         self.assertAlmostEqual(values['temperature'], 32.9)
 
-        self.service.clean_workspace(self.workspace_dir)
+        self.service.clean_workspace(self.get_workspace_path())
         workspaces = self.service.get_open_workspaces()
         self.assertEqual(1, len(workspaces))
         self.assertEqual(0, len(workspaces[0]['workflow']['steps']))
 
-        self.service.close_workspace(self.workspace_dir)
+        self.service.close_workspace(self.get_workspace_path())
         workspaces = self.service.get_open_workspaces()
         self.assertEqual(workspaces, [])
 
     def test_workspace_json(self):
         workspace_json = self._load_precip_dataset_in_workspace()
         self.assertIn('base_dir', workspace_json)
-        self.assertEqual(os.path.abspath('WebSocketServiceTest'), workspace_json['base_dir'])
+        self.assertEqual(self.get_workspace_path(),
+                         workspace_json['base_dir'])
 
     def _load_precip_dataset_in_workspace(self) -> dict:
         file = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')
-        workspace_json = self.service.new_workspace(self.workspace_dir)
-        self.service.set_workspace_resource(self.workspace_dir,
+        workspace_json = self.service.new_workspace(self.get_workspace_path())
+        self.service.save_workspace(self.get_workspace_path(), monitor=Monitor.NONE)
+        self.service.set_workspace_resource(self.get_workspace_path(),
                                             'cate.ops.io.read_netcdf',
                                             dict(file=dict(value=file)),
                                             res_name='ds',
