@@ -11,16 +11,23 @@ from cate.webapi.websocket import WebSocketService
 
 
 class WebSocketServiceTest(unittest.TestCase):
+    def get_root_path(self):
+        return None
+
+    def get_workspace_path(self):
+        return os.path.abspath('WebSocketServiceTest')
+
     def setUp(self):
-        self.service = WebSocketService(FSWorkspaceManager())
-        self.base_dir = base_dir = os.path.abspath('WebSocketServiceTest')
-        if os.path.exists(self.base_dir):
-            shutil.rmtree(base_dir)
-        os.mkdir(self.base_dir)
+        self.root_path = self.get_root_path()
+        self.service = WebSocketService(FSWorkspaceManager(root_path=self.root_path))
+        self.workspace_dir = self.get_workspace_path()
+        if os.path.exists(self.workspace_dir):
+            shutil.rmtree(self.workspace_dir)
+        os.mkdir(self.workspace_dir)
 
     def tearDown(self):
-        if os.path.exists(self.base_dir):
-            shutil.rmtree(self.base_dir)
+        if os.path.exists(self.workspace_dir):
+            shutil.rmtree(self.workspace_dir)
 
     @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
     def test_get_data_stores(self):
@@ -93,8 +100,8 @@ class WebSocketServiceTest(unittest.TestCase):
         self.assertEqual(op['outputs'][0]['name'], 'v')
 
     def test_get_workspace_variable_statistics(self):
-        self.load_precip_dataset()
-        stat = self.service.get_workspace_variable_statistics(self.base_dir,
+        self._load_precip_dataset_in_workspace()
+        stat = self.service.get_workspace_variable_statistics(self.workspace_dir,
                                                               res_name='ds',
                                                               var_name='temperature',
                                                               var_index=[0])
@@ -104,36 +111,42 @@ class WebSocketServiceTest(unittest.TestCase):
     def test_get_resource_values(self):
         workspaces = self.service.get_open_workspaces()
         self.assertEqual(workspaces, [])
-        self.load_precip_dataset()
+        self._load_precip_dataset_in_workspace()
         workspaces = self.service.get_open_workspaces()
         self.assertEqual(1, len(workspaces))
         self.assertEqual(1, len(workspaces[0]['workflow']['steps']))
 
-        values = self.service.extract_pixel_values(self.base_dir, 'ds', (10.22, 34.52), dict(time='2014-09-11'))
+        values = self.service.extract_pixel_values(self.workspace_dir, 'ds', (10.22, 34.52), dict(time='2014-09-11'))
 
         self.assertAlmostEqual(values['lat'], 34.5)
         self.assertAlmostEqual(values['lon'], 10.2)
         self.assertAlmostEqual(values['precipitation'], 5.5)
         self.assertAlmostEqual(values['temperature'], 32.9)
 
-        self.service.clean_workspace(self.base_dir)
+        self.service.clean_workspace(self.workspace_dir)
         workspaces = self.service.get_open_workspaces()
         self.assertEqual(1, len(workspaces))
         self.assertEqual(0, len(workspaces[0]['workflow']['steps']))
 
-        self.service.close_workspace(self.base_dir)
+        self.service.close_workspace(self.workspace_dir)
         workspaces = self.service.get_open_workspaces()
         self.assertEqual(workspaces, [])
 
-    def load_precip_dataset(self):
+    def test_workspace_json(self):
+        workspace_json = self._load_precip_dataset_in_workspace()
+        self.assertIn('base_dir', workspace_json)
+        self.assertEqual(os.path.abspath('WebSocketServiceTest'), workspace_json['base_dir'])
+
+    def _load_precip_dataset_in_workspace(self) -> dict:
         file = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')
-        self.service.new_workspace(self.base_dir)
-        self.service.set_workspace_resource(self.base_dir,
+        workspace_json = self.service.new_workspace(self.workspace_dir)
+        self.service.set_workspace_resource(self.workspace_dir,
                                             'cate.ops.io.read_netcdf',
                                             dict(file=dict(value=file)),
                                             res_name='ds',
                                             overwrite=False,
                                             monitor=Monitor.NONE)
+        return workspace_json
 
     def test_update_file_node(self):
 
@@ -143,10 +156,11 @@ class WebSocketServiceTest(unittest.TestCase):
             self._assert_dir_node_props(node, '', no_stats=True)
             # print(node)
 
-            path = 'C:'
-            node = self.service.update_file_node(path)
-            self._assert_dir_node_props(node, 'C:')
-            # print(node)
+            if self.root_path is None:
+                path = os.path.abspath('.')[0:2]
+                node = self.service.update_file_node(path)
+                self._assert_dir_node_props(node, path)
+                # print(node)
         else:
             path = ''
             node = self.service.update_file_node(path)
@@ -159,9 +173,14 @@ class WebSocketServiceTest(unittest.TestCase):
         # print(node)
 
         path = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', '..'))
-        node = self.service.update_file_node(path)
-        self._assert_dir_node_props(node, os.path.basename(path))
-        # print(node)
+        if self.root_path:
+            with self.assertRaises(ValueError) as cm:
+                self.service.update_file_node(path)
+            self.assertTrue(f'{cm.exception}'.startswith('access denied: '))
+        else:
+            node = self.service.update_file_node(path)
+            self._assert_dir_node_props(node, os.path.basename(path))
+            # print(node)
 
         with self.assertRaises(ValueError):
             self.service.update_file_node('..')
@@ -183,11 +202,21 @@ class WebSocketServiceTest(unittest.TestCase):
         self.assertIsNotNone(file_node)
         self.assertIn('name', file_node)
         self.assertEqual(file_node['name'], name)
-        if no_stats:
-            self.assertNotIn('size', file_node)
-            self.assertNotIn('lastModified', file_node)
-        else:
+        if not no_stats:
             self.assertIn('size', file_node)
             self.assertIn('lastModified', file_node)
         self.assertIn('isDir', file_node)
+
+
+class SandboxedWebSocketServiceTest(WebSocketServiceTest):
+    def get_root_path(self):
+        return os.path.dirname(__file__)
+
+    def get_workspace_path(self):
+        return os.path.join(self.get_root_path(), 'SandboxedWebSocketServiceTest')
+
+    def test_workspace_json(self):
+        workspace_json = self._load_precip_dataset_in_workspace()
+        self.assertIn('base_dir', workspace_json)
+        self.assertEqual('/SandboxedWebSocketServiceTest', workspace_json['base_dir'])
 

@@ -33,7 +33,7 @@ from cate.conf.userprefs import set_user_prefs, get_user_prefs
 from cate.core.ds import DATA_STORE_REGISTRY
 from cate.core.op import OP_REGISTRY
 from cate.core.workspace import OpKwArgs, Workspace
-from cate.core.wsmanag import WorkspaceManager, FSWorkspaceManager
+from cate.core.wsmanag import WorkspaceManager
 from cate.util.misc import cwd, filter_fileset
 from cate.util.monitor import Monitor
 from cate.util.sround import sround_range
@@ -59,7 +59,7 @@ class WebSocketService:
     def _serialize_workspace(self, workspace: Workspace) -> dict:
         d = workspace.to_json_dict()
         if self.workspace_manager.root_path:
-            d['base_dir'] = os.path.relpath(d['base_dir'], self.workspace_manager.root_path)
+            d['base_dir'] = '/' + os.path.relpath(d['base_dir'], self.workspace_manager.root_path)
         return d
 
     def _resolve_path(self, path: str) -> str:
@@ -403,10 +403,6 @@ class WebSocketService:
         :param path: A normalized, absolute path that never has a trailing "/".
         :return: A JSON dictionary containing an updated file node at *path*.
         """
-        if path and '..' in path:
-            # Make it a little secure
-            raise ValueError(f'illegal path: {path}')
-
         path = self.workspace_manager.resolve_path(path)
 
         if platform.system() == 'Windows':
@@ -433,6 +429,9 @@ class WebSocketService:
             basename = ''
         else:
             basename = os.path.basename(path)
+
+        if path == self.workspace_manager.root_path:
+            basename = ''
 
         if basename.startswith('.'):
             # Make it a little securer
@@ -474,7 +473,6 @@ class WebSocketService:
             return _update_file_node_stat_result(file_node, stat_result)
         except OSError as error:
             return _update_file_node_error(file_node, error)
-
 
 
 def _new_file_node(name: str,

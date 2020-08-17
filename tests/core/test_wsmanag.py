@@ -17,13 +17,13 @@ class WorkspaceManagerTestMixin:
         raise NotImplementedError
 
     def new_workspace_dir(self, ws_name: str):
-        ws_dir = os.path.join(self._root_dir, ws_name)
+        ws_dir = os.path.join(self._root_path, ws_name)
         if os.path.exists(ws_dir):
             shutil.rmtree(ws_dir)
         return ws_dir
 
     def del_workspace_dir(self, ws_name: str):
-        ws_dir = os.path.join(self._root_dir, ws_name)
+        ws_dir = os.path.join(self._root_path, ws_name)
         if os.path.isdir(ws_dir):
             shutil.rmtree(ws_dir)
 
@@ -316,7 +316,7 @@ class WorkspaceManagerTestMixin:
         self.assertEqual(len(workspace1.workflow.steps), 2)
         self.assertFalse(workspace1.workflow.find_node('ds').persistent)
         self.assertFalse(workspace1.workflow.find_node('ts').persistent)
-        ts_file_path = os.path.abspath(os.path.join(self._root_dir, 'TESTOMAT', '.cate-workspace', 'ts.nc'))
+        ts_file_path = os.path.abspath(os.path.join(self._root_path, 'TESTOMAT', '.cate-workspace', 'ts.nc'))
         self.assertFalse(os.path.isfile(ts_file_path))
 
         workspace3 = workspace_manager.set_workspace_resource_persistence(ws_dir, 'ts', True)
@@ -347,25 +347,39 @@ class FSWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
 
     def __init__(self, methodName: str = ...) -> None:
         super().__init__(methodName)
-        self._root_dir = tempfile.mkdtemp()
+        self._root_path = tempfile.mkdtemp()
 
     def __del__(self):
-        shutil.rmtree(self._root_dir,
+        shutil.rmtree(self._root_path,
                       ignore_errors=True,
                       onerror=lambda e: print(f'FSWorkspaceManagerTest: error: {e}'))
 
     def new_workspace_manager(self):
-        return FSWorkspaceManager(self._root_dir)
+        return FSWorkspaceManager(self._root_path)
 
     def test_resolve_path(self):
+        # manager with root_path
         ws_manag = self.new_workspace_manager()
-        self.assertEqual(os.path.join(self._root_dir, 'data'), ws_manag.resolve_path('data'))
-        self.assertEqual(self._root_dir, ws_manag.root_path)
+        self.assertEqual(self._root_path, ws_manag.root_path)
+        self.assertEqual(os.path.join(self._root_path, 'data'),
+                         ws_manag.resolve_path('data'))
 
-        with self.assertRaises(ValueError) as cm:
-            ws_manag.resolve_path(self._root_dir + '/' + (len(os.path.split(self._root_dir)) + 1) * '../' + 'data')
-        self.assertTrue(f'{cm.exception}'.startswith('forbidden path: '))
-
+        # manager without root_path
         ws_manag = FSWorkspaceManager()
-        self.assertEqual(os.path.abspath('./data'), ws_manag.resolve_path(os.path.abspath('./data')))
         self.assertEqual(None, ws_manag.root_path)
+        self.assertEqual(os.path.abspath('./data'),
+                         ws_manag.resolve_path(os.path.abspath('./data')))
+
+    def test_resolve_path_permits_access(self):
+        ws_manag = self.new_workspace_manager()
+
+        # absolute path escapes root_path
+        with self.assertRaises(ValueError) as cm:
+            ws_manag.resolve_path(f'{self._root_path}/../data')
+        self.assertTrue(f'{cm.exception}'.startswith('access denied: '))
+
+        # relative path escapes root_path
+        num_root_dir_comp = len(os.path.split(self._root_path))
+        with self.assertRaises(ValueError) as cm:
+            ws_manag.resolve_path((num_root_dir_comp + 1) * '../' + 'data')
+        self.assertTrue(f'{cm.exception}'.startswith('access denied: '))

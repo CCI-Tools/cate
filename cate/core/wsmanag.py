@@ -211,13 +211,12 @@ class FSWorkspaceManager(WorkspaceManager):
 
     def resolve_path(self, path: str) -> str:
         if self._root_path:
-            if os.path.isabs(path):
-                path = os.path.normpath(path)
-                rel_path = os.path.relpath(path, self._root_path)
-                if rel_path.startswith('..'):
-                    raise ValueError(f'forbidden path: {path}')
-            else:
-                return os.path.join(self._root_path, path)
+            norm_path = os.path.normpath(os.path.join(self._root_path, path))
+            rel_path = os.path.relpath(norm_path, self._root_path)
+            if rel_path.startswith('..'):
+                # Permit escaping from self._root_path
+                raise ValueError(f'access denied: {path}')
+            return norm_path
         return path
 
     def num_open_workspaces(self) -> int:
