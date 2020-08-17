@@ -196,15 +196,12 @@ class SandboxedWebSocketServiceTest(WebSocketServiceTest):
         return os.path.dirname(__file__)
 
     def get_workspace_path(self):
-        return os.path.join(self.get_root_path(), 'SandboxedWebSocketServiceTest')
+        return os.path.join(os.path.sep + 'SandboxedWebSocketServiceTest')
 
     def test_workspace_json(self):
         workspace_json = self._load_precip_dataset_in_workspace()
         self.assertIn('base_dir', workspace_json)
-        if platform.system() == 'Windows':
-            self.assertEqual('\\SandboxedWebSocketServiceTest', workspace_json['base_dir'])
-        else:
-            self.assertEqual('/SandboxedWebSocketServiceTest', workspace_json['base_dir'])
+        self.assertEqual(os.path.sep + 'SandboxedWebSocketServiceTest', workspace_json['base_dir'])
 
     def test_update_file_node(self):
 
