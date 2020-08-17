@@ -120,6 +120,16 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         traceback_line = len(traceback_title) * '='
         return '\n' + traceback_line + '\n' + traceback_title + '\n' + traceback_line + '\n'
 
+    @property
+    def root_path(self) -> Optional[str]:
+        return None
+
+    def resolve_path(self, path: str) -> str:
+        return path
+
+    def resolve_workspace_dir(self, path_or_name: str) -> str:
+        return path_or_name
+
     def get_open_workspaces(self) -> List[Workspace]:
         json_list = self._invoke_method("get_open_workspaces", dict(), timeout=WEBAPI_WORKSPACE_TIMEOUT)
         return [Workspace.from_json_dict(ws_json_dict) for ws_json_dict in json_list]

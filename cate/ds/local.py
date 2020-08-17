@@ -607,7 +607,7 @@ class LocalDataStore(DataStore):
         ]
 
     def add_pattern(self, data_source_id: str, files: Union[str, Sequence[str]] = None) -> 'DataSource':
-        data_source = self.create_data_source(data_source_id)
+        data_source = self.create_data_source(data_source_id, title=data_source_id)
         if isinstance(files, str) and len(files) > 0:
             files = [files]
         is_first_file = True

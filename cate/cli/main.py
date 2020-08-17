@@ -796,7 +796,7 @@ class WorkspaceCommand(SubCommandCommand):
         workflow = workspace.workflow
         print('Workspace base directory is [%s] (%s, %s)' % (workspace.base_dir,
                                                              'saved' if os.path.exists(
-                                                                 workspace.workspace_dir) else 'not saved yet',
+                                                                 workspace.workspace_data_dir) else 'not saved yet',
                                                              'modified' if workspace.is_modified else 'no changes'))
         if len(workflow.steps) > 0:
             print('Workspace resources:')
