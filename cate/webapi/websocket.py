@@ -60,12 +60,16 @@ class WebSocketService:
         """Resolve incoming path against workspace manager's root path."""
         return self.workspace_manager.resolve_path(path)
 
+    def _resolve_workspace_dir(self, workspace_dir_or_name: str) -> str:
+        """Resolve incoming workspace dir path or name against workspace manager's root path."""
+        return self.workspace_manager.resolve_workspace_dir(workspace_dir_or_name)
+
     def _serialize_workspace(self, workspace: Workspace) -> dict:
         """Serialize outgoing workspace JSON to have base_dir relative to workspace manager's root path."""
         workspace_json = workspace.to_json_dict()
         if self.workspace_manager.root_path:
-            workspace_json['base_dir'] = '/' + os.path.relpath(workspace_json['base_dir'],
-                                                               self.workspace_manager.root_path)
+            workspace_json['base_dir'] = os.path.sep + os.path.relpath(workspace_json['base_dir'],
+                                                                       self.workspace_manager.root_path)
         return workspace_json
 
     def get_config(self) -> dict:
@@ -247,7 +251,7 @@ class WebSocketService:
         return [self._serialize_workspace(workspace) for workspace in workspace_list]
 
     def get_workspace(self, base_dir: str) -> dict:
-        base_dir = self._resolve_path(base_dir)
+        base_dir = self._resolve_workspace_dir(base_dir)
         workspace = self.workspace_manager.get_workspace(base_dir)
         return self._serialize_workspace(workspace)
 
@@ -257,31 +261,31 @@ class WebSocketService:
 
     # see cate-desktop: src/renderer.states.WorkspaceState
     def new_workspace(self, base_dir: Optional[str], description: str = None) -> dict:
-        base_dir = self._resolve_path(base_dir) if base_dir else None
+        base_dir = self._resolve_workspace_dir(base_dir) if base_dir else None
         workspace = self.workspace_manager.new_workspace(base_dir, description)
         return self._serialize_workspace(workspace)
 
     # see cate-desktop: src/renderer.states.WorkspaceState
     def open_workspace(self, base_dir: str, monitor: Monitor) -> dict:
-        base_dir = self._resolve_path(base_dir)
+        base_dir = self._resolve_workspace_dir(base_dir)
         workspace = self.workspace_manager.open_workspace(base_dir, monitor=monitor)
         return self._serialize_workspace(workspace)
 
     # see cate-desktop: src/renderer.states.WorkspaceState
     def close_workspace(self, base_dir: str) -> None:
-        base_dir = self._resolve_path(base_dir)
+        base_dir = self._resolve_workspace_dir(base_dir)
         self.workspace_manager.close_workspace(base_dir)
 
     def close_all_workspaces(self) -> None:
         self.workspace_manager.close_all_workspaces()
 
     def save_workspace(self, base_dir: str, monitor: Monitor) -> dict:
-        base_dir = self._resolve_path(base_dir)
+        base_dir = self._resolve_workspace_dir(base_dir)
         workspace = self.workspace_manager.save_workspace(base_dir, monitor=monitor)
         return self._serialize_workspace(workspace)
 
     def save_workspace_as(self, base_dir: str, to_dir: str, monitor: Monitor) -> dict:
-        base_dir = self._resolve_path(base_dir)
+        base_dir = self._resolve_workspace_dir(base_dir)
         workspace = self.workspace_manager.save_workspace_as(base_dir, to_dir, monitor=monitor)
         return self._serialize_workspace(workspace)
 
@@ -289,21 +293,21 @@ class WebSocketService:
         self.workspace_manager.save_all_workspaces(monitor=monitor)
 
     def clean_workspace(self, base_dir: str) -> dict:
-        base_dir = self._resolve_path(base_dir)
+        base_dir = self._resolve_workspace_dir(base_dir)
         workspace = self.workspace_manager.clean_workspace(base_dir)
         return self._serialize_workspace(workspace)
 
     def delete_workspace(self, base_dir: str, remove_completely: bool = False) -> None:
-        base_dir = self._resolve_path(base_dir)
+        base_dir = self._resolve_workspace_dir(base_dir)
         self.workspace_manager.delete_workspace(base_dir, remove_completely)
 
     def rename_workspace_resource(self, base_dir: str, res_name: str, new_res_name) -> dict:
-        base_dir = self._resolve_path(base_dir)
+        base_dir = self._resolve_workspace_dir(base_dir)
         workspace = self.workspace_manager.rename_workspace_resource(base_dir, res_name, new_res_name)
         return self._serialize_workspace(workspace)
 
     def delete_workspace_resource(self, base_dir: str, res_name: str) -> dict:
-        base_dir = self._resolve_path(base_dir)
+        base_dir = self._resolve_workspace_dir(base_dir)
         workspace = self.workspace_manager.delete_workspace_resource(base_dir, res_name)
         return self._serialize_workspace(workspace)
 
@@ -314,7 +318,7 @@ class WebSocketService:
                                res_name: Optional[str],
                                overwrite: bool,
                                monitor: Monitor) -> list:
-        base_dir = self._resolve_path(base_dir)
+        base_dir = self._resolve_workspace_dir(base_dir)
         with cwd(base_dir):
             workspace, res_name = self.workspace_manager.set_workspace_resource(base_dir,
                                                                                 op_name,
@@ -325,7 +329,7 @@ class WebSocketService:
             return [self._serialize_workspace(workspace), res_name]
 
     def set_workspace_resource_persistence(self, base_dir: str, res_name: str, persistent: bool) -> dict:
-        base_dir = self._resolve_path(base_dir)
+        base_dir = self._resolve_workspace_dir(base_dir)
         with cwd(base_dir):
             workspace = self.workspace_manager.set_workspace_resource_persistence(base_dir, res_name, persistent)
             return self._serialize_workspace(workspace)
@@ -333,20 +337,20 @@ class WebSocketService:
     def write_workspace_resource(self, base_dir: str, res_name: str,
                                  file_path: str, format_name: str = None,
                                  monitor: Monitor = Monitor.NONE) -> None:
-        base_dir = self._resolve_path(base_dir)
+        base_dir = self._resolve_workspace_dir(base_dir)
         with cwd(base_dir):
             self.workspace_manager.write_workspace_resource(base_dir, res_name, file_path,
                                                             format_name=format_name, monitor=monitor)
 
     def run_op_in_workspace(self, base_dir: str, op_name: str, op_args: OpKwArgs,
                             monitor: Monitor = Monitor.NONE) -> Union[Any, None]:
-        base_dir = self._resolve_path(base_dir)
+        base_dir = self._resolve_workspace_dir(base_dir)
         with cwd(base_dir):
             return self.workspace_manager.run_op_in_workspace(base_dir, op_name, op_args, monitor=monitor)
 
     def extract_pixel_values(self, base_dir: str, source: str,
                              point: Tuple[float, float], indexers: dict) -> dict:
-        base_dir = self._resolve_path(base_dir)
+        base_dir = self._resolve_workspace_dir(base_dir)
         with cwd(base_dir):
             from cate.ops.subset import extract_point
             ds = self.workspace_manager.get_workspace(base_dir).resource_cache.get(source)
@@ -356,7 +360,7 @@ class WebSocketService:
 
     def print_workspace_resource(self, base_dir: str, res_name_or_expr: str = None,
                                  monitor: Monitor = Monitor.NONE) -> None:
-        base_dir = self._resolve_path(base_dir)
+        base_dir = self._resolve_workspace_dir(base_dir)
         with cwd(base_dir):
             self.workspace_manager.print_workspace_resource(base_dir,
                                                             res_name_or_expr=res_name_or_expr, monitor=monitor)
@@ -368,7 +372,7 @@ class WebSocketService:
     # Note, we should turn this into an operation "actual_min_max(ds, var)"
     def get_workspace_variable_statistics(self, base_dir: str, res_name: str, var_name: str, var_index: Sequence[int],
                                           monitor=Monitor.NONE):
-        base_dir = self._resolve_path(base_dir)
+        base_dir = self._resolve_workspace_dir(base_dir)
         workspace_manager = self.workspace_manager
         workspace = workspace_manager.get_workspace(base_dir)
         if res_name not in workspace.resource_cache:

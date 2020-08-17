@@ -201,7 +201,10 @@ class SandboxedWebSocketServiceTest(WebSocketServiceTest):
     def test_workspace_json(self):
         workspace_json = self._load_precip_dataset_in_workspace()
         self.assertIn('base_dir', workspace_json)
-        self.assertEqual('/SandboxedWebSocketServiceTest', workspace_json['base_dir'])
+        if platform.system() == 'Windows':
+            self.assertEqual('\\SandboxedWebSocketServiceTest', workspace_json['base_dir'])
+        else:
+            self.assertEqual('/SandboxedWebSocketServiceTest', workspace_json['base_dir'])
 
     def test_update_file_node(self):
 

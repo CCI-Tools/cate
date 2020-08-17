@@ -40,3 +40,7 @@ class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
         ws_manag = self.new_workspace_manager()
         self.assertIsNone(ws_manag.root_path)
         self.assertIs('data', ws_manag.resolve_path('data'))
+
+    def test_resolve_workspace_dir(self):
+        ws_manag = self.new_workspace_manager()
+        self.assertIs('workspaces/test-1', ws_manag.resolve_workspace_dir('workspaces/test-1'))

@@ -93,8 +93,8 @@ class WorkspaceResourceHandler(WebAPIRequestHandler):
 
     def get_workspace_resource(self, base_dir, res_id: str):
         res_id = self.to_int("res_id", res_id)
-        workspace_manager = self.application.workspace_manager
-        base_dir = workspace_manager.resolve_path(base_dir)
+        workspace_manager: WorkspaceManager = self.application.workspace_manager
+        base_dir = workspace_manager.resolve_workspace_dir(base_dir)
         workspace = workspace_manager.get_workspace(base_dir)
         res_name = workspace.resource_cache.get_key(res_id)
         resource = workspace.resource_cache[res_name]
