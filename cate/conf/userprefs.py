@@ -87,18 +87,12 @@ def _write_user_prefs_file(user_prefs_file: str, user_prefs: dict):
 
 
 def _read_user_prefs(user_prefs_file: str) -> dict:
+    user_prefs = dict()
     if user_prefs_file and os.path.isfile(user_prefs_file):
-        user_prefs = None
-        try:
-            with open(user_prefs_file, 'r') as pfile:
-                user_prefs = json.load(pfile)
-        except Exception as error:
-            _LOG.warning('failed reading %s: %s' % (user_prefs_file, str(error)))
+        with open(user_prefs_file, 'r') as pfile:
+            user_prefs = json.load(pfile)
 
-        if user_prefs is not None:
-            return user_prefs
-        else:
-            _LOG.error("Could not load user prefs")
+    return user_prefs
 
 
 def set_user_prefs(prefs: dict, user_prefs_file: str = None):

@@ -20,19 +20,25 @@
 # SOFTWARE.
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
-             "Marco Zühlke (Brockmann Consult GmbH)"
+             "Marco Zühlke (Brockmann Consult GmbH)" \
+             "Helge Dzierzon (Brockmann Consult GmbH)"
 
 import concurrent.futures
 import datetime
+import json
 import os
 import sys
+import tempfile
 import time
+import zipfile
+from typing import Sequence, Any
 
 import fiona
 import geopandas as gpd
 import numpy as np
 import tornado.gen
 import tornado.web
+from tornado import escape
 import xarray as xr
 
 from .geojson import write_feature_collection, write_feature
@@ -485,6 +491,140 @@ class ResVarHtmlHandler(WorkspaceResourceHandler):
         except Exception:
             self.write_status_error(exc_info=sys.exc_info())
             self.finish()
+
+
+def save_files(files: Sequence, target_dir: str):
+    for file in files:
+        file_path = os.path.join(target_dir, file.filename)
+        if not os.path.exists(target_dir):
+            os.mkdir(target_dir)
+
+        with open(file_path, 'wb') as fp:
+            fp.write(file.body)
+
+    return 'Files: ' + ', '.join([file.filename for file in files])
+
+
+def _ensure_str(value: Any) -> str:
+    if isinstance(value, list):
+        value = value[0]
+
+    if isinstance(value, bytes):
+        value = value.decode()
+
+    if isinstance(value, str):
+        return value
+    else:
+        return str(value)
+
+
+MAX_STREAMED_SIZE = 1024 * 1024 * 1024 * 1024
+
+
+@tornado.web.stream_request_body
+class FilesUploadHandler(WebAPIRequestHandler):
+    # noinspection PyAttributeOutsideInit
+    def initialize(self):
+        # Member to collect meta info of the streaming process
+        self.bytes_read = 0
+        self.meta = dict()
+        self.receiver = self.get_receiver()
+        self.error = False
+        self.fp = None
+
+    def data_received(self, chunk):
+        # Call get_receiver on received chunk
+        self.receiver(chunk)
+
+    def get_receiver(self):
+        index = 0
+        separate = b'\r\n'
+
+        def receiver(chunk):
+            nonlocal index
+            workspace_manager = self.application.workspace_manager
+            # Unfortunately we have to parse the header from the first chunk ourselves as we are streaming.
+            if index == 0:
+                index += 1
+                split_chunk = chunk.split(separate)
+                self.meta['boundary'] = separate + split_chunk[0] + b'--' + separate
+                self.meta['header'] = separate.join(split_chunk[0:7])
+                self.meta['header'] += separate * 2
+                self.meta['dir'] = split_chunk[3].decode()
+                self.meta['filename'] = split_chunk[5].split(b'=')[-1].replace(b'"', b'').decode()
+
+                chunk = chunk[len(self.meta['header']):]  # Stream
+                fn = workspace_manager.resolve_path(os.path.join(self.meta['dir']))
+                if not os.path.isdir(fn):
+                    os.mkdir(fn)
+
+                fn = os.path.join(fn, self.meta['filename'])
+                self.fp = open(fn, "wb")
+                self.fp.write(chunk)
+            else:
+                self.fp.write(chunk)
+
+        return receiver
+
+    def truncate_fp(self):
+        if self.fp:
+            self.fp.seek(self.meta['content_length'], 0)
+            self.fp.truncate()
+            self.fp.close()
+
+    def post(self):
+        # Stream
+        self.meta['content_length'] = int(self.request.headers.get('Content-Length')) - \
+                                      len(self.meta['header']) - \
+                                      len(self.meta['boundary'])
+
+        self.truncate_fp()
+        megabytes = int(self.meta['content_length'] / 2**20)
+        self.finish(json.dumps({'status': 'success', 'message': str(megabytes) + 'MBs uploaded.'}))
+
+
+# noinspection PyAbstractClass
+class FilesDownloadHandler(WebAPIRequestHandler):
+    def _zip_files(self, file_paths: Sequence[str]):
+        zip_file_path = tempfile.mktemp('.zip')
+
+        with zipfile.ZipFile(zip_file_path, "w") as zip_file:
+            for file_path in file_paths:
+                file_name = self.application.workspace_manager.resolve_path(file_path)
+                if os.path.isfile(file_name):
+                    zip_file.write(file_name, file_path)
+
+        return zip_file
+
+    def _return_zip_file(self, result, process_id):
+        if result is None:
+            return
+
+        self.set_header('Content-Type', 'application/zip')
+        # self.set_header("Content-Disposition", "attachment; filename=%s" % target_dir + '.zip')
+
+        self._stream_file_content(result, process_id)
+        os.remove(result.filename)
+
+    def _stream_file_content(self, result, process_id):
+        with open(result.filename, 'rb') as f:
+            while True:
+                chunk_size = int(512 * 64)
+                data = f.read(chunk_size)
+                if not data:
+                    break
+                self.write(data)
+
+    def post(self):
+        body_dict = escape.json_decode(self.request.body)
+
+        target_files = body_dict.get('target_files')
+        process_id = body_dict.get('process_id')
+
+        zip_file = self._zip_files(target_files)
+        self._return_zip_file(zip_file, process_id)
+
+        self.finish(json.dumps({'status': 'success', 'error': '', 'message': 'Done'}))
 
 
 def _new_monitor() -> Monitor:

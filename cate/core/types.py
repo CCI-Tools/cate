@@ -709,7 +709,7 @@ class DatasetLike(Like[xarray.Dataset]):
     Accepts xarray.Dataset, pandas.DataFrame and converts to xarray.Dataset.
     """
 
-    TYPE = Union[xarray.Dataset, pandas.DataFrame, None]
+    TYPE = Optional[Union[xarray.Dataset, pandas.DataFrame]]
 
     @classmethod
     def convert(cls, value: Any) -> Optional[xarray.Dataset]:
@@ -736,7 +736,7 @@ class DataFrameLike(Like[pandas.DataFrame]):
     Accepts pandas.DataFrame, xarray.Dataset and converts to pandas.DataFrame.
     """
 
-    TYPE = Union[pandas.DataFrame, xarray.Dataset, None]
+    TYPE = Optional[Union[pandas.DataFrame, xarray.Dataset]]
 
     @classmethod
     def convert(cls, value: Any) -> Optional[pandas.DataFrame]:

@@ -26,7 +26,7 @@ import pprint
 import shutil
 import uuid
 from abc import ABCMeta, abstractmethod
-from typing import List, Union, Optional, Tuple, Any, Dict
+from typing import Dict, List, Optional, Tuple, Any
 
 from .objectio import write_object
 from .workflow import Workflow
@@ -126,7 +126,7 @@ class WorkspaceManager(metaclass=ABCMeta):
                             workspace_dir: str,
                             op_name: str,
                             op_args: OpKwArgs,
-                            monitor: Monitor = Monitor.NONE) -> Union[Any, None]:
+                            monitor: Monitor = Monitor.NONE) -> Optional[Any]:
         pass
 
     @abstractmethod
@@ -446,7 +446,7 @@ class FSWorkspaceManager(WorkspaceManager):
                             workspace_dir: str,
                             op_name: str,
                             op_args: OpKwArgs,
-                            monitor: Monitor = Monitor.NONE) -> Union[Any, None]:
+                            monitor: Monitor = Monitor.NONE) -> Optional[Any]:
         workspace = self.get_workspace(workspace_dir)
         return workspace.run_op(op_name, op_args, monitor=monitor)
 

@@ -23,7 +23,7 @@ import datetime
 import os
 import platform
 from collections import OrderedDict
-from typing import List, Sequence, Optional, Any, Union, Tuple, Dict
+from typing import List, Sequence, Optional, Any, Tuple, Dict
 
 import xarray as xr
 
@@ -343,8 +343,7 @@ class WebSocketService:
                                                             format_name=format_name, monitor=monitor)
 
     def run_op_in_workspace(self, base_dir: str, op_name: str, op_args: OpKwArgs,
-                            monitor: Monitor = Monitor.NONE) -> Union[Any, None]:
-        base_dir = self._resolve_workspace_dir(base_dir)
+                            monitor: Monitor = Monitor.NONE) -> Optional[Any]:
         with cwd(base_dir):
             return self.workspace_manager.run_op_in_workspace(base_dir, op_name, op_args, monitor=monitor)
 
