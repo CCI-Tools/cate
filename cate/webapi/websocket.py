@@ -42,25 +42,6 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH)"
 
 
-# class ProcessRegistry:
-#     processes: Dict = {}
-#
-#     @classmethod
-#     def get_progress(cls, process_id: str):
-#         return cls.processes[process_id]
-#
-#     @classmethod
-#     def get_or_create_progress(cls, process_id: str):
-#         if not cls.processes.get(process_id):
-#             cls.processes[process_id] = []
-#         return cls.processes[process_id]
-#
-#     @classmethod
-#     def set_progress(cls, process_id: str, progress: float, total_progress: float):
-#         cls.processes[process_id] = [] if process_id not in cls.processes else cls.processes[process_id]
-#         cls.processes[process_id].append([progress, total_progress])
-
-
 # noinspection PyMethodMayBeStatic
 class WebSocketService:
     """
@@ -289,18 +270,6 @@ class WebSocketService:
         base_dir = self._resolve_workspace_dir(base_dir)
         workspace = self.workspace_manager.open_workspace(base_dir, monitor=monitor)
         return self._serialize_workspace(workspace)
-
-    # def monitor_process_progress(self, label: str, process_id: str, monitor: Monitor) -> None:
-    #     with monitor.starting(label, 100):
-    #         total_progress = 0
-    #         last_monitor = 0
-    #         while 0 <= total_progress < 100:
-    #             progress = ProcessRegistry.get_or_create_progress(process_id)
-    #             for p in progress[last_monitor+1:]:
-    #                 monitor.progress(p[0])
-    #                 total_progress = p[1]
-    #                 last_monitor += 1
-    #                 print(total_progress)
 
     # see cate-desktop: src/renderer.states.WorkspaceState
     def close_workspace(self, base_dir: str) -> None:
