@@ -585,31 +585,23 @@ class FilesUploadHandler(WebAPIRequestHandler):
 
 # noinspection PyAbstractClass
 class FilesDownloadHandler(WebAPIRequestHandler):
-    def _zip_files(self, target_dir: str):
+    def _zip_files(self, file_paths: Sequence[str]):
         zip_file_path = tempfile.mktemp('.zip')
-        zip_root_dir = os.path.basename(target_dir)
 
         with zipfile.ZipFile(zip_file_path, "w") as zip_file:
-            for root, dirs, files in os.walk(target_dir):
-                for name in files:
-                    zip_target_dir = root.replace(target_dir, '')
-                    if len(zip_target_dir) > 0 and zip_target_dir[0] == '/':
-                        zip_target_dir = zip_target_dir[1:]
-
-                    zip_file_name = os.path.join(zip_root_dir, zip_target_dir, name)
-
-                    file_name = os.path.join(root, name)
-                    if os.path.isfile(file_name):
-                        zip_file.write(file_name, zip_file_name)
+            for file_path in file_paths:
+                file_name = self.application.workspace_manager.resolve_path(file_path)
+                if os.path.isfile(file_name):
+                    zip_file.write(file_name, file_path)
 
         return zip_file
 
-    def _return_zip_file(self, result, target_dir, process_id):
+    def _return_zip_file(self, result, process_id):
         if result is None:
             return
 
         self.set_header('Content-Type', 'application/zip')
-        self.set_header("Content-Disposition", "attachment; filename=%s" % target_dir + '.zip')
+        # self.set_header("Content-Disposition", "attachment; filename=%s" % target_dir + '.zip')
 
         self._stream_file_content(result, process_id)
         os.remove(result.filename)
@@ -626,22 +618,14 @@ class FilesDownloadHandler(WebAPIRequestHandler):
                     break
                 self.write(data)
 
-    # def put(self):
-    #     process_id = str(uuid.uuid4())
-    #     ProcessRegistry.set_progress(process_id, 0, 0)
-    #     # self.finish(json.dumps({'status': 'success', 'error': '', 'message': process_id}))
-    #     self.finish(json.dumps({'status': 'success', 'error': '', 'process_id': process_id}))
-
     def post(self):
         body_dict = escape.json_decode(self.request.body)
 
-        target_dir = body_dict.get('target_dir')
+        target_files = body_dict.get('target_files')
         process_id = body_dict.get('process_id')
 
-        full_target_dir = self.application.workspace_manager.resolve_path(target_dir)
-
-        zip_file = self._zip_files(full_target_dir)
-        self._return_zip_file(zip_file, target_dir, process_id)
+        zip_file = self._zip_files(target_files)
+        self._return_zip_file(zip_file, process_id)
 
         self.finish(json.dumps({'status': 'success', 'error': '', 'message': 'Done'}))
 
