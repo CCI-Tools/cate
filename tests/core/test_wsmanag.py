@@ -367,9 +367,8 @@ class FSWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
                          ws_manag.resolve_path('data'))
         self.assertEqual(expected_path,
                          ws_manag.resolve_path('/data'))
-        if platform.system() == 'Windows':
-            self.assertEqual(expected_path,
-                             ws_manag.resolve_path('\\data'))
+        self.assertEqual(expected_path,
+                         ws_manag.resolve_path(os.path.sep + 'data'))
 
         # manager without root_path
         ws_manag = FSWorkspaceManager()
@@ -384,18 +383,19 @@ class FSWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
 
         # absolute path escapes root_path
         with self.assertRaises(ValueError) as cm:
-            ws_manag.resolve_path(f'{self._root_path}/../data')
+            ws_manag.resolve_path(os.path.join('..', 'data'))
         self.assertTrue(f'{cm.exception}'.startswith('access denied: '))
 
         # relative path escapes root_path
-        num_root_dir_comp = len(os.path.split(self._root_path))
         with self.assertRaises(ValueError) as cm:
-            ws_manag.resolve_path((num_root_dir_comp + 1) * '../' + 'data')
+            ws_manag.resolve_path(os.path.join(os.path.sep, '..', 'data'))
         self.assertTrue(f'{cm.exception}'.startswith('access denied: '))
 
     def test_resolve_workspace_dir(self):
         ws_manag = self.new_workspace_manager()
-        self.assertEqual(os.path.join(self._root_path, 'workspaces', 'test-1'),
+        self.assertEqual(os.path.join(ws_manag.root_path, 'workspaces', 'test-1'),
                          ws_manag.resolve_workspace_dir('test-1'))
-        self.assertEqual(os.path.join(self._root_path, 'my_workspaces', 'test-1'),
-                         ws_manag.resolve_workspace_dir(os.path.join(self._root_path, 'my_workspaces', 'test-1')))
+        self.assertEqual(os.path.join(ws_manag.root_path, 'my_workspaces', 'test-1'),
+                         ws_manag.resolve_workspace_dir(os.path.join('my_workspaces', 'test-1')))
+        self.assertEqual(os.path.join(ws_manag.root_path, 'my_workspaces', 'test-1'),
+                         ws_manag.resolve_workspace_dir(os.path.join(os.path.sep, 'my_workspaces', 'test-1')))
