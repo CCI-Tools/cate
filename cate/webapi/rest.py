@@ -505,7 +505,7 @@ def save_files(files: Sequence, target_dir: str):
     return 'Files: ' + ', '.join([file.filename for file in files])
 
 
-def ensure_str(value: Any) -> str:
+def _ensure_str(value: Any) -> str:
     if isinstance(value, list):
         value = value[0]
 
