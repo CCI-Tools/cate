@@ -543,7 +543,7 @@ class FilesUploadHandler(WebAPIRequestHandler):
         def receiver(chunk):
             nonlocal index
             workspace_manager = self.application.workspace_manager
-            # Unfortunately we have to parse the header from teh first chunk ourselves as we are streaming.
+            # Unfortunately we have to parse the header from the first chunk ourselves as we are streaming.
             if index == 0:
                 index += 1
                 split_chunk = chunk.split(separate)
