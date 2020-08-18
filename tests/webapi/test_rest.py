@@ -3,7 +3,7 @@ import tempfile
 import unittest
 
 from tornado.testing import AsyncHTTPTestCase
-from cate.webapi.rest import ensure_str
+from cate.webapi.rest import _ensure_str
 from cate.webapi.start import create_application
 
 
@@ -12,23 +12,23 @@ class TestEnsureStr(unittest.TestCase):
         expected = 'doofer'
 
         value = 'doofer'
-        res = ensure_str(value)
+        res = _ensure_str(value)
 
         self.assertEqual(expected, res)
 
         value = b'doofer'
-        res = ensure_str(value)
+        res = _ensure_str(value)
 
         self.assertEqual(expected, res)
 
         value = [b'doofer']
-        res = ensure_str(value)
+        res = _ensure_str(value)
 
         self.assertEqual(expected, res)
 
         expected = '1'
         value = 1
-        res = ensure_str(value)
+        res = _ensure_str(value)
 
         self.assertEqual(expected, res)
 

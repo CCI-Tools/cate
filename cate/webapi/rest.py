@@ -607,13 +607,10 @@ class FilesDownloadHandler(WebAPIRequestHandler):
         os.remove(result.filename)
 
     def _stream_file_content(self, result, process_id):
-        # file_size = os.path.getsize(result.filename)
-        # total_progress = 0
         with open(result.filename, 'rb') as f:
             while True:
-                # progress = (100*32768 / file_size)
-                # total_progress += progress
-                data = f.read(32768)
+                chunk_size = int(512 * 64)
+                data = f.read(chunk_size)
                 if not data:
                     break
                 self.write(data)
