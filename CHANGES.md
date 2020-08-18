@@ -1,4 +1,5 @@
 ## Version 2.1.0 (in development)
+* Renamed legacy id's prefix from `esacci` to `cciold`
 * Exchanged Cate's countries GeoJSON, by three new maps from https://www.naturalearthdata.com
   using 10m, 50m (default), and 110m resolutions. This fixes broken polyline and polygon 
   drawing in Cate Web UI [#912](https://github.com/CCI-Tools/cate/issues/912). See also
