@@ -55,6 +55,8 @@ import os
 # except Exception:
 #     has_qt5agg = False
 
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 
