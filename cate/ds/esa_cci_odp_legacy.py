@@ -638,7 +638,7 @@ class EsaCciOdpLegacyDataSource(DataSource):
                  cci_catalogue_data: dict = None,
                  schema: Schema = None):
         super(EsaCciOdpLegacyDataSource, self).__init__()
-        self._master_id = json_dict.get('master_id', None)
+        self._master_id = json_dict.get('master_id', None).replace('esacci', 'cciold')
         self._dataset_id = json_dict.get('id', None)
         self._instance_id = json_dict.get('instance_id', None)
 

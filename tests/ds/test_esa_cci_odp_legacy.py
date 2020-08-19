@@ -279,7 +279,7 @@ class EsaCciOdpDataSourceTest(unittest.TestCase):
 
     def test_id(self):
         self.assertEqual(self.first_oc_data_source.id,
-                         'esacci.OC.day.L3S.K_490.multi-sensor.multi-platform.MERGED.1-0.r2')
+                         'cciold.OC.day.L3S.K_490.multi-sensor.multi-platform.MERGED.1-0.r2')
 
     def test_schema(self):
         self.assertEqual(self.first_oc_data_source.schema,
