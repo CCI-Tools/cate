@@ -99,8 +99,9 @@ class WorkspaceResourceHandler(WebAPIRequestHandler):
 
     def get_workspace_resource(self, base_dir, res_id: str):
         res_id = self.to_int("res_id", res_id)
+        # noinspection PyUnresolvedReferences
         workspace_manager: WorkspaceManager = self.application.workspace_manager
-        base_dir = workspace_manager.resolve_workspace_dir(base_dir)
+        base_dir = workspace_manager.resolve_path(base_dir)
         workspace = workspace_manager.get_workspace(base_dir)
         res_name = workspace.resource_cache.get_key(res_id)
         resource = workspace.resource_cache[res_name]
@@ -246,6 +247,7 @@ class ResVarTileHandler(WorkspaceResourceHandler):
 class ResourcePlotHandler(WorkspaceResourceHandler):
     def get(self, base_dir, res_name):
         try:
+            # noinspection PyUnresolvedReferences
             workspace_manager: WorkspaceManager = self.application.workspace_manager
             var_name = self.get_query_argument('var_name', default=None)
             file_path = self.get_query_argument('file_path', default=None)
@@ -542,7 +544,8 @@ class FilesUploadHandler(WebAPIRequestHandler):
 
         def receiver(chunk):
             nonlocal index
-            workspace_manager = self.application.workspace_manager
+            # noinspection PyUnresolvedReferences
+            workspace_manager: WorkspaceManager = self.application.workspace_manager
             # Unfortunately we have to parse the header from the first chunk ourselves as we are streaming.
             if index == 0:
                 index += 1
@@ -590,7 +593,9 @@ class FilesDownloadHandler(WebAPIRequestHandler):
 
         with zipfile.ZipFile(zip_file_path, "w") as zip_file:
             for file_path in file_paths:
-                file_name = self.application.workspace_manager.resolve_path(file_path)
+                # noinspection PyUnresolvedReferences
+                manager: WorkspaceManager = self.application.workspace_manager
+                file_name = manager.resolve_path(file_path)
                 if os.path.isfile(file_name):
                     zip_file.write(file_name, file_path)
 

@@ -28,26 +28,27 @@ Code bases on an example taken from https://matplotlib.org/examples/user_interfa
 
 import io
 import json
-from typing import Optional
 import sys
+from typing import Optional
 
-from matplotlib.figure import Figure
 from matplotlib.backends.backend_webagg_core import FigureManagerWebAgg
 # noinspection PyUnresolvedReferences
 from matplotlib.backends.backend_webagg_core import new_figure_manager_given_figure
+from matplotlib.figure import Figure
 from tornado.web import RequestHandler
 from tornado.websocket import WebSocketHandler
 
 from cate.core.workspace import Workspace
-from cate.util.web.webapi import WebAPIRequestHandler
+from cate.core.wsmanag import WorkspaceManager
 from cate.util.web.common import log_debug, is_debug_mode
-
+from cate.util.web.webapi import WebAPIRequestHandler
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 # The following is the content of the web page.  You would normally
 # generate this using some sort of template facility in your web
 # framework, but here we just use Python string formatting.
+
 html_content = """
 <html>
   <head>
@@ -105,19 +106,6 @@ html_content = """
 
 
 # noinspection PyAbstractClass
-class MplMainPageHandler(RequestHandler):
-    """
-    Serves the main HTML page.
-    """
-
-    def get(self):
-        manager = self.application.manager
-        ws_uri = "ws://{req.host}/".format(req=self.request)
-        content = html_content % {"ws_uri": ws_uri, "fig_id": manager.num}
-        self.write(content)
-
-
-# noinspection PyAbstractClass
 class MplJavaScriptHandler(RequestHandler):
     """
     Serves the generated matplotlib javascript file.  The content
@@ -142,9 +130,11 @@ class MplDownloadHandler(WebAPIRequestHandler):
 
         figure_id = int(figure_id)
 
-        workspace_manager = self.application.workspace_manager
+        # noinspection PyUnresolvedReferences
+        workspace_manager: WorkspaceManager = self.application.workspace_manager
         assert workspace_manager
 
+        base_dir = workspace_manager.resolve_path(base_dir)
         workspace = workspace_manager.get_workspace(base_dir)
         assert workspace
 
@@ -206,9 +196,11 @@ class MplWebSocketHandler(WebSocketHandler):
         self.figure_id = int(figure_id)
         # print('MplWebSocketHandler.open', base_dir, figure_id)
 
-        workspace_manager = self.application.workspace_manager
+        # noinspection PyUnresolvedReferences
+        workspace_manager: WorkspaceManager = self.application.workspace_manager
         assert workspace_manager
 
+        base_dir = workspace_manager.resolve_path(base_dir)
         self.workspace = workspace_manager.get_workspace(base_dir)
         assert self.workspace
 
