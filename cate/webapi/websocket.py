@@ -62,6 +62,8 @@ class WebSocketService:
 
     def _resolve_workspace_dir(self, workspace_dir_or_name: str) -> str:
         """Resolve incoming workspace dir path or name against workspace manager's root path."""
+        # TODO (forman): remove me! this method exists, because we have workspace_manager.resolve_workspace_dir()
+        #   and this only because new_workspace() and save_workspace_as() take names instead of paths.
         return self.workspace_manager.resolve_workspace_dir(workspace_dir_or_name)
 
     def _serialize_workspace(self, workspace: Workspace) -> dict:

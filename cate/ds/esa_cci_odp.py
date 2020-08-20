@@ -775,13 +775,14 @@ class EsaCciOdpDataStore(DataStore):
     @staticmethod
     def _convert_time_from_drs_id(time_value: str) -> str:
         time_value_lookup = {'mon': 'month', 'month': 'month', 'yr': 'year', 'year': 'year', 'day': 'day',
-                             'satellite-orbit-frequency': 'satellite-orbit-frequency', 'climatology': 'climatology'}
+                             'satellite-orbit-frequency': 'satellite-orbit-frequency', 'climatology': 'climatology',
+                             'unspecified': 'unspecified'}
         if time_value in time_value_lookup:
             return time_value_lookup[time_value]
         if re.match('[0-9]+-[days|yrs]', time_value):
             split_time_value = time_value.split('-')
             return f'{split_time_value[0]} {split_time_value[1].replace("yrs", "years")}'
-        raise ValueError('Unknown time frequency format')
+        raise ValueError(f'Unknown time frequency format: {time_value}')
 
     def _adjust_json_dict_for_param(self, json_dict: dict, single_name: str, list_name: str, param_value: str):
         json_dict[single_name] = param_value

@@ -58,6 +58,9 @@ class WorkspaceManager(metaclass=ABCMeta):
     def resolve_path(self, path: str) -> str:
         pass
 
+    # TODO (forman): remove me! this method exists, because new_workspace() and save_workspace_as() take names
+    #  instead of paths. Better to add flags to new_workspace() and save_workspace_as() to indicate
+    #  they are not paths, but just names which will be relative to default "~/workspaces" location.
     @abstractmethod
     def resolve_workspace_dir(self, path_or_name: str) -> str:
         pass
