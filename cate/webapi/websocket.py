@@ -270,7 +270,8 @@ class WebSocketService:
     # see cate-desktop: src/renderer.states.WorkspaceState
     def open_workspace(self, base_dir: str, monitor: Monitor) -> dict:
         base_dir = self._resolve_workspace_dir(base_dir)
-        workspace = self.workspace_manager.open_workspace(base_dir, monitor=monitor)
+        with cwd(base_dir):
+            workspace = self.workspace_manager.open_workspace(base_dir, monitor=monitor)
         return self._serialize_workspace(workspace)
 
     # see cate-desktop: src/renderer.states.WorkspaceState
