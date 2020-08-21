@@ -1,4 +1,5 @@
 ## Version 2.1.0
+
 * Fixed DataAccessError in ODP Legacy Store [#924](https://github.com/CCI-Tools/cate/issues/924)
 * Renamed legacy id's prefix from `esacci` to `cciold`
 * Exchanged Cate's countries GeoJSON, by three new maps from https://www.naturalearthdata.com
