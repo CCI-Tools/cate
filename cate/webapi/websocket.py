@@ -400,7 +400,7 @@ class WebSocketService:
         return dict(min=actual_min, max=actual_max)
 
     def set_preferences(self, prefs: dict):
-        return set_user_prefs(prefs)
+        set_user_prefs(prefs)
 
     def get_preferences(self) -> dict:
         return get_user_prefs()

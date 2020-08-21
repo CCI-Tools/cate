@@ -106,8 +106,6 @@ def set_user_prefs(prefs: dict, user_prefs_file: str = None):
         _prefs.update(prefs)
         _write_user_prefs_file(user_prefs_file, _prefs)
 
-    return get_user_prefs(user_prefs_file)
-
 
 def get_user_prefs(user_prefs_file: str = None) -> dict:
     if not user_prefs_file:
