@@ -39,7 +39,6 @@ from ..conf import conf
 from ..conf.defaults import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, DEFAULT_SCRATCH_WORKSPACES_PATH
 from ..core.cdm import get_tiling_scheme
 from ..core.op import OP_REGISTRY
-#from ..core.pathmanag import PathManager
 from ..core.types import GeoDataFrame, ValidationError
 from ..util.im import get_chunk_size
 from ..util.misc import object_to_qualified_name, to_json, new_indexed_name, to_scalar
@@ -374,10 +373,10 @@ class Workspace:
         variable_descriptors = []
         num_features = len(features)
         num_properties = 0
-        properties = features.schema.get('properties')
-        if properties:
-            num_properties = len(properties)
-            for var_name, var_type in properties.items():
+        schema_properties = features.schema.get('properties')
+        if schema_properties and isinstance(schema_properties, dict):
+            num_properties = len(schema_properties)
+            for var_name, var_type in schema_properties.items():
                 variable_descriptors.append({
                     'name': var_name,
                     'dataType': var_type,
@@ -387,11 +386,13 @@ class Workspace:
         if num_features == 1 and len(variable_descriptors) >= 1:
             # For single rows we can provide feature values directly, given they are scalars
             feature = list(features)[0]
-            if feature.properties:
-                for var_name, var_value in feature.properties.items():
-                    scalar_value = _to_json_scalar_value(var_value)
-                    if scalar_value is not UNDEFINED:
-                        variable_descriptors[0]['value'] = scalar_value
+            if isinstance(feature, dict) and 'properties' in feature:
+                feature_properties = feature['properties']
+                if isinstance(feature_properties, dict):
+                    for var_name, var_value in feature_properties.items():
+                        scalar_value = _to_json_scalar_value(var_value)
+                        if scalar_value is not UNDEFINED:
+                            variable_descriptors[0]['value'] = scalar_value
 
         geom_type = features.schema.get('geometry')
 
