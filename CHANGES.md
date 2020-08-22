@@ -1,5 +1,8 @@
 ## Version 2.1.1 (in development)
 
+* Fixed a problem that prevented reopening workspaces using 
+  the Web API when they referenced external files. #930
+
 ## Version 2.1.0
 
 * Fixed DataAccessError in ODP Legacy Store [#924](https://github.com/CCI-Tools/cate/issues/924)
