@@ -1,7 +1,10 @@
 ## Version 2.1.1 (in development)
 
+* Fixed a problem that prevented opening GeoJSON files
+  in a workspace. #933
 * Fixed a problem that prevented reopening workspaces using 
   the Web API when they referenced external files. #930
+ 
 
 ## Version 2.1.0
 
