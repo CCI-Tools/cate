@@ -32,10 +32,10 @@ class EsaCciOdpOsTest(unittest.TestCase):
         self.assertEqual(14417751, file_list[0][3])
         self.assertEqual(2, len(file_list[0][4]))
         self.assertTrue("Download" in file_list[0][4])
-        self.assertEqual('http://cci-odp-data2.ceda.ac.uk/thredds/fileServer/esacci/ozone/data/nadir_profiles/l3/'
+        self.assertEqual('http://data.cci.ceda.ac.uk/thredds/fileServer/esacci/ozone/data/nadir_profiles/l3/'
                          'merged/v0002/1997/ESACCI-OZONE-L3-NP-MERGED-KNMI-199701-fv0002.nc',
                          file_list[0][4].get("Download"))
-        self.assertEqual('http://cci-odp-data2.ceda.ac.uk/thredds/dodsC/esacci/ozone/data/nadir_profiles/l3/merged/'
+        self.assertEqual('http://data.cci.ceda.ac.uk/thredds/dodsC/esacci/ozone/data/nadir_profiles/l3/merged/'
                          'v0002/1997/ESACCI-OZONE-L3-NP-MERGED-KNMI-199701-fv0002.nc',
                          file_list[0][4].get("Opendap"))
 
@@ -109,27 +109,6 @@ class EsaCciOdpOsTest(unittest.TestCase):
         json_obj = asyncio.run(_extract_metadata_from_descxml_url(None, desc_url))
         self.assertIsNotNone(json_obj)
         self.assertEqual(0, len(json_obj.keys()))
-
-    @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
-    def test_retrieve_dimensions_from_dds_url(self):
-        dds_url = "http://dap.ceda.ac.uk/thredds/dodsC/dap//neodc/esacci/soil_moisture/data/daily_files/" \
-                  "COMBINED/v04.4/1986/ESACCI-SOILMOISTURE-L3S-SSMV-COMBINED-19861125000000-fv04.4.nc.dds"
-        response = urllib.request.urlopen(dds_url)
-        dimensions, variable_infos = _retrieve_infos_from_dds(response.readlines())
-        self.assertEqual(3, len(dimensions))
-        self.assertTrue('lat' in dimensions)
-        self.assertEqual(720, dimensions['lat'])
-        self.assertTrue('lon' in dimensions)
-        self.assertEqual(1440, dimensions['lon'])
-        self.assertTrue('time' in dimensions)
-        self.assertEqual(1, dimensions['time'])
-        self.assertEqual(11, len(variable_infos))
-        self.assertTrue('freqbandID' in variable_infos)
-        self.assertEqual('Int16', variable_infos['freqbandID']['data_type'])
-        self.assertEqual(3, len(variable_infos['freqbandID']['dimensions']))
-        self.assertTrue('time' in variable_infos['freqbandID']['dimensions'])
-        self.assertTrue('lat' in variable_infos['freqbandID']['dimensions'])
-        self.assertTrue('lon' in variable_infos['freqbandID']['dimensions'])
 
     def test_retrieve_dimensions_from_dds(self):
         dds_file = os.path.join(os.path.dirname(__file__),
@@ -237,12 +216,14 @@ def _create_test_data_store():
     with open(os.path.join(os.path.dirname(__file__), 'resources/os-data-list.json')) as fp:
         json_text = fp.read()
     json_dict = json.loads(json_text)
+    with open(os.path.join(os.path.dirname(__file__), 'resources/drs_ids.txt')) as fp:
+        drs_ids = fp.read().split('\n')
     for d in DATA_STORE_REGISTRY.get_data_stores():
         d.get_updates(reset=True)
     metadata_path = os.path.join(os.path.dirname(__file__), 'resources/datasources/metadata')
     # The EsaCciOdpDataStore created with an initial json_dict and a metadata dir avoids fetching from remote
     data_store = EsaCciOdpDataStore('test-odp', index_cache_json_dict=json_dict, index_cache_update_tag='test1',
-                                    meta_data_store_path=metadata_path)
+                                    meta_data_store_path=metadata_path, drs_ids=drs_ids)
     DATA_STORE_REGISTRY.add_data_store(data_store)
     return data_store
 
