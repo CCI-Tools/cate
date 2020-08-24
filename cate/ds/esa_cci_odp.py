@@ -42,14 +42,16 @@ import contextlib
 import aiofiles
 import aiohttp
 import asyncio
-import itertools
 import json
 import logging
 import os
+import random
 import re
 import socket
+import time
 import urllib.parse
 import urllib.request
+import warnings
 from collections import OrderedDict
 from datetime import datetime, timedelta
 import lxml.etree as etree
@@ -87,6 +89,10 @@ DESC_NS = {'gmd': 'http://www.isotc211.org/2005/gmd',
            'gmx': 'http://www.isotc211.org/2005/gmx',
            'xlink': 'http://www.w3.org/1999/xlink'
            }
+
+_NUM_RETRIES = 200
+_RETRY_BACKOFF_MAX = 40
+_RETRY_BACKOFF_BASE = 1.001
 
 _TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
@@ -151,8 +157,9 @@ async def _extract_metadata_from_odd_url(session=None, odd_url: str = None) -> d
         session = aiohttp.ClientSession()
     if not odd_url:
         return {}
-    resp = await session.request(method='GET', url=odd_url)
-    resp.raise_for_status()
+    resp = await get_response(session, odd_url)
+    if not resp:
+        return {}
     xml_text = await resp.read()
     return _extract_metadata_from_odd(etree.XML(xml_text))
 
@@ -192,8 +199,9 @@ async def _extract_metadata_from_descxml_url(session=None, descxml_url: str = No
         session = aiohttp.ClientSession()
     if not descxml_url:
         return {}
-    resp = await session.request(method='GET', url=descxml_url)
-    resp.raise_for_status()
+    resp = await get_response(session, descxml_url)
+    if not resp:
+        return {}
     content = await resp.read()
     try:
         descxml = etree.XML(content)
@@ -278,19 +286,45 @@ def _get_linked_content_from_descxml_elem(descxml: etree.XML, paths: List[str]) 
             return _get_element_content(descxml_elem, paths[2])
 
 
+async def get_response(session: aiohttp.ClientSession, url: str) -> Optional[aiohttp.ClientResponse]:
+    response = None
+    retry_backoff_max = _RETRY_BACKOFF_MAX
+    for i in range(_NUM_RETRIES):
+        resp = await session.request(method='GET', url=url)
+        if resp.status == 200:
+            return resp
+        elif 500 <= resp.status < 600:
+            # Retry (immediately) on 5xx errors
+            continue
+        elif resp.status == 429:
+            # Retry after 'Retry-After' with exponential backoff
+            retry_min = int(response.headers.get('Retry-After', '100'))
+            retry_backoff = random.random() * retry_backoff_max
+            retry_total = retry_min + retry_backoff
+            retry_message = f'Error 429: Too Many Requests. ' \
+                            f'Attempt {i + 1} of {_NUM_RETRIES} to retry after ' \
+                            f'{"%.2f" % retry_min} + {"%.2f" % retry_backoff} = {"%.2f" % retry_total} ms...'
+            warnings.warn(retry_message)
+            time.sleep(retry_total / 1000.0)
+            retry_backoff_max *= _RETRY_BACKOFF_BASE
+        else:
+            break
+    return None
+
+
 async def _fetch_feature_at(session, base_url, query_args, index) -> Optional[Dict]:
     paging_query_args = dict(query_args or {})
     maximum_records = 1
     paging_query_args.update(startPage=index, maximumRecords=maximum_records, httpAccept='application/geo+json',
                              fileFormat='.nc')
     url = base_url + '?' + urllib.parse.urlencode(paging_query_args)
-    resp = await session.request(method='GET', url=url)
-    resp.raise_for_status()
-    json_text = await resp.read()
-    json_dict = json.loads(json_text.decode('utf-8'))
-    feature_list = json_dict.get("features", [])
-    if len(feature_list) > 0:
-        return feature_list[0]
+    resp = await get_response(session, url)
+    if resp:
+        json_text = await resp.read()
+        json_dict = json.loads(json_text.decode('utf-8'))
+        feature_list = json_dict.get("features", [])
+        if len(feature_list) > 0:
+            return feature_list[0]
     return None
 
 
@@ -304,21 +338,23 @@ async def _fetch_opensearch_feature_list(base_url, query_args, monitor: Monitor 
     full_feature_list = []
     with monitor.starting("Loading", 10):
         async with aiohttp.ClientSession() as session:
-            # todo remove this when the opensearch server provides results of more than 10,000 features
-            while start_page < 11:
+            while True:
                 monitor.progress(work=1)
                 paging_query_args = dict(query_args or {})
                 paging_query_args.update(startPage=start_page, maximumRecords=maximum_records,
                                          httpAccept='application/geo+json')
                 url = base_url + '?' + urllib.parse.urlencode(paging_query_args)
-                resp = await session.request(method='GET', url=url)
-                resp.raise_for_status()
-                json_text = await resp.read()
-                json_dict = json.loads(json_text.decode('utf-8'))
-                feature_list = json_dict.get("features", [])
-                full_feature_list.extend(feature_list)
-                if len(feature_list) < maximum_records:
-                    break
+                resp = await get_response(session, url)
+                if resp:
+                    json_text = await resp.read()
+                    try:
+                        json_dict = json.loads(json_text.decode('utf-8'))
+                        feature_list = json_dict.get("features", [])
+                        full_feature_list.extend(feature_list)
+                        if len(feature_list) < maximum_records:
+                            break
+                    except json.decoder.JSONDecodeError:
+                        print(json_text)
                 start_page += 1
     return full_feature_list
 
