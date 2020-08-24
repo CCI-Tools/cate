@@ -23,10 +23,12 @@ import itertools
 import json
 import os.path
 from abc import ABCMeta
+from typing import List, Optional
 
 import fiona
 import geopandas as gpd
 import pandas as pd
+import pandas.api.types
 import xarray as xr
 
 from cate.core.ds import get_spatial_ext_chunk_sizes
@@ -229,6 +231,7 @@ def write_json(obj: object, file: str, encoding: str = None, indent: str = None)
 @op_input('quotechar', nullable=True)
 @op_input('comment', nullable=True)
 @op_input('index_col', nullable=True)
+@op_input('parse_points', nullable=True)
 @op_input('more_args', nullable=True, data_type=DictLike)
 def read_csv(file: FileLike.TYPE,
              delimiter: str = ',',
@@ -236,6 +239,7 @@ def read_csv(file: FileLike.TYPE,
              quotechar: str = None,
              comment: str = None,
              index_col: str = None,
+             parse_points: bool = True,
              more_args: DictLike.TYPE = None) -> pd.DataFrame:
     """
     Read comma-separated values (CSV) from plain text file into a Pandas DataFrame.
@@ -250,6 +254,9 @@ def read_csv(file: FileLike.TYPE,
            If found at the beginning of a line, the line will be ignored altogether.
            This parameter must be a single character.
     :param index_col: The name of the column that provides unique identifiers
+    :param parse_points: If set and if longitude and latitude columns are present,
+           generate a column "geometry" comprising spatial points. Result is a GeoPandas
+           GeoDataFrame in this case.
     :param more_args: Other optional keyword arguments.
            Please refer to Pandas documentation of ``pandas.read_csv()`` function.
     :return: The DataFrame object.
@@ -277,6 +284,24 @@ def read_csv(file: FileLike.TYPE,
     except Exception:
         # We still want to use the data
         pass
+
+    if parse_points:
+        col_names: List[str] = list(data_frame.columns)
+        col_names_lc: List[str] = list(map(lambda n: n.lower(), col_names))
+
+        def col_ok(name: str) -> Optional[str]:
+            name_lc = name.lower()
+            if name_lc in col_names_lc:
+                i = col_names_lc.index(name_lc)
+                col_name = col_names[i]
+                return col_name if pandas.api.types.is_numeric_dtype(data_frame[col_name].dtype) else None
+            return None
+
+        lon_name = col_ok('lon') or col_ok('long') or col_ok('longitude')
+        lat_name = col_ok('lat') or col_ok('latitude')
+        if lon_name and lat_name:
+            data_frame = gpd.GeoDataFrame(data_frame,
+                                          geometry=gpd.points_from_xy(data_frame[lon_name], data_frame[lat_name]))
 
     return data_frame
 
