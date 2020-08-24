@@ -566,16 +566,19 @@ class EsaCciOdpDataStore(DataStore):
                  index_cache_expiration_days: float = 1.0,
                  index_cache_json_dict: dict = None,
                  index_cache_update_tag: str = None,
-                 meta_data_store_path: str = get_metadata_store_path()
+                 meta_data_store_path: str = get_metadata_store_path(),
+                 drs_ids:List[str] = None
                  ):
         super().__init__(id, title=title, is_local=False)
+        if drs_ids is None:
+            drs_ids = []
         self._index_cache_used = index_cache_used
         self._index_cache_expiration_days = index_cache_expiration_days
         self._catalogue = index_cache_json_dict
         self._index_cache_update_tag = index_cache_update_tag
         self._metadata_store_path = meta_data_store_path
+        self._drs_ids = drs_ids
         self._data_sources = []
-        self._drs_ids = []
 
     @property
     def description(self) -> Optional[str]:
