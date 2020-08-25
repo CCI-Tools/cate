@@ -52,52 +52,14 @@ If you want the environment to be installed in another location, e.g. due to dis
 
     $ conda env create --prefix some/other/location/for/cate
 
-Next step is to activate the new environment. On Linux/Darwin type:
+Next step is to activate the new environment. 
 
-    $ source activate cate-env
-
-In case you used another location use it instead of the name `cate`.
-Windows users can omit the `source` command and just type
-
-    > activate cate-env
+    $ conda activate cate-env
 
 You can now safely install Cate sources into the new `cate-env` environment.
     
     (cate-env) $ python setup.py install
     
-### Using Standard Python 
-
-If you run it with the [standard CPython](https://www.python.org/downloads/) installation,
-make sure you use a 64-bit version. Cate relies on new Python language features and therefore 
-requires Python 3.6+.
-
-Cate can be run from sources directly, once the following module requirements are resolved:
-
-* `cartopy`
-* `dask`
-* `fiona`
-* `geopandas`
-* `jdcal`
-* `matplotlib`
-* `netcdf4`
-* `numba`
-* `numpy`
-* `pillow`
-* `pyqt`
-* `scipy`
-* `tornado`
-* `xarray`
-
-The most up-to-date list of module requirements is found in the project's `environment.yml` file.
-
-To install Cate into an existing Python 3.6+ environment just for the current user, use
-
-    $ python3 setup.py install --user
-    
-To install Cate for development and for the current user, use
-
-    $ python3 setup.py develop --user
-
 ## Getting started
 
 To test the installation, first run the Cate command-line interface. Type
@@ -114,6 +76,28 @@ To use them interactively, you'll need to install Jupyter and run its Notebook a
 
 Open the `notebooks` folder and select a use case.
 
+## Running Cate App in Stand-Alone mode
+
+To run the the graphical user interface [Cate App](https://github.com/CCI-Tools/cate-webui) in 
+stand-alone mode you'll need to start a _Cate Web API service_. To do so, first install the `cate` 
+Python package as described above. Then Cate Web API service is started from the command-line. 
+To run the service on port 9090 on your local computer, type:
+
+    $ cate-webapi-start --port 9090 
+
+Then open Cate App in a browser and enter the URL `http://localhost:9090`. Press the
+"Cate Stand-Alone Mode" button above. This will launch the Cate App in stand-alone mode.
+If you wish to run a service with limited file system access (sandboxed), 
+you can specify the `root` option that defines a new file system root:
+
+    $ cate-webapi-start --port 9090 --root /home/fritz
+
+Use CTRL+C or the command
+
+    $ cate-webapi-stop --port 9090
+
+to stop the service.    
+    
 ## Conda Deployment
 
 There is a dedicated repository [cate-conda](https://github.com/CCI-Tools/cate-conda)
