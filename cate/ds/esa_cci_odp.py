@@ -64,7 +64,7 @@ import xarray as xr
 from cate.conf import get_config_value, get_data_stores_path
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, NetworkError, DataStore, DataSource, Schema, open_xarray_dataset, \
-    DataStoreNotice
+    DataStoreNotice, DataAccessError, DataAccessWarning
 from cate.core.opimpl import subset_spatial_impl, normalize_impl, adjust_spatial_attrs_impl
 from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, VarNamesLike
 from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
@@ -304,11 +304,12 @@ async def get_response(session: aiohttp.ClientSession, url: str) -> Optional[aio
             retry_message = f'Error 429: Too Many Requests. ' \
                             f'Attempt {i + 1} of {_NUM_RETRIES} to retry after ' \
                             f'{"%.2f" % retry_min} + {"%.2f" % retry_backoff} = {"%.2f" % retry_total} ms...'
-            warnings.warn(retry_message)
+            warnings.warn(retry_message, DataAccessWarning)
             time.sleep(retry_total / 1000.0)
             retry_backoff_max *= _RETRY_BACKOFF_BASE
         else:
             break
+    warnings.warn(f'Request for {url} failed with status {resp.status}: {resp.reason}', DataAccessWarning)
     return None
 
 
@@ -423,7 +424,7 @@ async def _load_or_fetch_json(fetch_json_function,
         try:
             # noinspection PyArgumentList
             json_obj = await fetch_json_function(*(fetch_json_args or []), **(fetch_json_kwargs or {}))
-            if cache_used:
+            if cache_used and len(json_obj) > 0:
                 os.makedirs(cache_dir, exist_ok=True)
                 # noinspection PyUnboundLocalVariable
                 async with aiofiles.open(cache_json_file, "w") as fp:
@@ -466,9 +467,6 @@ async def _fetch_data_source_list_json(base_url, query_args, monitor: Monitor = 
                 metadata_url = described_by[0].get("href", None)
                 if metadata_url:
                     catalogue[fc_id]['metadata_url'] = metadata_url
-            # todo consider including this at time of data store reading
-            # catalogue[data_source_id]['metadata'] = await _fetch_meta_info(fc_id, odd_url, metadata_url, variables,
-            # False)
         _LOG.info(f'Read meta info from {fc_id}')
     return catalogue
 
@@ -486,13 +484,12 @@ def _get_variables_from_feature(feature: dict) -> List:
     return variable_dicts
 
 
-async def _get_infos_from_feature(session, feature: dict) -> tuple:
+async def _get_infos_from_feature(session, feature: dict, dataset_id: str) -> tuple:
     feature_info = _extract_feature_info(feature)
     opendap_dds_url = f"{feature_info[4]['Opendap']}.dds"
-    resp = await session.request(method='GET', url=opendap_dds_url)
-    if resp.status >= 400:
-        resp.release()
-        _LOG.warning(f"Could not open {opendap_dds_url}: {resp.status}")
+    resp = await get_response(session, opendap_dds_url)
+    if not resp:
+        warnings.warn(f'Could not derive info about dimensions for {dataset_id}', DataAccessWarning)
         return {}, {}
     content = await resp.read()
     return _retrieve_infos_from_dds(str(content, 'utf-8').split('\n'))
@@ -538,8 +535,10 @@ async def _fetch_meta_info(dataset_id: str, odd_url: str, metadata_url: str, var
         meta_info_dict['variable_infos'] = {}
         if read_dimensions and len(variables) > 0:
             feature = await _fetch_feature_at(session, _OPENSEARCH_CEDA_URL, dict(parentIdentifier=dataset_id), 1)
-            if feature is not None:
-                feature_dimensions, feature_variable_infos = await _get_infos_from_feature(session, feature)
+            if feature is None:
+                _LOG.info(f'Could not derive info about dimensions for {dataset_id}')
+            else:
+                feature_dimensions, feature_variable_infos = await _get_infos_from_feature(session, feature, dataset_id)
                 meta_info_dict['dimensions'] = feature_dimensions
                 meta_info_dict['variable_infos'] = feature_variable_infos
         _harmonize_info_field_names(meta_info_dict, 'file_format', 'file_formats')
@@ -748,6 +747,9 @@ class EsaCciOdpDataStore(DataStore):
 
     async def _fetch_dataset_names(self, session):
         meta_info_dict = await _extract_metadata_from_odd_url(session, _OPENSEARCH_CEDA_ODD_URL)
+        drs_ids = meta_info_dict.get('drs_ids', None)
+        if not drs_ids:
+            raise DataAccessError('Could not read names of datasets of ODP Store')
         if 'drs_ids' in meta_info_dict:
             return meta_info_dict['drs_ids']
 
@@ -1412,26 +1414,7 @@ class EsaCciOdpDataSource(DataSource):
         else:
             return None
 
-    async def ensure_meta_info_set(self):
-        if self._json_dict:
-            return
-        # todo set True when dimensions shall be read during meta data fetching
-        self._json_dict = await _load_or_fetch_json(_fetch_meta_info,
-                                                    fetch_json_args=[self._raw_id,
-                                                                     self._json_dict['odd_url'],
-                                                                     self._json_dict['metadata_url'],
-                                                                     self._json_dict['variables'],
-                                                                     # True],
-                                                                     False],
-                                                    fetch_json_kwargs=dict(),
-                                                    cache_used=self._data_store.index_cache_used,
-                                                    cache_dir=self.local_metadata_dataset_dir(),
-                                                    cache_json_filename='meta-info.json',
-                                                    cache_timestamp_filename='meta-info-timestamp.txt',
-                                                    cache_expiration_days=self._data_store.index_cache_expiration_days)
-
     async def _init_file_list(self, monitor: Monitor = Monitor.NONE):
-        await self.ensure_meta_info_set()
         if self._file_list:
             return
         file_list = await _load_or_fetch_json(_fetch_file_list_json,
