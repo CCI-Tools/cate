@@ -73,6 +73,18 @@ class TestIO(TestCase):
 
         self.assertEqual(file_in.getvalue(), raw_data)
 
+    def test_read_csv_as_geo_data_frame(self):
+        raw_data = "lat,lon,time,value,name\n" + \
+                   "50.0,10.2,2020-02-08T11:40:53Z,234.3,Loc 1\n" + \
+                   "52.5,11.2,2020-02-08T11:41:27Z,165.0,Loc 2\n" + \
+                   "51.3,12.1,2020-02-08T11:42:12Z,198.4,Loc 3\n" + \
+                   "53.9,10.8,2020-02-08T11:43:26Z,210.5,Loc 4"
+
+        df = read_csv(StringIO(raw_data))
+
+        self.assertIsInstance(df, gpd.GeoDataFrame)
+        self.assertIn('geometry', df)
+
     def test_read_geo_data_frame(self):
         file = os.path.join(os.path.dirname(__file__), '..', '..', 'cate', 'ds', 'data', 'countries',
                             'countries-110m.geojson')

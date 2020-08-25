@@ -1,5 +1,7 @@
 ## Version 2.1.1 (in development)
 
+* Spatial points are now parsed from CSV files when using the `read_csv()`operation.
+  This is an option which can be disabled. #935
 * Fixed a problem that prevented opening GeoJSON files
   in a workspace. #933
 * Fixed a problem that prevented reopening workspaces using 
