@@ -86,7 +86,7 @@ To run the service on port 9090 on your local computer, type:
     $ cate-webapi-start --port 9090 
 
 Then open Cate App in a browser and enter the URL `http://localhost:9090`. Press the
-"Cate Stand-Alone Service" button above. This will launch the Cate App in stand-alone mode. 
+"Cate Stand-Alone Mode" button above. This will launch the Cate App in stand-alone mode. 
 
 Use CTRL+C or the command
 
