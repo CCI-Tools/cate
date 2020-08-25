@@ -1,6 +1,6 @@
 ## Version 2.1.1 (in development)
 
-* Prevent 500 Errors when using the ODP Data Store. #937
+* Prevent HTTP 500 errors when using the ODP Data Store. #937
 * Fixed a problem that prevented opening GeoJSON files
   in a workspace. #933
 * Fixed a problem that prevented reopening workspaces using 
