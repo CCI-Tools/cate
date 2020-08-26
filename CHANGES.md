@@ -1,4 +1,4 @@
-## Version 2.1.1 (in development)
+## Version 2.1.1
 
 * Prevent HTTP 500 errors when using the ODP Data Store. #937
 * Spatial points are now parsed from CSV files when using the `read_csv()`operation.

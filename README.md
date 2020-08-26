@@ -60,6 +60,17 @@ You can now safely install Cate sources into the new `cate-env` environment.
     
     (cate-env) $ python setup.py install
     
+## Using Docker
+
+You can also use pre-build Docker images that contain a Python environment with the 
+`cate` package already installed. The images are `quay.io/bcdev/cate:<version>`. E.g. 
+
+    $ docker run -d -v ${my_local_dir}:/home/cate quay.io/bcdev/cate:2.1.1 bash
+    (cate-env) $ cate -h  
+
+where `${my_local_dir}` refers to any directory on your computer that you may want to access from 
+within the running Docker container. 
+
 ## Getting started
 
 To test the installation, first run the Cate command-line interface. Type
@@ -91,12 +102,17 @@ If you wish to run a service with limited file system access (sandboxed),
 you can specify the `root` option that defines a new file system root:
 
     $ cate-webapi-start --port 9090 --root /home/fritz
-
+    
 Use CTRL+C or the command
 
     $ cate-webapi-stop --port 9090
 
-to stop the service.    
+to stop the service.
+
+To run the service from the docker image, type:
+
+    $ docker run -it -v ${my_local_dir}:/home/cate -p 9090:4000 quay.io/bcdev/cate:2.1.1 bash
+    (cate-env) $ cate-webapi-start --port 4000 --root ${my_local_dir}    
     
 ## Conda Deployment
 
