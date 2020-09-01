@@ -150,22 +150,32 @@ class WebSocketService:
         data_store = DATA_STORE_REGISTRY.get_data_store(data_store_id)
         if data_store is None:
             raise ValueError('Unknown data store: "%s"' % data_store_id)
-        data_sources = data_store.query(monitor=monitor)
-        if data_store_id == 'esa_cci_odp':
-            # Filter ESA Open Data Portal data sources
-            data_source_dict = {ds.id: ds for ds in data_sources}
-            # noinspection PyTypeChecker
-            includes = conf.get_config_value('included_ds_ids', default=None)
-            excludes = conf.get_config_value('excluded_ds_ids', default=None)
-            data_source_ids = filter_fileset(list(data_source_dict.keys()),
-                                             includes=includes,
-                                             excludes=excludes)
-            data_sources = [data_source_dict[ds_id] for ds_id in data_source_ids]
+        data_ids = list(data_store.get_data_ids())
+        data_sources = []
+        for data_id in data_ids:
+            data_sources.append(
+                dict(
+                    id=data_id[0],
+                    title=data_id[1],
+                    meta_info={}
+            ))
+        return data_sources
 
-        data_sources = sorted(data_sources, key=lambda ds: ds.title or ds.id)
-        return [dict(id=data_source.id,
-                     title=data_source.title,
-                     meta_info=data_source.meta_info) for data_source in data_sources]
+    def get_data_source_meta_info(self, data_store_id: str, data_source_id: str, monitor: Monitor) \
+            -> Dict[str, Any]:
+        """
+        Get the temporal coverage of the data source.
+
+        :param data_store_id: ID of the data store
+        :param data_source_id: ID of the data source
+        :param monitor: a progress monitor
+        :return: JSON-serializable list of data sources, sorted by name.
+        """
+        data_store = DATA_STORE_REGISTRY.get_data_store(data_store_id)
+        if data_store is None:
+            raise ValueError('Unknown data store: "%s"' % data_store_id)
+        data_source_descriptor = data_store.describe_data(data_source_id)
+        return data_source_descriptor.attrs
 
     def get_data_source_temporal_coverage(self, data_store_id: str, data_source_id: str, monitor: Monitor) \
             -> Dict[str, Any]:
@@ -180,17 +190,13 @@ class WebSocketService:
         data_store = DATA_STORE_REGISTRY.get_data_store(data_store_id)
         if data_store is None:
             raise ValueError('Unknown data store: "%s"' % data_store_id)
-        data_sources = data_store.query(ds_id=data_source_id)
-        if not data_sources:
-            raise ValueError('data source "%s" not found' % data_source_id)
-        data_source = data_sources[0]
-        temporal_coverage = data_source.temporal_coverage(monitor=monitor)
+        data_source_descriptor = data_store.describe_data(data_source_id)
+        temporal_coverage = data_source_descriptor.time_range
         meta_info = OrderedDict()
         if temporal_coverage:
             start, end = temporal_coverage
             meta_info['temporal_coverage_start'] = start.strftime('%Y-%m-%d')
             meta_info['temporal_coverage_end'] = end.strftime('%Y-%m-%d')
-        # TODO mz add available data information
         return meta_info
 
     def add_local_data_source(self, data_source_id: str, file_path_pattern: str, monitor: Monitor):
