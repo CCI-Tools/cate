@@ -42,18 +42,29 @@ Components
 
 def cate_init():
     # Plugin initializer.
-    # Sets the default data store.
+    from cate.ds.local import get_data_store_path
+    from cate.core.ds import DATA_STORE_REGISTRY
+    from cate.core.ds import XcubeDataStore
 
-    from .esa_cci_odp import set_default_data_store
-    set_default_data_store()
+    store_configs = {
+        "local-store": {
+            "store_id": "directory",
+            "store_params": {
+                "base_dir": f"{get_data_store_path()}",
+            }
+        },
+        "cci-store": {
+            "store_id": "cciodp"
+        },
+        "cds-store": {
+            "store_id": "cds"
+        }
+    }
 
-    # from .esa_cci_ftp import set_default_data_store
-    import os
-    import distutils.util
-    if bool(distutils.util.strtobool(os.environ.get('USE_ODP_LEGACY_DATA_STORE', 'True'))):
-        bool(distutils.util.strtobool('0'))
-        from .esa_cci_odp_legacy import add_data_store
-        add_data_store()
-
-    from .local import add_to_data_store_registry
-    add_to_data_store_registry()
+    for store_id in store_configs:
+        DATA_STORE_REGISTRY.add_data_store(
+            XcubeDataStore(
+                store_configs[store_id],
+                store_id
+            )
+        )
