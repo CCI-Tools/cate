@@ -85,9 +85,12 @@ import logging
 import re
 from abc import ABCMeta, abstractmethod
 from enum import Enum
-from typing import Sequence, Optional, Union, Any, Dict, Set, List
+from typing import Sequence, Optional, Union, Any, Dict, Set, List, Tuple, Iterator
 
 import xarray as xr
+
+import xcube.core.store as xcube_store
+import xcube.util.extension as xcube_extension
 
 from .cdm import Schema, get_lon_dim_name, get_lat_dim_name
 from .opimpl import normalize_missing_time, normalize_coord_vars, normalize_impl, subset_spatial_impl
@@ -518,6 +521,68 @@ class DataStore(metaclass=ABCMeta):
     @abstractmethod
     def _repr_html_(self):
         """Provide an HTML representation of this object for IPython."""
+
+
+class XcubeDataStore(DataStore):
+
+    def __init__(self, store_config: dict, ds_id: str):
+
+        store_id = store_config.get('store_id', '')
+
+        def predicate(extension: xcube_extension.Extension):
+            return store_id == extension.name
+
+        extensions = xcube_store.find_data_store_extensions(predicate=predicate)
+        if not extensions:
+            raise ValueError(f'Could not find data store {store_id}')
+
+        store_extension = extensions[0]
+
+        notices = store_extension.metadata.get('notices', [])
+        self._data_store_notices = []
+        for notice in notices:
+            self._data_store_notices.append(DataStoreNotice(notice[0], notice[1], notice[2], notice[3], notice[4]))
+        self._description = store_extension.metadata.get('description', ''),
+        super().__init__(ds_id,
+                         store_extension.metadata.get('title', ''),
+                         store_extension.metadata.get('is_local', False)
+                         )
+        self._store_config = store_config
+        self._store = None
+
+    # noinspection PyTypeChecker
+    @property
+    def description(self) -> Optional[str]:
+        return self._description
+
+    @property
+    def notices(self) -> List[DataStoreNotice]:
+        return self._data_store_notices
+
+    def _get_store(self):
+        if not self._store:
+            store_params = self._store_config.get('store_params', {})
+            self._store = xcube_store.new_data_store(
+                data_store_id=self._store_config.get('store_id', ''),
+                extension_registry=None,
+                **store_params
+            )
+        return self._store
+
+    def get_data_ids(self) -> Iterator[Tuple[str, Optional[str]]]:
+        store = self._get_store()
+        return store.get_data_ids()
+
+    def describe_data(self, data_id: str) -> xcube_store.DataDescriptor:
+        store = self._get_store()
+        return store.describe_data(data_id)
+
+    def query(self, ds_id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence[DataSource]:
+        #TODO remove
+        pass
+
+    def _repr_html_(self):
+        return self.id
 
 
 class DataStoreRegistry:
