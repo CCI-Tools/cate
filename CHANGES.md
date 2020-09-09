@@ -7,7 +7,7 @@
   in a workspace. #933
 * Fixed a problem that prevented reopening workspaces using 
   the Web API when they referenced external files. #930
- 
+* Handle datasets with time format with tailing +00:00 #942
 
 ## Version 2.1.0
 
