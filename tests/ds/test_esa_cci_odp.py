@@ -659,8 +659,8 @@ class MakeLocalTest(unittest.TestCase):
 
 
 @unittest.skip(reason='Used for debugging to fix Cate issue #944')
-class TestUnsupportedOperandType(unittest.TestCase):
-    def test_OC_unconverted_time(self):
+class UnsupportedOperandTypeTest(unittest.TestCase):
+    def test_unsupported_operand_type_fix(self):
         data_store = EsaCciOdpDataStore()
         cci_dataset_collection = 'esacci.PERMAFROST.yr.L4.ALT.multi-sensor.multi-platform.MODIS.01-0.r1'
         data_source = data_store.query(cci_dataset_collection)[0]
