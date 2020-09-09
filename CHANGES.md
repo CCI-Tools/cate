@@ -1,5 +1,6 @@
 ## Version 2.1.1
 
+* Fixed problem with unsupported time format for permafrost datasets #944 
 * Prevent HTTP 500 errors when using the ODP Data Store. #937
 * Spatial points are now parsed from CSV files when using the `read_csv()`operation.
   This is an option which can be disabled. #935

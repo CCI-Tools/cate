@@ -656,3 +656,13 @@ class MakeLocalTest(unittest.TestCase):
         ds = data_source.make_local(random_string)
         self.assertIsNotNone(ds)
         local_data_store.remove_data_source(f"local.{random_string}")
+
+
+@unittest.skip(reason='Used for debugging to fix Cate issue #944')
+class TestUnsupportedOperandType(unittest.TestCase):
+    def test_OC_unconverted_time(self):
+        data_store = EsaCciOdpDataStore()
+        cci_dataset_collection = 'esacci.PERMAFROST.yr.L4.ALT.multi-sensor.multi-platform.MODIS.01-0.r1'
+        data_source = data_store.query(cci_dataset_collection)[0]
+        ds = data_source.open_dataset(time_range=['2010-01-01', '2011-01-30'], var_names=['ALT'])
+        self.assertIsNotNone(ds)
