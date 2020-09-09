@@ -578,8 +578,26 @@ class XcubeDataStore(DataStore):
         return store.describe_data(data_id)
 
     def query(self, ds_id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence[DataSource]:
-        #TODO remove
+        # TODO remove
         pass
+
+    def has_data(self, ds_id: str) -> bool:
+        store = self._get_store()
+        return store.has_data(ds_id)
+
+    def open_data(self, data_id: str, **open_params):
+        store = self._get_store()
+        return store.open_data(data_id, **open_params)
+
+    def write_data(self, data: Any, data_id: str = None, writer_id: str = None, replace: bool = False, **write_params):
+        store = self._get_store()
+        if not isinstance(store, xcube_store.MutableDataStore):
+            raise NotImplementedError(f'Store {self.id} is not mutable. No data can be written to this store.')
+        store.write_data(data=data,
+                         data_id=data_id,
+                         writer_id=writer_id,
+                         replace=replace,
+                         **write_params)
 
     def _repr_html_(self):
         return self.id
@@ -651,6 +669,29 @@ def find_data_sources_update(data_stores: Union[DataStore, Sequence[DataStore]] 
     return response
 
 
+def find_data_store(ds_id: str, data_stores: Union[DataStore, Sequence[DataStore]] = None) -> Optional[DataStore]:
+    """
+    Find the data store that includes the given *ds_id*.
+    This will raise an exception if the *ds_id* is given in more than one data store.
+
+    :param ds_id:  A data source identifier.
+    :param data_stores: If given these data stores will be queried. Otherwise all registered data stores will be used.
+    :return: All data sources matching the given constrains.
+    """
+    results = []
+    if data_stores is None:
+        data_store_list = DATA_STORE_REGISTRY.get_data_stores()
+    else:
+        data_store_list = data_stores
+    for data_store in data_store_list:
+        if data_store.has_data(ds_id):
+            results.append(data_store)
+    if len(results) > 1:
+        raise ValidationError(f'{len(results)} data sources found for the given ID {ds_id!r}')
+    if len(results) == 1:
+        return results[0]
+
+
 def find_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None,
                       ds_id: str = None,
                       query_expr: str = None) -> Sequence[DataSource]:
@@ -696,7 +737,7 @@ def find_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None,
     return results
 
 
-def open_dataset(data_source: Union[DataSource, str],
+def open_dataset(dataset_id: str,
                  time_range: TimeRangeLike.TYPE = None,
                  region: PolygonLike.TYPE = None,
                  var_names: VarNamesLike.TYPE = None,
@@ -706,8 +747,7 @@ def open_dataset(data_source: Union[DataSource, str],
     """
     Open a dataset from a data source.
 
-    :param data_source: A ``DataSource`` object or a string.
-           Strings are interpreted as the identifier of an ECV dataset and must not be empty.
+    :param dataset_id: The identifier of an ECV dataset. Must not be empty.
     :param time_range: An optional time constraint comprising start and end date.
            If given, it must be a :py:class:`TimeRangeLike`.
     :param region: An optional region constraint.
@@ -721,26 +761,37 @@ def open_dataset(data_source: Union[DataSource, str],
     :param monitor: A progress monitor
     :return: An new dataset instance
     """
-    if not data_source:
+    if not dataset_id:
         raise ValidationError('No data source given')
 
-    if isinstance(data_source, str):
-        data_store_list = list(DATA_STORE_REGISTRY.get_data_stores())
-        data_sources = find_data_sources(data_store_list, ds_id=data_source)
-        if len(data_sources) == 0:
-            raise ValidationError(f'No data sources found for the given ID {data_source!r}')
-        elif len(data_sources) > 1:
-            raise ValidationError(f'{len(data_sources)} data sources found for the given ID {data_source!r}')
-        data_source = data_sources[0]
+    data_store = find_data_store(ds_id=dataset_id)
+    if not data_store:
+        raise ValidationError(f'No data store found that contains the given ID {dataset_id}')
+
+    time_range = TimeRangeLike.convert(time_range) if time_range else None
+    var_names = VarNamesLike.convert(var_names) if var_names else None
+    bbox = PolygonLike.convert(region).bounds
+
+    dataset = data_store.open_data(data_id=dataset_id, variable_names=var_names,
+                                   time_range=[datetime.datetime.strftime(time_range[0], '%Y%m%d%H%M%S'),
+                                               datetime.datetime.strftime(time_range[1], '%Y%m%d%H%M%S')],
+                                   bbox=list(bbox))
 
     if force_local:
-        with monitor.starting('Opening dataset', 100):
-            data_source = data_source.make_local(local_name=local_ds_id if local_ds_id else "",
-                                                 time_range=time_range, region=region, var_names=var_names,
-                                                 monitor=monitor.child(80))
-            return data_source.open_dataset(time_range, region, var_names, monitor=monitor.child(20))
-    else:
-        return data_source.open_dataset(time_range, region, var_names, monitor=monitor)
+        dataset = make_local(data=dataset,
+                             local_name=local_ds_id)
+    return dataset
+
+
+def make_local(data: Any,
+               local_name: Optional[str] = None
+               ) -> Optional[DataSource]:
+    local_store = DATA_STORE_REGISTRY.get_data_store('local-store')
+    if not local_store:
+        raise ValueError('Cannot initialize `local` DataStore')
+
+    local_data_id = local_store.write_data(data=data, data_id=local_name)
+    return local_store.open_data(data_id=local_data_id)
 
 
 # noinspection PyUnresolvedReferences,PyProtectedMember

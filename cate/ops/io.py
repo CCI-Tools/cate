@@ -77,7 +77,7 @@ def open_dataset(ds_name: str = '',
     :return: An new dataset instance.
     """
     import cate.core.ds
-    ds = cate.core.ds.open_dataset(data_source=ds_id or ds_name,
+    ds = cate.core.ds.open_dataset(dataset_id=ds_id or ds_name,
                                    time_range=time_range,
                                    var_names=var_names,
                                    region=region,
