@@ -602,7 +602,7 @@ class EsaCciOdpDataStore(DataStore):
                  index_cache_json_dict: dict = None,
                  index_cache_update_tag: str = None,
                  meta_data_store_path: str = get_metadata_store_path(),
-                 drs_ids:List[str] = None
+                 drs_ids: List[str] = None
                  ):
         super().__init__(id, title=title, is_local=False)
         if drs_ids is None:
@@ -793,6 +793,12 @@ class EsaCciOdpDataStore(DataStore):
             # todo remove as soon as the double occurrence of the drs id is removed from the odp
             if drs_id == 'esacci.AEROSOL.satellite-orbit-frequency.L2P.AER_PRODUCTS.ATSR-2.ERS-2.SU.4-21.r1' and \
                     datasource_id == '59f3a38819e140b49ffe46f32176709e':
+                continue
+            if drs_id == 'esacci.AEROSOL.day.L3C.AER_PRODUCTS.ATSR-2.Envisat.ATSR2.v2-6.r1' and \
+                    datasource_id == 'c183044b88734442b6d37f5c4f6b0092':
+                continue
+            if drs_id == 'esacci.AEROSOL.satellite-orbit-frequency.L2P.AER_PRODUCTS.AATSR.Envisat.AATSR-ENVISAT-ENS.v2-6.r1' and \
+                    datasource_id == '4afb736dc395442aa9b327c11f0d704b':
                 continue
             meta_info = meta_info.copy()
             meta_info.update(json_dict)
