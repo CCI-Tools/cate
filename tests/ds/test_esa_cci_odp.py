@@ -659,8 +659,8 @@ class MakeLocalTest(unittest.TestCase):
 
 
 @unittest.skip(reason='Used for debugging to fix Cate issue #942')
-class TimeFormatConversion(unittest.TestCase):
-    def test_OC_unconverted_time(self):
+class TimeFormatConversionTest(unittest.TestCase):
+    def test_unconverted_time(self):
         data_store = EsaCciOdpDataStore()
         cci_dataset_collection = 'esacci.OC.5-days.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.4-2.sinusoidal'
         data_source = data_store.query(cci_dataset_collection)[0]

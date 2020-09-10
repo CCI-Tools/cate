@@ -1441,11 +1441,8 @@ class EsaCciOdpDataSource(DataSource):
         # Compute the data source's temporal coverage
         for file_rec in file_list:
             if file_rec[1]:
-                try:
-                    file_start_date = datetime.strptime(file_rec[1].split('.')[0], _TIMESTAMP_FORMAT)
-                except ValueError:
-                    file_start_date = datetime.strptime(file_rec[1].split('/')[0].split('.')[0].split('+')[0],
-                                                        _TIMESTAMP_FORMAT)
+                file_start_date = datetime.strptime(file_rec[1].split('/')[0].split('.')[0].split('+')[0],
+                                                    _TIMESTAMP_FORMAT)
                 file_end_date = file_start_date + time_delta
                 data_source_start_date = min(data_source_start_date, file_start_date)
                 data_source_end_date = max(data_source_end_date, file_end_date)
