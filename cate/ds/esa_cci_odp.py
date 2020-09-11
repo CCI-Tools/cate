@@ -1464,8 +1464,11 @@ class EsaCciOdpDataSource(DataSource):
                 try:
                     file_start_date = datetime.strptime(file_rec[1].split('.')[0], _TIMESTAMP_FORMAT)
                 except ValueError:
-                    file_start_date = datetime.fromisoformat(file_rec[1].split('.')[0])
-                    file_start_date = file_start_date.replace(tzinfo=None)
+                    try:
+                        file_start_date = datetime.fromisoformat(file_rec[1].split('.')[0])
+                        file_start_date = file_start_date.replace(tzinfo=None)
+                    except ValueError:
+                        raise ValueError(f"{file_rec[1].split('.')[0]} cannot be converted into a datetime object.")
                 file_end_date = file_start_date + time_delta
                 data_source_start_date = min(data_source_start_date, file_start_date)
                 data_source_end_date = max(data_source_end_date, file_end_date)
