@@ -1,6 +1,10 @@
 ## Version 2.1.1
 
-* Fixed problem with unsupported time format for permafrost datasets #944 
+* Fixed problem with unsupported time format for permafrost datasets below. They have a time_coverage_start and 
+  time_coverage_end with a datetime format of 15 characters (#944):
+    * esacci.PERMAFROST.yr.L4.ALT.multi-sensor.multi-platform.MODIS.01-0.r1
+    * esacci.PERMAFROST.yr.L4.GTD.multi-sensor.multi-platform.MODIS.01-0.r1
+    * esacci.PERMAFROST.yr.L4.PFR.multi-sensor.multi-platform.MODIS.01-0.r1   
 * Prevent HTTP 500 errors when using the ODP Data Store. #937
 * Spatial points are now parsed from CSV files when using the `read_csv()`operation.
   This is an option which can be disabled. #935
