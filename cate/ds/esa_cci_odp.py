@@ -69,6 +69,7 @@ from cate.core.opimpl import subset_spatial_impl, normalize_impl, adjust_spatial
 from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, VarNamesLike
 from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
 from cate.util.monitor import Cancellation, Monitor
+from cate.util.time import get_timestamp_from_string
 
 ESA_CCI_ODP_DATA_STORE_ID = 'esa_cci_odp_os'
 
@@ -1441,8 +1442,11 @@ class EsaCciOdpDataSource(DataSource):
         # Compute the data source's temporal coverage
         for file_rec in file_list:
             if file_rec[1]:
-                file_start_date = datetime.strptime(file_rec[1].split('/')[0].split('.')[0].split('+')[0],
-                                                    _TIMESTAMP_FORMAT)
+                try:
+                    file_start_date = datetime.strptime(file_rec[1].split('.')[0], _TIMESTAMP_FORMAT)
+                except ValueError:
+                    file_start_date = datetime.fromisoformat(file_rec[1].split('.')[0])
+                    file_start_date = file_start_date.replace(tzinfo=None)
                 file_end_date = file_start_date + time_delta
                 data_source_start_date = min(data_source_start_date, file_start_date)
                 data_source_end_date = max(data_source_end_date, file_end_date)

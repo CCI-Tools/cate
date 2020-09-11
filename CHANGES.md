@@ -7,7 +7,10 @@
   in a workspace. #933
 * Fixed a problem that prevented reopening workspaces using 
   the Web API when they referenced external files. #930
-* Handle datasets with time format with tailing +00:00 #942
+* Fixed problem of not handling timezone aware times from dataset metadata. Some datasets have their time information 
+  stored in timezone aware timestamps e.g. '1997-09-03T00:00:00+00:00'. Cate now is able to get a datetime object of these 
+  timezone aware strings, and removes the timezone awareness. (#942)  
+
 
 ## Version 2.1.0
 
