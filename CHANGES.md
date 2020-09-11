@@ -1,3 +1,8 @@
+## Version 2.1.2 (in development)
+
+* Added package `s3fs` to Python environment as it is required to open Zarr datasets 
+  from S3-compatible object store. #940
+
 ## Version 2.1.1
 
 * Prevent HTTP 500 errors when using the ODP Data Store. #937
