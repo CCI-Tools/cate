@@ -5,6 +5,11 @@
 
 ## Version 2.1.1
 
+* Fixed issue with duplicate dataset ids: Sometimes a drs_id contains more than one feature and therefore is associated 
+  with more than one datasource_id.
+  This is an error on ODP and is not handled by cate correctly. To prohibit problems, it is manually checked,
+  which feature contains less datasets and is dropped in favor of the feature with more datasets by using 
+  cate.ds.esa_cci_odp.EsaCciOdpDataStore.is_dataset_dropped
 * Prevent HTTP 500 errors when using the ODP Data Store. #937
 * Spatial points are now parsed from CSV files when using the `read_csv()`operation.
   This is an option which can be disabled. #935
