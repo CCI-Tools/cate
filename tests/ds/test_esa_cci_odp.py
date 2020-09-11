@@ -658,6 +658,7 @@ class MakeLocalTest(unittest.TestCase):
         local_data_store.remove_data_source(f"local.{random_string}")
 
 
+@unittest.skip(reason='Used for debugging issue with duplicate dsr_ids')
 class NoDuplicatesTest(unittest.TestCase):
     def test_for_duplicates_in_drs_ids(self):
         data_store = EsaCciOdpDataStore()
