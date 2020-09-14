@@ -2,11 +2,15 @@
 
 * Added package `s3fs` to Python environment as it is required to open Zarr datasets 
   from S3-compatible object store. #940
+* Fixed issue of harmonization of info field names of metadata (#949)
 * Fixed problem with unsupported time format for permafrost datasets below. They have a time_coverage_start and 
 time_coverage_end with a datetime format of 15 characters (#944):
     * esacci.PERMAFROST.yr.L4.ALT.multi-sensor.multi-platform.MODIS.01-0.r1
     * esacci.PERMAFROST.yr.L4.GTD.multi-sensor.multi-platform.MODIS.01-0.r1
     * esacci.PERMAFROST.yr.L4.PFR.multi-sensor.multi-platform.MODIS.01-0.r1   
+* Fixed problem of not handling timezone aware times from dataset metadata. Some datasets have their time information 
+  stored in timezone aware timestamps e.g. '1997-09-03T00:00:00+00:00'. Cate now is able to get a datetime object of these 
+  timezone aware strings, and removes the timezone awareness. (#942) 
 
 ## Version 2.1.1
 
@@ -22,9 +26,6 @@ time_coverage_end with a datetime format of 15 characters (#944):
   in a workspace. #933
 * Fixed a problem that prevented reopening workspaces using 
   the Web API when they referenced external files. #930
-* Fixed problem of not handling timezone aware times from dataset metadata. Some datasets have their time information 
-  stored in timezone aware timestamps e.g. '1997-09-03T00:00:00+00:00'. Cate now is able to get a datetime object of these 
-  timezone aware strings, and removes the timezone awareness. (#942)  
 
 
 ## Version 2.1.0
