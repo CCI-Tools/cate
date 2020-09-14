@@ -2,6 +2,7 @@
 
 * Added package `s3fs` to Python environment as it is required to open Zarr datasets 
   from S3-compatible object store. #940
+* Fixed issue of harmonization of info field names of metadata (#949)
 
 ## Version 2.1.1
 
