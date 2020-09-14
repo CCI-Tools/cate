@@ -33,7 +33,7 @@ from shapely.geometry import box, LineString, Polygon
 from .types import PolygonLike, ValidationError
 from ..util.misc import to_list
 from ..util.monitor import Monitor
-from cate.util.time import get_timestamps_from_string
+from cate.util.time import get_timestamps_from_string, get_timestamp_from_string
 
 __author__ = "Janis Gailis (S[&]T Norway)" \
              "Norman Fomferra (Brockmann Consult GmbH)"
@@ -352,21 +352,15 @@ def normalize_coord_vars(ds: xr.Dataset) -> xr.Dataset:
 def _get_time_coverage_from_ds(ds: xr.Dataset) -> (pd.Timestamp, pd.Timestamp):
     time_coverage_start = ds.attrs.get('time_coverage_start')
     if time_coverage_start is not None:
-        # noinspection PyBroadException
-        try:
-            time_coverage_start = pd.to_datetime(time_coverage_start)
-        except BaseException:
-            pass
+        time_coverage_start = get_timestamp_from_string(time_coverage_start)
 
     time_coverage_end = ds.attrs.get('time_coverage_end')
     if time_coverage_end is not None:
-        # noinspection PyBroadException
-        try:
-            time_coverage_end = pd.to_datetime(time_coverage_end)
-        except BaseException:
-            pass
+        time_coverage_end = get_timestamp_from_string(time_coverage_end)
+
     if time_coverage_start or time_coverage_end:
         return time_coverage_start, time_coverage_end
+
     filename = ds.encoding.get('source', '').split('/')[-1]
     return get_timestamps_from_string(filename)
 
