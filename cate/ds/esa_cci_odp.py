@@ -374,6 +374,8 @@ def _harmonize_info_field_names(catalogue: dict, single_field_name: str, multipl
         else:
             if catalogue[single_field_name] not in catalogue[multiple_fields_name] \
                     and (multiple_items_name is None or catalogue[single_field_name] != multiple_items_name):
+                if type(catalogue[multiple_fields_name]) != list:
+                    catalogue[multiple_fields_name] = [catalogue[multiple_fields_name]]
                 catalogue[multiple_fields_name].append(catalogue[single_field_name])
             catalogue.pop(single_field_name)
 
