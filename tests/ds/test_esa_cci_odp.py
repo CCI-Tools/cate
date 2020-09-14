@@ -672,6 +672,16 @@ class NoDuplicatesTest(unittest.TestCase):
             contains_duplicates = True
         self.assertFalse(contains_duplicates)
 
+
+@unittest.skip(reason='Used for debugging to fix Cate issue #942')
+class TimeFormatConversionTest(unittest.TestCase):
+    def test_unconverted_time(self):
+        data_store = EsaCciOdpDataStore()
+        cci_dataset_collection = 'esacci.OC.5-days.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.4-2.sinusoidal'
+        data_source = data_store.query(cci_dataset_collection)[0]
+        ds = data_source.open_dataset(time_range=['2010-01-01', '2010-01-30'], var_names=['CHLOR_A'])
+        self.assertIsNotNone(ds)
+
 @unittest.skip(reason='Used for debugging to fix Cate issue #944')
 class UnsupportedOperandTypeTest(unittest.TestCase):
     def test_unsupported_operand_type_fix(self):
