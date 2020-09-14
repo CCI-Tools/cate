@@ -1461,14 +1461,20 @@ class EsaCciOdpDataSource(DataSource):
         # Compute the data source's temporal coverage
         for file_rec in file_list:
             if file_rec[1]:
-                try:
+                # check if time_format matches _TIMESTAMP_FORMAT e.g '1997-09-03T00:00:00'
+                match_pattern = re.match('(\d{4})[-](\d{2})[-](\d{2})T(\d{2})[:](\d{2})[:](\d{2})$', file_rec[1].split('.')[0])
+                if match_pattern is not None:
                     file_start_date = datetime.strptime(file_rec[1].split('.')[0], _TIMESTAMP_FORMAT)
-                except ValueError:
-                    try:
+                else:
+                    # check if time_format matches _TIMESTAMP_FORMAT with zonal information e.g '1997-09-03T00:00:00+00:00'
+                    match_pattern = re.match('(\d{4})[-](\d{2})[-](\d{2})T(\d{2})[:](\d{2})[:](\d{2})[+](\d{2})[:](\d{2})$',
+                                             file_rec[1].split('.')[0])
+                    if match_pattern is not None:
                         file_start_date = datetime.fromisoformat(file_rec[1].split('.')[0])
                         file_start_date = file_start_date.replace(tzinfo=None)
-                    except ValueError:
-                        raise ValueError(f"{file_rec[1].split('.')[0]} cannot be converted into a datetime object.")
+                    else:
+                        raise ValueError(f"cannot extract date/time information from {file_rec[1]}.")
+
                 file_end_date = file_start_date + time_delta
                 data_source_start_date = min(data_source_start_date, file_start_date)
                 data_source_end_date = max(data_source_end_date, file_end_date)
