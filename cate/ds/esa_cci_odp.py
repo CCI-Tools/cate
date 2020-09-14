@@ -1462,13 +1462,15 @@ class EsaCciOdpDataSource(DataSource):
         for file_rec in file_list:
             if file_rec[1]:
                 # check if time_format matches _TIMESTAMP_FORMAT e.g '1997-09-03T00:00:00'
-                match_pattern = re.match('(\d{4})[-](\d{2})[-](\d{2})T(\d{2})[:](\d{2})[:](\d{2})$', file_rec[1].split('.')[0])
+                match_pattern = re.match('(\d{4})[-](\d{2})[-](\d{2})T(\d{2})[:](\d{2})[:](\d{2})$',
+                                         file_rec[1].split('.')[0])
                 if match_pattern is not None:
                     file_start_date = datetime.strptime(file_rec[1].split('.')[0], _TIMESTAMP_FORMAT)
                 else:
                     # check if time_format matches _TIMESTAMP_FORMAT with zonal information e.g '1997-09-03T00:00:00+00:00'
-                    match_pattern = re.match('(\d{4})[-](\d{2})[-](\d{2})T(\d{2})[:](\d{2})[:](\d{2})[+](\d{2})[:](\d{2})$',
-                                             file_rec[1].split('.')[0])
+                    match_pattern = re.match(
+                        '(\d{4})[-](\d{2})[-](\d{2})T(\d{2})[:](\d{2})[:](\d{2})[+](\d{2})[:](\d{2})$',
+                        file_rec[1].split('.')[0])
                     if match_pattern is not None:
                         file_start_date = datetime.fromisoformat(file_rec[1].split('.')[0])
                         file_start_date = file_start_date.replace(tzinfo=None)
