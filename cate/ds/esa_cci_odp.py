@@ -602,7 +602,7 @@ class EsaCciOdpDataStore(DataStore):
                  index_cache_json_dict: dict = None,
                  index_cache_update_tag: str = None,
                  meta_data_store_path: str = get_metadata_store_path(),
-                 drs_ids:List[str] = None
+                 drs_ids: List[str] = None
                  ):
         super().__init__(id, title=title, is_local=False)
         if drs_ids is None:
@@ -790,9 +790,7 @@ class EsaCciOdpDataStore(DataStore):
         for drs_id in drs_ids:
             if drs_id not in self._drs_ids:
                 continue
-            # todo remove as soon as the double occurrence of the drs id is removed from the odp
-            if drs_id == 'esacci.AEROSOL.satellite-orbit-frequency.L2P.AER_PRODUCTS.ATSR-2.ERS-2.SU.4-21.r1' and \
-                    datasource_id == '59f3a38819e140b49ffe46f32176709e':
+            if self.is_dataset_dropped(drs_id, datasource_id):
                 continue
             meta_info = meta_info.copy()
             meta_info.update(json_dict)
@@ -943,6 +941,27 @@ class EsaCciOdpDataStore(DataStore):
                                                     cache_timestamp_filename='dataset-list-timestamp.json',
                                                     cache_expiration_days=self._index_cache_expiration_days
                                                     )
+
+    def is_dataset_dropped(self, drs_id, datasource_id):
+        # todo remove as soon as the double occurrence of the drs id is removed from the odp
+        """
+        Sometimes a drs_id contains more than one feature and therefore is associated with more than one datasource_id.
+        This is an error on ODP and is not handled by cate correctly. To prohibit problems, it is manually checked,
+        which feature contains less datasets and is dropped in favor of the feature with more datasets.
+        :return:
+        """
+        to_be_dropped = [('esacci.AEROSOL.satellite-orbit-frequency.L2P.AER_PRODUCTS.ATSR-2.ERS-2.SU.4-21.r1',
+                          '59f3a38819e140b49ffe46f32176709e'),
+                         ('esacci.AEROSOL.day.L3C.AER_PRODUCTS.ATSR-2.Envisat.ATSR2.v2-6.r1',
+                          'c183044b88734442b6d37f5c4f6b0092'),
+                         (
+                             'esacci.AEROSOL.satellite-orbit-frequency.L2P.AER_PRODUCTS.AATSR.Envisat.AATSR-ENVISAT-ENS.v2-6.r1',
+                             '4afb736dc395442aa9b327c11f0d704b')
+                         ]
+        if (drs_id, datasource_id) in to_be_dropped:
+            return True
+        else:
+            return False
 
 
 INFO_FIELD_NAMES = sorted(["title",

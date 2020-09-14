@@ -658,6 +658,20 @@ class MakeLocalTest(unittest.TestCase):
         local_data_store.remove_data_source(f"local.{random_string}")
 
 
+@unittest.skip(reason='Used for debugging issue with duplicate dsr_ids')
+class NoDuplicatesTest(unittest.TestCase):
+    def test_for_duplicates_in_drs_ids(self):
+        data_store = EsaCciOdpDataStore()
+        data_sets = data_store.query()
+        ids = []
+        for dataset in data_sets:
+            ids.append(dataset.id)
+        if len(ids) == len(set(ids)):
+            contains_duplicates = False
+        else:
+            contains_duplicates = True
+        self.assertFalse(contains_duplicates)
+
 @unittest.skip(reason='Used for debugging to fix Cate issue #944')
 class UnsupportedOperandTypeTest(unittest.TestCase):
     def test_unsupported_operand_type_fix(self):

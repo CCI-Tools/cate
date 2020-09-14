@@ -1,10 +1,20 @@
-## Version 2.1.1
+## Version 2.1.2 (in development)
 
+* Added package `s3fs` to Python environment as it is required to open Zarr datasets 
+  from S3-compatible object store. #940
 * Fixed problem with unsupported time format for permafrost datasets below. They have a time_coverage_start and 
-  time_coverage_end with a datetime format of 15 characters (#944):
+time_coverage_end with a datetime format of 15 characters (#944):
     * esacci.PERMAFROST.yr.L4.ALT.multi-sensor.multi-platform.MODIS.01-0.r1
     * esacci.PERMAFROST.yr.L4.GTD.multi-sensor.multi-platform.MODIS.01-0.r1
     * esacci.PERMAFROST.yr.L4.PFR.multi-sensor.multi-platform.MODIS.01-0.r1   
+
+## Version 2.1.1
+
+* Fixed issue with duplicate dataset ids: Sometimes a drs_id contains more than one feature and therefore is associated 
+  with more than one datasource_id.
+  This is an error on ODP and is not handled by cate correctly. To prohibit problems, it is manually checked,
+  which feature contains less datasets and is dropped in favor of the feature with more datasets by using 
+  cate.ds.esa_cci_odp.EsaCciOdpDataStore.is_dataset_dropped
 * Prevent HTTP 500 errors when using the ODP Data Store. #937
 * Spatial points are now parsed from CSV files when using the `read_csv()`operation.
   This is an option which can be disabled. #935
