@@ -79,8 +79,8 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Chris Bernat (Telespazio VEGA UK Ltd), " \
              "Paolo Pesciullesi (Telespazio VEGA UK Ltd)"
 
-_OPENSEARCH_CEDA_URL = "http://opensearch-test.ceda.ac.uk/opensearch/request"
-_OPENSEARCH_CEDA_ODD_URL = 'http://opensearch-test.ceda.ac.uk/opensearch/description.xml?parentIdentifier=cci'
+_OPENSEARCH_CEDA_URL = "http://archive.opensearch.ceda.ac.uk/opensearch/request"
+_OPENSEARCH_CEDA_ODD_URL = 'http://archive.opensearch.ceda.ac.uk/opensearch/description.xml?parentIdentifier=cci'
 
 ODD_NS = {'os': 'http://a9.com/-/spec/opensearch/1.1/',
           'param': 'http://a9.com/-/spec/opensearch/extensions/parameters/1.0/'}
