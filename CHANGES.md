@@ -1,10 +1,11 @@
 ## Version 2.1.3 (in dev)
 
+* The `read_zarr()` operation now accepts credentials. (#953)
 
 ## Version 2.1.2
 
 * Added package `s3fs` to Python environment as it is required to open Zarr datasets 
-  from S3-compatible object store. #940
+  from S3-compatible object store when using the `read_zarr()` operation. (#940)
 * Fixed issue of harmonization of info field names of metadata (#949)
 * Fixed problem with unsupported time format for permafrost datasets below. They have a time_coverage_start and 
 time_coverage_end with a datetime format of 15 characters (#944):

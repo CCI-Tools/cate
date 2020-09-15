@@ -507,9 +507,13 @@ def write_geo_data_frame(gdf: gpd.GeoDataFrame,
           file_filters=[dict(name='Zarr', extensions=['zarr'])],
           file_props=['openDirectory'])
 @op_input('file_system', value_set=['Local', 'S3', 'OBS'])
+@op_input('key', lable='Secret access key')
 @op_input('drop_variables', data_type=VarNamesLike)
 def read_zarr(path: str,
               file_system: str = 'Local',
+              key: str = None,
+              secret: str = None,
+              token: str = None,
               drop_variables: VarNamesLike.TYPE = None,
               decode_cf: bool = True,
               decode_times: bool = True,
@@ -519,9 +523,12 @@ def read_zarr(path: str,
 
     For the Zarr format, refer to http://zarr.readthedocs.io/en/stable/.
 
-    :param path: Zarr directory path, Zarr ZIP archive path, or object storage path or bucket name.
+    :param path: Zarr directory path, Zarr ZIP archive path, or (S3) object storage URL.
     :param file_system: File system identifier, "Local" is your locally mounted file system,
-           for Amazon S3 use "S3", for general Object Storage use "OBS".
+           for Amazon S3 use "S3", for general S3-compatible object storage use "OBS".
+    :param key: (AWS) Access key identifier. Valid only with *file_system* being "S3" or "OBS".
+    :param secret: (AWS) Secret access key. Valid only with *file_system* being "S3" or "OBS".
+    :param token: (AWS) Access token. Valid only with *file_system* being "S3" or "OBS".
     :param drop_variables: List of variables to be dropped.
     :param decode_cf: Whether to decode CF attributes and coordinate variables.
     :param decode_times: Whether to decode time information (convert time coordinates to ``datetime`` objects).
@@ -530,20 +537,20 @@ def read_zarr(path: str,
     drop_variables = VarNamesLike.convert(drop_variables)
 
     if file_system == 'Local':
-        ds = xr.open_zarr(path,
-                          drop_variables=drop_variables,
-                          decode_cf=decode_cf,
-                          decode_times=decode_times)
+        store = path
     elif file_system == 'S3' or file_system == 'OBS':
         import s3fs
-        store = s3fs.S3Map(path, s3=(s3fs.S3FileSystem(anon=True)))
-        ds = xr.open_zarr(store,
-                          drop_variables=drop_variables,
-                          decode_cf=decode_cf,
-                          decode_times=decode_times)
+        store = s3fs.S3Map(path, s3=(s3fs.S3FileSystem(anon=not (key or secret or token),
+                                                       key=key,
+                                                       secret=secret,
+                                                       token=token)))
     else:
         raise ValidationError(f'Unknown file_system {file_system!r}')
 
+    ds = xr.open_zarr(store,
+                      drop_variables=drop_variables,
+                      decode_cf=decode_cf,
+                      decode_times=decode_times)
     if normalize:
         return adjust_temporal_attrs(normalize_op(ds))
     return ds
