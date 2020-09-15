@@ -1,3 +1,6 @@
+## Version 2.1.3 (in dev)
+
+
 ## Version 2.1.2
 
 * Added package `s3fs` to Python environment as it is required to open Zarr datasets 
