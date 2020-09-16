@@ -22,6 +22,8 @@
 import itertools
 import json
 import os.path
+import urllib.parse
+import urllib.request
 from abc import ABCMeta
 from typing import List, Optional
 
@@ -29,6 +31,7 @@ import fiona
 import geopandas as gpd
 import pandas as pd
 import pandas.api.types
+import s3fs
 import xarray as xr
 
 from cate.core.ds import get_spatial_ext_chunk_sizes
@@ -506,11 +509,8 @@ def write_geo_data_frame(gdf: gpd.GeoDataFrame,
           file_open_mode='r',
           file_filters=[dict(name='Zarr', extensions=['zarr'])],
           file_props=['openDirectory'])
-@op_input('file_system', value_set=['Local', 'S3', 'OBS'])
-@op_input('key', lable='Secret access key')
 @op_input('drop_variables', data_type=VarNamesLike)
 def read_zarr(path: str,
-              file_system: str = 'Local',
               key: str = None,
               secret: str = None,
               token: str = None,
@@ -524,11 +524,9 @@ def read_zarr(path: str,
     For the Zarr format, refer to http://zarr.readthedocs.io/en/stable/.
 
     :param path: Zarr directory path, Zarr ZIP archive path, or (S3) object storage URL.
-    :param file_system: File system identifier, "Local" is your locally mounted file system,
-           for Amazon S3 use "S3", for general S3-compatible object storage use "OBS".
-    :param key: (AWS) Access key identifier. Valid only with *file_system* being "S3" or "OBS".
-    :param secret: (AWS) Secret access key. Valid only with *file_system* being "S3" or "OBS".
-    :param token: (AWS) Access token. Valid only with *file_system* being "S3" or "OBS".
+    :param key: Optional (AWS) access key identifier. Valid only if *path* is a URL.
+    :param secret: Optional (AWS) secret access key. Valid only if *path* is a URL.
+    :param token: Optional (AWS) access token. Valid only if *path* is a URL.
     :param drop_variables: List of variables to be dropped.
     :param decode_cf: Whether to decode CF attributes and coordinate variables.
     :param decode_times: Whether to decode time information (convert time coordinates to ``datetime`` objects).
@@ -536,16 +534,22 @@ def read_zarr(path: str,
     """
     drop_variables = VarNamesLike.convert(drop_variables)
 
-    if file_system == 'Local':
-        store = path
-    elif file_system == 'S3' or file_system == 'OBS':
-        import s3fs
-        store = s3fs.S3Map(path, s3=(s3fs.S3FileSystem(anon=not (key or secret or token),
-                                                       key=key,
-                                                       secret=secret,
-                                                       token=token)))
+    is_s3_url = path.startswith('s3://')
+    is_http_url = path.startswith('http://') or path.startswith('https://')
+    if is_s3_url or is_http_url:
+        root = path
+        client_kwargs = None
+        if is_http_url:
+            url = urllib.parse.urlparse(path)
+            root = url.path[1:] if url.path.startswith('/') else url.path
+            client_kwargs = dict(endpoint_url=f'{url.scheme}://{url.netloc}')
+        store = s3fs.S3Map(root, s3=s3fs.S3FileSystem(anon=not (key or secret or token),
+                                                      key=key,
+                                                      secret=secret,
+                                                      token=token,
+                                                      client_kwargs=client_kwargs))
     else:
-        raise ValidationError(f'Unknown file_system {file_system!r}')
+        store = path
 
     ds = xr.open_zarr(store,
                       drop_variables=drop_variables,
