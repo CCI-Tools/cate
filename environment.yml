@@ -47,7 +47,8 @@ dependencies:
   - xarray>=0.14
   - yaml>=0.2.2
   - zarr>=2.4
-  # Test lib
+  # Test libs
   - flake8
+  - moto
   - pytest
   - pytest-cov
