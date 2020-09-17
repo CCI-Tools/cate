@@ -16,8 +16,8 @@ _SERVICE_INFO_FILE = 'pytest-service-info.json'
 class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
 
     def setUp(self):
-        self._root_dir = tempfile.mkdtemp()
-        os.environ['CATE_USER_ROOT'] = self._root_dir
+        self._root_path = tempfile.mkdtemp()
+        os.environ['CATE_USER_ROOT'] = self._root_path
         self.port = find_free_port()
         WebAPI.start_subprocess('cate.webapi.start',
                                 port=self.port,
@@ -26,7 +26,7 @@ class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
 
     def tearDown(self):
         del os.environ['CATE_USER_ROOT']
-        shutil.rmtree(self._root_dir)
+        shutil.rmtree(self._root_path)
         service_info = read_service_info(_SERVICE_INFO_FILE)
         if service_info:
             os.kill(service_info['pid'], signal.SIGTERM)
