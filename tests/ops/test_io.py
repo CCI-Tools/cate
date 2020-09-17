@@ -7,6 +7,7 @@ import subprocess
 import sys
 import time
 import unittest
+import urllib.error
 import urllib.request
 from io import StringIO
 from unittest import TestCase
@@ -286,7 +287,7 @@ class S3IOTest(TestCase):
                 with urllib.request.urlopen(ENDPOINT_URL, timeout=1):
                     print(f'moto_server started after {round(1000 * (time.perf_counter() - t0))} ms')
                     break
-            except ValueError:
+            except urllib.error.URLError:
                 pass
         s3_fs = s3fs.S3FileSystem(key='humpty', secret='dumpty', client_kwargs=dict(endpoint_url=ENDPOINT_URL))
         if s3_fs.exists('eurodatacube/test.zarr'):
