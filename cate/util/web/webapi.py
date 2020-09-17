@@ -245,8 +245,8 @@ class WebAPI:
         options = tornado.options.options
         # Check, we should better use a log file per caller, e.g. "~/.cate/webapi-%s.log" % caller
         options.log_file_prefix = log_file_prefix or f'{name}.log'
-        options.log_to_stderr = log_to_stderr
-        enable_pretty_logging()
+        # options.log_to_stderr = log_to_stderr
+        enable_pretty_logging(logger=logging.getLogger("tornado"))
 
         port = port or find_free_port()
 
