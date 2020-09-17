@@ -1,9 +1,9 @@
-## Version 2.1.3 (in dev)
+## Version 2.1.3
 
 * Changed CCI ODP url from test service to production service (archive.opensearch.ceda.ac.uk) (#951)
 * The `read_zarr()` operation now accepts credentials. (#953)
-* Removed the legacy CCI ODP data store  
-* Fixed broken Cate Web API logging
+* Removed the legacy CCI ODP data store.
+* Fixed broken Cate Web API logging.
 
 ## Version 2.1.2
 
