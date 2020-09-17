@@ -3,16 +3,19 @@ Test the IO operations
 """
 import os
 import shutil
+import subprocess
+import sys
+import time
 import unittest
+import urllib.request
 from io import StringIO
 from unittest import TestCase
 
 import geopandas as gpd
+import moto.server
 import s3fs
 import shapely.wkt
 import xarray as xr
-from moto import mock_s3
-
 from cate.core.types import ValidationError
 from cate.ops.io import open_dataset, save_dataset, read_zarr, read_csv, read_geo_data_frame, write_csv, \
     write_geo_data_frame
@@ -264,12 +267,11 @@ class TestIO(TestCase):
                                  '2,3,51.2,11.8,-1,0.3\n')
 
 
-import subprocess
-import urllib.request
-import time
-
 ENDPOINT_PORT = 3000
 ENDPOINT_URL = f'http://127.0.0.1:{ENDPOINT_PORT}'
+
+MOTOSERVER_PATH = moto.server.__file__
+MOTOSERVER_ARGS = [sys.executable, MOTOSERVER_PATH, 's3', f'-p{ENDPOINT_PORT}']
 
 
 class S3IOTest(TestCase):
@@ -277,7 +279,7 @@ class S3IOTest(TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.moto_server = subprocess.Popen(f'moto_server s3 -p{ENDPOINT_PORT}')
+        cls.moto_server = subprocess.Popen(MOTOSERVER_ARGS)
         t0 = time.perf_counter()
         for i in range(60):
             try:
@@ -296,20 +298,20 @@ class S3IOTest(TestCase):
     def tearDownClass(cls) -> None:
         cls.moto_server.kill()
 
-    @mock_s3
+    @moto.mock_s3
     def test_read_zarr(self):
         ds = read_zarr('http://127.0.0.1:3000/eurodatacube/test.zarr', key='humpty', secret='dumpty')
         self.assertIsInstance(ds, xr.Dataset)
         self.assertIn('SST', ds)
 
-    @mock_s3
+    @moto.mock_s3
     def test_read_zarr_normalize(self):
         ds = read_zarr('http://127.0.0.1:3000/eurodatacube/test.zarr', key='humpty', secret='dumpty',
                        normalize=True)
         self.assertIsInstance(ds, xr.Dataset)
         self.assertIn('SST', ds)
 
-    @mock_s3
+    @moto.mock_s3
     def test_read_zarr_drop_vars(self):
         ds = read_zarr('http://127.0.0.1:3000/eurodatacube/test.zarr', key='humpty', secret='dumpty',
                        drop_variables=['SST'])
