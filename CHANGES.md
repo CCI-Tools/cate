@@ -1,5 +1,6 @@
 ## Version 2.1.3 (in dev)
 
+* Changed CCI ODP url from test service to production service (archive.opensearch.ceda.ac.uk) (#951)
 * The `read_zarr()` operation now accepts credentials. (#953)
 
 ## Version 2.1.2

@@ -65,7 +65,7 @@ class EsaCciOdpOsTest(unittest.TestCase):
 
     @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
     def test_extract_metadata_from_odd_url(self):
-        odd_url = 'http://opensearch-test.ceda.ac.uk/opensearch/description.xml?' \
+        odd_url = 'https://archive.opensearch.ceda.ac.uk/opensearch/description.xml?' \
                   'parentIdentifier=4eb4e801424a47f7b77434291921f889'
         json_obj = asyncio.run(_extract_metadata_from_odd_url(odd_url=odd_url))
         self.assertFalse('query' in json_obj)
@@ -681,6 +681,7 @@ class TimeFormatConversionTest(unittest.TestCase):
         data_source = data_store.query(cci_dataset_collection)[0]
         ds = data_source.open_dataset(time_range=['2010-01-01', '2010-01-30'], var_names=['CHLOR_A'])
         self.assertIsNotNone(ds)
+
 
 @unittest.skip(reason='Used for debugging to fix Cate issue #944')
 class UnsupportedOperandTypeTest(unittest.TestCase):

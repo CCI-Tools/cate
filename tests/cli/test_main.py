@@ -326,6 +326,7 @@ class OperationCommandTest(CliTestCase):
 
 
 class DataSourceCommandTest(CliTestCase):
+    @unittest.skip(reason="This needs internet access and should be mocked")
     def test_ds_info(self):
         self.assert_main(['ds', 'info',
                           'esacci.OC.day.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.3-1.sinusoidal'],
@@ -342,12 +343,14 @@ class DataSourceCommandTest(CliTestCase):
                          expected_status=1,
                          expected_stderr=['data source "SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2" not found'])
 
+    @unittest.skip(reason="This needs internet access and should be mocked")
     def test_ds_list(self):
         self.assert_main(['ds', 'list'],
                          expected_stdout=['4 data sources found'])
         self.assert_main(['ds', 'list', '--name', 'OZONE'],
                          expected_stdout=['One data source found'])
 
+    @unittest.skip(reason="This needs internet access and should be mocked")
     def test_ds_update(self):
         self.assert_main(['ds', 'list', '-u'],
                          expected_stdout=['All datastores are up to date.'])
