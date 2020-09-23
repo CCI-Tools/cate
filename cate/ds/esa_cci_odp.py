@@ -1235,10 +1235,22 @@ class EsaCciOdpDataSource(DataSource):
                                 remote_dataset = subset_spatial_impl(remote_dataset, region)
                                 remote_dataset = adjust_spatial_attrs_impl(remote_dataset, allow_point=False)
                                 if do_update_of_region_meta_info_once:
-                                    local_ds.meta_info['bbox_minx'] = remote_dataset.attrs['geospatial_lon_min']
-                                    local_ds.meta_info['bbox_maxx'] = remote_dataset.attrs['geospatial_lon_max']
-                                    local_ds.meta_info['bbox_maxy'] = remote_dataset.attrs['geospatial_lat_max']
-                                    local_ds.meta_info['bbox_miny'] = remote_dataset.attrs['geospatial_lat_min']
+                                    geospat_infos = ['geospatial_lon_min', 'geospatial_lon_max',
+                                                       'geospatial_lat_max', 'geospatial_lat_min']
+                                    not_in_attrs = []
+                                    for geospat_info in geospat_infos:
+                                        if geospat_info not in remote_dataset.attrs:
+                                            not_in_attrs.append(geospat_info)
+                                    if len(not_in_attrs) == 0:
+                                        local_ds.meta_info['bbox_minx'] = remote_dataset.attrs['geospatial_lon_min']
+                                        local_ds.meta_info['bbox_maxx'] = remote_dataset.attrs['geospatial_lon_max']
+                                        local_ds.meta_info['bbox_maxy'] = remote_dataset.attrs['geospatial_lat_max']
+                                        local_ds.meta_info['bbox_miny'] = remote_dataset.attrs['geospatial_lat_min']
+                                    else:
+                                        local_ds.meta_info['bbox_minx'] = float(remote_dataset.lon.min().values)
+                                        local_ds.meta_info['bbox_maxx'] = float(remote_dataset.lon.max().values)
+                                        local_ds.meta_info['bbox_maxy'] = float(remote_dataset.lat.max().values)
+                                        local_ds.meta_info['bbox_miny'] = float(remote_dataset.lat.min().values)
                                     do_update_of_region_meta_info_once = False
                             if compression_enabled:
                                 for sel_var_name in remote_dataset.variables.keys():

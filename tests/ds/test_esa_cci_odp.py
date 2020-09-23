@@ -691,3 +691,26 @@ class UnsupportedOperandTypeTest(unittest.TestCase):
         data_source = data_store.query(cci_dataset_collection)[0]
         ds = data_source.open_dataset(time_range=['2010-01-01', '2011-01-30'], var_names=['ALT'])
         self.assertIsNotNone(ds)
+
+
+@unittest.skip(reason='Used for debugging to fix Cate issue #961')
+class FailingSaveToDiskTest(unittest.TestCase):
+    def test_failing_save_to_disk_issue(self):
+        data_store = EsaCciOdpDataStore()
+        local_data_store = DATA_STORE_REGISTRY.get_data_store('local')
+        ds_id = 'esacci.SST.day.L4.SSTskin.Unspecified.Unspecified.GMPE.2-0.r1'
+        data_source = data_store.query(ds_id)[0]
+        random_string = f"test{random.choice(string.ascii_lowercase)}"
+        data_source.update_file_list()
+        time_range = tuple(
+            t.strftime('%Y-%m-%d') for t in [data_source._file_list[0][1], data_source._file_list[1][2]])
+        # ds = data_source.open_dataset(time_range=time_range, var_names=[data_source.meta_info['variables'][0]['name']])
+        ds = data_source.open_dataset(time_range=time_range, var_names=['analysis_number', 'anomaly_fields'],
+                                      region=[137.0, 13.1, 137.1, 13.2])
+        self.assertIsNotNone(ds)
+        ds.close()
+        ds_local = data_source.make_local(random_string, time_range=time_range,
+                                          var_names=['analysis_number', 'anomaly_fields'],
+                                          region=[137.0, 13.1, 137.1, 13.2])
+        self.assertIsNotNone(ds_local)
+        local_data_store.remove_data_source(f"local.{random_string}")
