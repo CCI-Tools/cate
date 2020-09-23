@@ -383,9 +383,16 @@ def normalize_missing_time(ds: xr.Dataset) -> xr.Dataset:
     if not time_coverage_start and not time_coverage_end:
         # Can't do anything
         return ds
-
+    time = None
     if 'time' in ds:
-        time = ds.time
+        if isinstance(ds.time.values[0], datetime) or isinstance(ds.time.values[0], np.datetime64):
+            time = ds.time
+    elif 't' in ds:
+        if isinstance(ds.t.values[0], datetime) or isinstance(ds.t.values[0], np.datetime64):
+            ds = ds.rename_vars({"t": "time"})
+            ds = ds.assign_coords(time=('time', ds.time))
+            time = ds.time
+    if time is not None:
         if not time.dims:
             ds = ds.drop_vars('time')
         elif len(time.dims) == 1:
