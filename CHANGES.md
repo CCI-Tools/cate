@@ -1,5 +1,12 @@
 ## Version 2.1.4 (in development)
-
+* Included normalization of time in case it is called 't' in a dataset instead of 'time' (#956). 
+  This is the case for the following datasets: 
+    * esacci.ICESHEETS.yr.Unspecified.GMB.GRACE-instrument.GRACE.UNSPECIFIED.1-2.greenland_gmb_mass_trends
+    * esacci.ICESHEETS.yr.Unspecified.GMB.GRACE-instrument.GRACE.UNSPECIFIED.1-3.greenland_gmb_mass_trends
+    * esacci.ICESHEETS.yr.Unspecified.GMB.GRACE-instrument.GRACE.UNSPECIFIED.1-5.greenland_gmb_mass_trends
+    * esacci.ICESHEETS.yr.Unspecified.GMB.GRACE-instrument.GRACE.UNSPECIFIED.1-4.greenland_gmb_mass_trends 
+  
+  
 ## Version 2.1.3
 
 * Changed CCI ODP url from test service to production service (archive.opensearch.ceda.ac.uk) (#951)
@@ -13,7 +20,7 @@
   from S3-compatible object store when using the `read_zarr()` operation. (#940)
 * Fixed issue of harmonization of info field names of metadata (#949)
 * Fixed problem with unsupported time format for permafrost datasets below. They have a time_coverage_start and 
-time_coverage_end with a datetime format of 15 characters (#944):
+  time_coverage_end with a datetime format of 15 characters (#944):
     * esacci.PERMAFROST.yr.L4.ALT.multi-sensor.multi-platform.MODIS.01-0.r1
     * esacci.PERMAFROST.yr.L4.GTD.multi-sensor.multi-platform.MODIS.01-0.r1
     * esacci.PERMAFROST.yr.L4.PFR.multi-sensor.multi-platform.MODIS.01-0.r1   
