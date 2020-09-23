@@ -1,5 +1,31 @@
+## Version 2.1.3
+
+* Changed CCI ODP url from test service to production service (archive.opensearch.ceda.ac.uk) (#951)
+* The `read_zarr()` operation now accepts credentials. (#953)
+* Removed the legacy CCI ODP data store.
+* Fixed broken Cate Web API logging.
+
+## Version 2.1.2
+
+* Added package `s3fs` to Python environment as it is required to open Zarr datasets 
+  from S3-compatible object store when using the `read_zarr()` operation. (#940)
+* Fixed issue of harmonization of info field names of metadata (#949)
+* Fixed problem with unsupported time format for permafrost datasets below. They have a time_coverage_start and 
+time_coverage_end with a datetime format of 15 characters (#944):
+    * esacci.PERMAFROST.yr.L4.ALT.multi-sensor.multi-platform.MODIS.01-0.r1
+    * esacci.PERMAFROST.yr.L4.GTD.multi-sensor.multi-platform.MODIS.01-0.r1
+    * esacci.PERMAFROST.yr.L4.PFR.multi-sensor.multi-platform.MODIS.01-0.r1   
+* Fixed problem of not handling timezone aware times from dataset metadata. Some datasets have their time information 
+  stored in timezone aware timestamps e.g. '1997-09-03T00:00:00+00:00'. Cate now is able to get a datetime object of these 
+  timezone aware strings, and removes the timezone awareness. (#942) 
+
 ## Version 2.1.1
 
+* Fixed issue with duplicate dataset ids: Sometimes a drs_id contains more than one feature and therefore is associated 
+  with more than one datasource_id.
+  This is an error on ODP and is not handled by cate correctly. To prohibit problems, it is manually checked,
+  which feature contains less datasets and is dropped in favor of the feature with more datasets by using 
+  cate.ds.esa_cci_odp.EsaCciOdpDataStore.is_dataset_dropped
 * Prevent HTTP 500 errors when using the ODP Data Store. #937
 * Spatial points are now parsed from CSV files when using the `read_csv()`operation.
   This is an option which can be disabled. #935
@@ -7,7 +33,7 @@
   in a workspace. #933
 * Fixed a problem that prevented reopening workspaces using 
   the Web API when they referenced external files. #930
- 
+
 
 ## Version 2.1.0
 

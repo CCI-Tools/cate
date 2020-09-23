@@ -65,7 +65,7 @@ class EsaCciOdpOsTest(unittest.TestCase):
 
     @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
     def test_extract_metadata_from_odd_url(self):
-        odd_url = 'http://opensearch-test.ceda.ac.uk/opensearch/description.xml?' \
+        odd_url = 'https://archive.opensearch.ceda.ac.uk/opensearch/description.xml?' \
                   'parentIdentifier=4eb4e801424a47f7b77434291921f889'
         json_obj = asyncio.run(_extract_metadata_from_odd_url(odd_url=odd_url))
         self.assertFalse('query' in json_obj)
@@ -656,3 +656,38 @@ class MakeLocalTest(unittest.TestCase):
         ds = data_source.make_local(random_string)
         self.assertIsNotNone(ds)
         local_data_store.remove_data_source(f"local.{random_string}")
+
+
+@unittest.skip(reason='Used for debugging issue with duplicate dsr_ids and weirdo bug #949')
+class NoDuplicatesTest(unittest.TestCase):
+    def test_for_duplicates_in_drs_ids(self):
+        data_store = EsaCciOdpDataStore()
+        data_sets = data_store.query()
+        ids = []
+        for dataset in data_sets:
+            ids.append(dataset.id)
+        if len(ids) == len(set(ids)):
+            contains_duplicates = False
+        else:
+            contains_duplicates = True
+        self.assertFalse(contains_duplicates)
+
+
+@unittest.skip(reason='Used for debugging to fix Cate issue #942')
+class TimeFormatConversionTest(unittest.TestCase):
+    def test_unconverted_time(self):
+        data_store = EsaCciOdpDataStore()
+        cci_dataset_collection = 'esacci.OC.5-days.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.4-2.sinusoidal'
+        data_source = data_store.query(cci_dataset_collection)[0]
+        ds = data_source.open_dataset(time_range=['2010-01-01', '2010-01-30'], var_names=['CHLOR_A'])
+        self.assertIsNotNone(ds)
+
+
+@unittest.skip(reason='Used for debugging to fix Cate issue #944')
+class UnsupportedOperandTypeTest(unittest.TestCase):
+    def test_unsupported_operand_type_fix(self):
+        data_store = EsaCciOdpDataStore()
+        cci_dataset_collection = 'esacci.PERMAFROST.yr.L4.ALT.multi-sensor.multi-platform.MODIS.01-0.r1'
+        data_source = data_store.query(cci_dataset_collection)[0]
+        ds = data_source.open_dataset(time_range=['2010-01-01', '2011-01-30'], var_names=['ALT'])
+        self.assertIsNotNone(ds)

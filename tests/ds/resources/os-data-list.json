@@ -73,7 +73,7 @@
         "long_name": "weighted average of the volume mixing ratio (ppmv)"
       }
     ],
-    "odd_url": "http://opensearch-test.ceda.ac.uk/opensearch/description.xml?parentIdentifier=4eb4e801424a47f7b77434291921f889",
+    "odd_url": "https://archive.opensearch.ceda.ac.uk/opensearch/description.xml?parentIdentifier=4eb4e801424a47f7b77434291921f889",
     "metadata_url": "https://catalogue.ceda.ac.uk/export/xml/4eb4e801424a47f7b77434291921f889.xml"
   },
   "915d2340b178494f987a6942e263a2eb": {
@@ -140,7 +140,7 @@
         "long_name": null
       }
     ],
-    "odd_url": "http://opensearch-test.ceda.ac.uk/opensearch/description.xml?parentIdentifier=915d2340b178494f987a6942e263a2eb",
+    "odd_url": "https://archive.opensearch.ceda.ac.uk/opensearch/description.xml?parentIdentifier=915d2340b178494f987a6942e263a2eb",
     "metadata_url": "https://catalogue.ceda.ac.uk/export/xml/915d2340b178494f987a6942e263a2eb.xml"
   },
   "3ef6a5a66e9947d39b356251909dc12b": {
@@ -222,7 +222,7 @@
         "long_name": "relative pass number of satellite associated with measurement"
       }
     ],
-    "odd_url": "http://opensearch-test.ceda.ac.uk/opensearch/description.xml?parentIdentifier=3ef6a5a66e9947d39b356251909dc12b",
+    "odd_url": "https://archive.opensearch.ceda.ac.uk/opensearch/description.xml?parentIdentifier=3ef6a5a66e9947d39b356251909dc12b",
     "metadata_url": "https://catalogue.ceda.ac.uk/export/xml/3ef6a5a66e9947d39b356251909dc12b.xml"
   },
   "83e51cf29821434ea14db56c564946d5": {
@@ -274,7 +274,7 @@
         "long_name": "sea/land/lake/ice field composite mask"
       }
     ],
-    "odd_url": "http://opensearch-test.ceda.ac.uk/opensearch/description.xml?parentIdentifier=83e51cf29821434ea14db56c564946d5",
+    "odd_url": "https://archive.opensearch.ceda.ac.uk/opensearch/description.xml?parentIdentifier=83e51cf29821434ea14db56c564946d5",
     "metadata_url": "https://catalogue.ceda.ac.uk/export/xml/83e51cf29821434ea14db56c564946d5.xml"
   },
   "a6efcb0868664248b9cb212aba44313d": {
@@ -406,7 +406,7 @@
         "long_name": "Standard Deviation of Fine Mode Aerosol Optical Thickness at 865nm over ocean - Best solution"
       }
     ],
-    "odd_url": "http://opensearch-test.ceda.ac.uk/opensearch/description.xml?parentIdentifier=a6efcb0868664248b9cb212aba44313d",
+    "odd_url": "https://archive.opensearch.ceda.ac.uk/opensearch/description.xml?parentIdentifier=a6efcb0868664248b9cb212aba44313d",
     "metadata_url": "https://catalogue.ceda.ac.uk/export/xml/a6efcb0868664248b9cb212aba44313d.xml"
   },
   "20babc8f4dc449eaac11f47708e9f721": {
@@ -468,7 +468,7 @@
         "long_name": null
       }
     ],
-    "odd_url": "http://opensearch-test.ceda.ac.uk/opensearch/description.xml?parentIdentifier=20babc8f4dc449eaac11f47708e9f721",
+    "odd_url": "https://archive.opensearch.ceda.ac.uk/opensearch/description.xml?parentIdentifier=20babc8f4dc449eaac11f47708e9f721",
     "metadata_url": "https://catalogue.ceda.ac.uk/export/xml/20babc8f4dc449eaac11f47708e9f721.xml"
   }
 }

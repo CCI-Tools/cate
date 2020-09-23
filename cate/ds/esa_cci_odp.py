@@ -69,6 +69,7 @@ from cate.core.opimpl import subset_spatial_impl, normalize_impl, adjust_spatial
 from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, VarNamesLike
 from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
 from cate.util.monitor import Cancellation, Monitor
+from cate.util.time import get_timestamp_from_string
 
 ESA_CCI_ODP_DATA_STORE_ID = 'esa_cci_odp_os'
 
@@ -78,8 +79,8 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Chris Bernat (Telespazio VEGA UK Ltd), " \
              "Paolo Pesciullesi (Telespazio VEGA UK Ltd)"
 
-_OPENSEARCH_CEDA_URL = "http://opensearch-test.ceda.ac.uk/opensearch/request"
-_OPENSEARCH_CEDA_ODD_URL = 'http://opensearch-test.ceda.ac.uk/opensearch/description.xml?parentIdentifier=cci'
+_OPENSEARCH_CEDA_URL = "https://archive.opensearch.ceda.ac.uk/opensearch/request"
+_OPENSEARCH_CEDA_ODD_URL = 'https://archive.opensearch.ceda.ac.uk/opensearch/description.xml?parentIdentifier=cci'
 
 ODD_NS = {'os': 'http://a9.com/-/spec/opensearch/1.1/',
           'param': 'http://a9.com/-/spec/opensearch/extensions/parameters/1.0/'}
@@ -374,6 +375,8 @@ def _harmonize_info_field_names(catalogue: dict, single_field_name: str, multipl
         else:
             if catalogue[single_field_name] not in catalogue[multiple_fields_name] \
                     and (multiple_items_name is None or catalogue[single_field_name] != multiple_items_name):
+                if not isinstance(catalogue[multiple_fields_name], list):
+                    catalogue[multiple_fields_name] = [catalogue[multiple_fields_name]]
                 catalogue[multiple_fields_name].append(catalogue[single_field_name])
             catalogue.pop(single_field_name)
 
@@ -602,7 +605,7 @@ class EsaCciOdpDataStore(DataStore):
                  index_cache_json_dict: dict = None,
                  index_cache_update_tag: str = None,
                  meta_data_store_path: str = get_metadata_store_path(),
-                 drs_ids:List[str] = None
+                 drs_ids: List[str] = None
                  ):
         super().__init__(id, title=title, is_local=False)
         if drs_ids is None:
@@ -790,9 +793,7 @@ class EsaCciOdpDataStore(DataStore):
         for drs_id in drs_ids:
             if drs_id not in self._drs_ids:
                 continue
-            # todo remove as soon as the double occurrence of the drs id is removed from the odp
-            if drs_id == 'esacci.AEROSOL.satellite-orbit-frequency.L2P.AER_PRODUCTS.ATSR-2.ERS-2.SU.4-21.r1' and \
-                    datasource_id == '59f3a38819e140b49ffe46f32176709e':
+            if self.is_dataset_dropped(drs_id, datasource_id):
                 continue
             meta_info = meta_info.copy()
             meta_info.update(json_dict)
@@ -943,6 +944,27 @@ class EsaCciOdpDataStore(DataStore):
                                                     cache_timestamp_filename='dataset-list-timestamp.json',
                                                     cache_expiration_days=self._index_cache_expiration_days
                                                     )
+
+    def is_dataset_dropped(self, drs_id, datasource_id):
+        # todo remove as soon as the double occurrence of the drs id is removed from the odp
+        """
+        Sometimes a drs_id contains more than one feature and therefore is associated with more than one datasource_id.
+        This is an error on ODP and is not handled by cate correctly. To prohibit problems, it is manually checked,
+        which feature contains less datasets and is dropped in favor of the feature with more datasets.
+        :return:
+        """
+        to_be_dropped = [('esacci.AEROSOL.satellite-orbit-frequency.L2P.AER_PRODUCTS.ATSR-2.ERS-2.SU.4-21.r1',
+                          '59f3a38819e140b49ffe46f32176709e'),
+                         ('esacci.AEROSOL.day.L3C.AER_PRODUCTS.ATSR-2.Envisat.ATSR2.v2-6.r1',
+                          'c183044b88734442b6d37f5c4f6b0092'),
+                         (
+                             'esacci.AEROSOL.satellite-orbit-frequency.L2P.AER_PRODUCTS.AATSR.Envisat.AATSR-ENVISAT-ENS.v2-6.r1',
+                             '4afb736dc395442aa9b327c11f0d704b')
+                         ]
+        if (drs_id, datasource_id) in to_be_dropped:
+            return True
+        else:
+            return False
 
 
 INFO_FIELD_NAMES = sorted(["title",
@@ -1441,7 +1463,22 @@ class EsaCciOdpDataSource(DataSource):
         # Compute the data source's temporal coverage
         for file_rec in file_list:
             if file_rec[1]:
-                file_start_date = datetime.strptime(file_rec[1].split('.')[0], _TIMESTAMP_FORMAT)
+                # check if time_format matches _TIMESTAMP_FORMAT e.g '1997-09-03T00:00:00'
+                match_pattern = re.match('(\d{4})[-](\d{2})[-](\d{2})T(\d{2})[:](\d{2})[:](\d{2})$',
+                                         file_rec[1].split('.')[0])
+                if match_pattern is not None:
+                    file_start_date = datetime.strptime(file_rec[1].split('.')[0], _TIMESTAMP_FORMAT)
+                else:
+                    # check if time_format matches _TIMESTAMP_FORMAT with zonal information e.g '1997-09-03T00:00:00+00:00'
+                    match_pattern = re.match(
+                        '(\d{4})[-](\d{2})[-](\d{2})T(\d{2})[:](\d{2})[:](\d{2})[+](\d{2})[:](\d{2})$',
+                        file_rec[1].split('.')[0])
+                    if match_pattern is not None:
+                        file_start_date = datetime.fromisoformat(file_rec[1].split('.')[0])
+                        file_start_date = file_start_date.replace(tzinfo=None)
+                    else:
+                        raise ValueError(f"cannot extract date/time information from {file_rec[1]}.")
+
                 file_end_date = file_start_date + time_delta
                 data_source_start_date = min(data_source_start_date, file_start_date)
                 data_source_end_date = max(data_source_end_date, file_end_date)

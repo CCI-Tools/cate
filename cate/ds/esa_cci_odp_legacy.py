@@ -129,7 +129,8 @@ def add_data_store():
     All data sources of the FTP data store are read from a JSON file ``esa_cci_ftp.json`` contained in this package.
     This JSON file has been generated from a scan of the entire FTP tree.
     """
-    DATA_STORE_REGISTRY.add_data_store(EsaCciOdpLegacyDataStore())
+    # Removed by forman as of 17.09.2020, old ODP services are no longer maintained
+    # DATA_STORE_REGISTRY.add_data_store(EsaCciOdpLegacyDataStore())
 
 
 def find_datetime_format(filename: str) -> Tuple[Optional[str], int, int]:
