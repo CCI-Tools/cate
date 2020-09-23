@@ -704,7 +704,6 @@ class FailingSaveToDiskTest(unittest.TestCase):
         data_source.update_file_list()
         time_range = tuple(
             t.strftime('%Y-%m-%d') for t in [data_source._file_list[0][1], data_source._file_list[1][2]])
-        # ds = data_source.open_dataset(time_range=time_range, var_names=[data_source.meta_info['variables'][0]['name']])
         ds = data_source.open_dataset(time_range=time_range, var_names=['analysis_number', 'anomaly_fields'],
                                       region=[137.0, 13.1, 137.1, 13.2])
         self.assertIsNotNone(ds)
