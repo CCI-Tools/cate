@@ -371,6 +371,8 @@ def normalize_missing_time(ds: xr.Dataset) -> xr.Dataset:
     if either temporal CF attributes ``time_coverage_start`` and ``time_coverage_end``
     are given or time information can be extracted from the file name but the time dimension is missing.
 
+    In case the time information is given by a variable called 't' instead of 'time', it will be renamed into 'time'.
+
     The new time coordinate variable will be named ``time`` with dimension ['time'] and shape [1].
     The time bounds coordinates variable will be named ``time_bnds`` with dimensions ['time', 'bnds'] and shape [1,2].
     Both are of data type ``datetime64``.
@@ -383,9 +385,16 @@ def normalize_missing_time(ds: xr.Dataset) -> xr.Dataset:
     if not time_coverage_start and not time_coverage_end:
         # Can't do anything
         return ds
-
+    time = None
     if 'time' in ds:
-        time = ds.time
+        if isinstance(ds.time.values[0], datetime) or isinstance(ds.time.values[0], np.datetime64):
+            time = ds.time
+    elif 't' in ds:
+        if isinstance(ds.t.values[0], datetime) or isinstance(ds.t.values[0], np.datetime64):
+            ds = ds.rename_vars({"t": "time"})
+            ds = ds.assign_coords(time=('time', ds.time))
+            time = ds.time
+    if time is not None:
         if not time.dims:
             ds = ds.drop_vars('time')
         elif len(time.dims) == 1:
