@@ -620,6 +620,10 @@ def _get_geo_spatial_cf_attrs_from_var(ds: xr.Dataset, var_name: str, allow_poin
         return None
 
     var = ds[var_name]
+    res_name = 'geospatial_{}_resolution'.format(var_name)
+    min_name = 'geospatial_{}_min'.format(var_name)
+    max_name = 'geospatial_{}_max'.format(var_name)
+    units_name = 'geospatial_{}_units'.format(var_name)
 
     if 'bounds' in var.attrs:
         # According to CF Conventions the corresponding 'bounds' coordinate variable name
@@ -650,12 +654,19 @@ def _get_geo_spatial_cf_attrs_from_var(ds: xr.Dataset, var_name: str, allow_poin
                 dim_res = abs(var.values[1] - var.values[0])
                 dim_min = min(var.values[0], var.values[-1]) - 0.5 * dim_res
                 dim_max = max(var.values[0], var.values[-1]) + 0.5 * dim_res
-            elif len(var.values) == 1 and allow_point:
-                dim_var = var
-                # Actually a point with no extent
-                dim_res = 0.0
-                dim_min = var.values[0]
-                dim_max = var.values[0]
+            elif len(var.values) == 1:
+                if res_name in ds.attrs:
+                    dim_var = var
+                    # Consider extent in metadata if provided
+                    dim_res = float(ds.attrs[res_name].split(' ')[0])
+                    dim_min = var.values[0] - 0.5 * dim_res
+                    dim_max = var.values[0] + 0.5 * dim_res
+                elif allow_point:
+                    dim_var = var
+                    # Actually a point with no extent
+                    dim_res = 0.0
+                    dim_min = var.values[0]
+                    dim_max = var.values[0]
 
     if dim_var is None:
         # Cannot determine spatial extent for variable/dimension var_name
@@ -665,11 +676,6 @@ def _get_geo_spatial_cf_attrs_from_var(ds: xr.Dataset, var_name: str, allow_poin
         dim_units = var.attrs['units']
     else:
         dim_units = None
-
-    res_name = 'geospatial_{}_resolution'.format(var_name)
-    min_name = 'geospatial_{}_min'.format(var_name)
-    max_name = 'geospatial_{}_max'.format(var_name)
-    units_name = 'geospatial_{}_units'.format(var_name)
 
     geo_spatial_attrs = dict()
     # noinspection PyUnboundLocalVariable

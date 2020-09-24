@@ -1233,7 +1233,7 @@ class EsaCciOdpDataSource(DataSource):
                             if region:
                                 remote_dataset = normalize_impl(remote_dataset)
                                 remote_dataset = subset_spatial_impl(remote_dataset, region)
-                                remote_dataset = adjust_spatial_attrs_impl(remote_dataset, allow_point=False)
+                                remote_dataset = adjust_spatial_attrs_impl(remote_dataset, allow_point=True)
                                 if do_update_of_region_meta_info_once:
                                     geospat_infos = ['geospatial_lon_min', 'geospatial_lon_max',
                                                        'geospatial_lat_max', 'geospatial_lat_min']
