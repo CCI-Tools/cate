@@ -693,7 +693,7 @@ class UnsupportedOperandTypeTest(unittest.TestCase):
         self.assertIsNotNone(ds)
 
 
-@unittest.skip(reason='Used for debugging to fix Cate issue #961')
+# @unittest.skip(reason='Used for debugging to fix Cate issue #961')
 class FailingSaveToDiskTest(unittest.TestCase):
     def test_failing_save_to_disk_issue(self):
         data_store = EsaCciOdpDataStore()
