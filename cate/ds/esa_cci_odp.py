@@ -1054,14 +1054,24 @@ class EsaCciOdpDataSource(DataSource):
     @property
     def variables_info(self):
         variables = []
-        coordinate_variable_names = ['lat', 'lon', 'time', 'lat_bnds', 'lon_bnds', 'time_bnds', 'crs']
+        non_data_variable_names =  ['period', 'hist1d_cla_vis006_bin_centre', 'lon_bnds', 'air_pressure',
+                                    'field_name_length', 'lon', 'view', 'hist2d_cot_bin_centre',
+                                    'hist1d_cer_bin_border', 'altitude', 'vegetation_class',
+                                    'hist1d_cla_vis006_bin_border', 'time_bnds', 'hist1d_ctp_bin_border',
+                                    'hist1d_cot_bin_centre', 'hist1d_cot_bin_border', 'hist1d_cla_vis008_bin_centre',
+                                    'lat_bnds', 'hist1d_cwp_bin_border', 'layers', 'hist1d_cer_bin_centre',
+                                    'aerosol_type', 'hist1d_ctt_bin_border', 'hist1d_ctp_bin_centre', 'fieldsp1',
+                                    'time', 'hist_phase', 'hist1d_cwp_bin_centre', 'hist2d_ctp_bin_border', 'lat',
+                                    'fields', 'hist2d_cot_bin_border', 'hist2d_ctp_bin_centre',
+                                    'hist1d_ctt_bin_centre', 'hist1d_cla_vis008_bin_border', 'crs', 'field_name',
+                                    'vegetation_class_name']
         for variable in self._json_dict['variables']:
             if 'variable_infos' in self._meta_info and variable['name'] in self._meta_info['variable_infos'] and \
                     len(self._meta_info['variable_infos'][variable['name']]['dimensions']) == 0:
                 continue
             if 'dimensions' in self._meta_info and variable['name'] in self._meta_info['dimensions']:
                 continue
-            if variable['name'] not in coordinate_variable_names:
+            if variable['name'] not in non_data_variable_names:
                 variables.append(variable)
         return variables
 
