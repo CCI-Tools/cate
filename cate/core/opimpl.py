@@ -657,8 +657,9 @@ def _get_geo_spatial_cf_attrs_from_var(ds: xr.Dataset, var_name: str, allow_poin
             elif len(var.values) == 1:
                 if res_name in ds.attrs:
                     dim_res = ds.attrs[res_name]
-                    # remove any units from string
-                    dim_res = dim_res.replace('degree', '').replace('deg', '').replace('°', '').strip()
+                    if isinstance(dim_res, str):
+                        # remove any units from string
+                        dim_res = dim_res.replace('degree', '').replace('deg', '').replace('°', '').strip()
                     try:
                         dim_res = float(dim_res)
                         dim_var = var
