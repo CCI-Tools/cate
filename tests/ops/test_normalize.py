@@ -176,6 +176,28 @@ class TestNormalize(TestCase):
         self.assertEqual(norm_ds.coords['time_bnds'][0][0], xr.DataArray(pd.to_datetime('2012-01-01')))
         self.assertEqual(norm_ds.coords['time_bnds'][0][1], xr.DataArray(pd.to_datetime('2012-12-31')))
 
+    def test_normalize_with_time_called_t(self):
+        ds = xr.Dataset({'first': (['time', 'lat', 'lon'], np.zeros([4, 90, 180])),
+                         'second': (['time', 'lat', 'lon'], np.zeros([4, 90, 180])),
+                         't': ('time', np.array(['2005-07-02T00:00:00.000000000',
+                                                 '2006-07-02T12:00:00.000000000',
+                                                 '2007-07-03T00:00:00.000000000',
+                                                 '2008-07-02T00:00:00.000000000'], dtype='datetime64[ns]'))},
+                        coords={'lat': np.linspace(-89.5, 89.5, 90),
+                                'lon': np.linspace(-179.5, 179.5, 180)},
+                        attrs={'time_coverage_start': '2005-01-17',
+                               'time_coverage_end': '2008-08-17'})
+        norm_ds = normalize(ds)
+        self.assertIsNot(norm_ds, ds)
+        self.assertEqual(len(norm_ds.coords), 3)
+        self.assertIn('lon', norm_ds.coords)
+        self.assertIn('lat', norm_ds.coords)
+        self.assertIn('time', norm_ds.coords)
+
+        self.assertEqual(norm_ds.first.shape, (4, 90, 180))
+        self.assertEqual(norm_ds.second.shape, (4, 90, 180))
+        self.assertEqual(norm_ds.coords['time'][0], xr.DataArray(pd.to_datetime('2005-07-02T00:00')))
+
     def test_normalize_julian_day(self):
         """
         Test Julian Day -> Datetime conversion
