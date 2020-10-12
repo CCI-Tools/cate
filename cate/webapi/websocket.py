@@ -151,15 +151,10 @@ class WebSocketService:
         if data_store is None:
             raise ValueError('Unknown data store: "%s"' % data_store_id)
         data_sources = data_store.query(monitor=monitor)
-        if data_store_id == 'esa_cci_odp':
+        if data_store_id == 'esa_cci_odp_os':
             # Filter ESA Open Data Portal data sources
-            data_source_dict = {ds.id: ds for ds in data_sources}
-            # noinspection PyTypeChecker
-            includes = conf.get_config_value('included_ds_ids', default=None)
-            excludes = conf.get_config_value('excluded_ds_ids', default=None)
-            data_source_ids = filter_fileset(list(data_source_dict.keys()),
-                                             includes=includes,
-                                             excludes=excludes)
+            data_source_dict = {ds.id: ds for ds in data_sources if ds.cate_openable}
+            data_source_ids = list(data_source_dict.keys())
             data_sources = [data_source_dict[ds_id] for ds_id in data_source_ids]
 
         data_sources = sorted(data_sources, key=lambda ds: ds.title or ds.id)

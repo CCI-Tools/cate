@@ -1144,6 +1144,8 @@ class DataSourceCommand(SubCommandCommand):
                                  help="List only data sources named NAME or "
                                       "that have NAME in their name. "
                                       "The comparison is case insensitive.")
+        list_parser.add_argument('--all', '-a', action='store_false',
+                                 help="Show also data sources that can not be opened in Cate")
         list_parser.add_argument('--coverage', '-c', action='store_true',
                                  help="Also display temporal coverage")
         list_parser.add_argument('--update', '-u', action='store_true',
@@ -1202,7 +1204,11 @@ class DataSourceCommand(SubCommandCommand):
 
         ds_name = command_args.name
         data_sources = sorted(find_data_sources(query_expr=ds_name), key=lambda ds: ds.id)
-        if command_args.coverage:
+        if command_args.all:
+            for ds in data_sources:
+                if hasattr(ds, 'cate_openable') and not ds.cate_openable:
+                    data_sources.remove(ds)
+        if not command_args.coverage:
             ds_names = []
             for ds in data_sources:
                 time_range = 'None'

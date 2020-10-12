@@ -617,6 +617,10 @@ class EsaCciOdpDataStore(DataStore):
         self._metadata_store_path = meta_data_store_path
         self._drs_ids = drs_ids
         self._data_sources = []
+        self._success = []
+        loc = os.path.dirname(os.path.abspath(__file__))
+        with open(f'{loc}/data/DrsID_success_list.txt', 'r') as success_list:
+            self._success = success_list.read().split('\n')
 
     @property
     def description(self) -> Optional[str]:
@@ -800,7 +804,8 @@ class EsaCciOdpDataStore(DataStore):
             self._adjust_json_dict(meta_info, drs_id)
             meta_info['cci_project'] = meta_info['ecv']
             meta_info['fid'] = datasource_id
-            data_source = EsaCciOdpDataSource(self, meta_info, datasource_id, drs_id)
+            openable = drs_id in self._success
+            data_source = EsaCciOdpDataSource(self, meta_info, datasource_id, drs_id, openable)
             self._data_sources.append(data_source)
 
     def _adjust_json_dict(self, json_dict: dict, drs_id: str):
@@ -1007,6 +1012,7 @@ class EsaCciOdpDataSource(DataSource):
                  json_dict: dict,
                  raw_datasource_id: str,
                  datasource_id: str,
+                 openable: bool = True,
                  schema: Schema = None):
         super(EsaCciOdpDataSource, self).__init__()
         self._raw_id = raw_datasource_id
@@ -1017,6 +1023,7 @@ class EsaCciOdpDataSource(DataSource):
         self._file_list = None
         self._meta_info = None
         self._temporal_coverage = None
+        self._cate_openable = openable
 
     @property
     def id(self) -> str:
@@ -1038,6 +1045,10 @@ class EsaCciOdpDataSource(DataSource):
                 self._json_dict.get('bbox_maxy')
             ])
         return None
+
+    @property
+    def cate_openable(self) -> bool:
+        return self._cate_openable
 
     def temporal_coverage(self, monitor: Monitor = Monitor.NONE) -> Optional[TimeRange]:
         if not self._temporal_coverage:
