@@ -1208,7 +1208,7 @@ class DataSourceCommand(SubCommandCommand):
             for ds in data_sources:
                 if hasattr(ds, 'cate_openable') and not ds.cate_openable:
                     data_sources.remove(ds)
-        if not command_args.coverage:
+        if command_args.coverage:
             ds_names = []
             for ds in data_sources:
                 time_range = 'None'
