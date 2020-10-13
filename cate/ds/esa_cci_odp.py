@@ -69,7 +69,6 @@ from cate.core.opimpl import subset_spatial_impl, normalize_impl, adjust_spatial
 from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, VarNamesLike
 from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
 from cate.util.monitor import Cancellation, Monitor
-from cate.util.time import get_timestamp_from_string
 
 ESA_CCI_ODP_DATA_STORE_ID = 'esa_cci_odp_os'
 
