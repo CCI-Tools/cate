@@ -1,7 +1,8 @@
 ## Version 2.1.4 (in development)
+* Only show data sources of the ODP Data Store that can be opened in cate.
+  When using `cate ds list` from the command line, there is a new option `-a` to also include the other data sets.
 * Included normalization of a dataset's time coordinate variable in case it is called 't' instead of 'time' (#956). 
   This is the case for all datasets with IDs `esacci.ICESHEETS.yr.Unspecified.GMB.GRACE-instrument.GRACE.UNSPECIFIED.1-*.greenland_gmb_mass_trends`.
-  
   
 ## Version 2.1.3
 

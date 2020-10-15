@@ -52,7 +52,7 @@ setup(
                                    'countries-50m.geojson',
                                    'countries-110m.geojson',
                                    'README.md'],
-        'cate.ds.data': ['excluded_data_sources'],
+        'cate.ds.data': ['DrsID_success_list.txt'],
         'cate.util.im.ds.NaturalEarth2': ['*/*/*.jpg'],
     },
     entry_points={
