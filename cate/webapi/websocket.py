@@ -195,8 +195,8 @@ class WebSocketService:
         meta_info = OrderedDict()
         if temporal_coverage:
             start, end = temporal_coverage
-            meta_info['temporal_coverage_start'] = start.strftime('%Y-%m-%d')
-            meta_info['temporal_coverage_end'] = end.strftime('%Y-%m-%d')
+            meta_info['temporal_coverage_start'] = start
+            meta_info['temporal_coverage_end'] = end
         return meta_info
 
     def add_local_data_source(self, data_source_id: str, file_path_pattern: str, monitor: Monitor):
