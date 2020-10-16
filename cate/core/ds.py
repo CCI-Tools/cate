@@ -574,6 +574,7 @@ class XcubeDataStore(DataStore):
         return store.get_data_ids()
 
     def describe_data(self, data_id: str) -> xcube_store.DataDescriptor:
+        # TODO implement that data descriptors are saved as jsons
         store = self._get_store()
         return store.describe_data(data_id)
 
@@ -766,7 +767,7 @@ def open_dataset(dataset_id: str,
 
     data_store = find_data_store(ds_id=dataset_id)
     if not data_store:
-        raise ValidationError(f'No data store found that contains the given ID {dataset_id}')
+        raise ValidationError(f"No data store found that contains the ID '{dataset_id}'")
 
     time_range = TimeRangeLike.convert(time_range) if time_range else None
     var_names = VarNamesLike.convert(var_names) if var_names else None
