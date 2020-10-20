@@ -1,0 +1,219 @@
+{
+  "data_id": "esacci.AEROSOL.day.L3C.AER_PRODUCTS.ATSR-2.Envisat.AATSR-ENVISAT-ENS_DAILY.v2-6.r1",
+  "type_id": "dataset",
+  "bbox": [
+    -180.0,
+    -90.0,
+    180.0,
+    90.0
+  ],
+  "spatial_res": -1.0,
+  "time_range": [
+    "2002-01-01T00:00:00",
+    "2012-04-08T23:59:59"
+  ],
+  "open_params_schema": {
+    "type": "object",
+    "properties": {
+      "variable_names": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "AOD550",
+            "NMEAS"
+          ]
+        }
+      },
+      "time_range": {
+        "type": "array",
+        "items": [
+          {
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "type": "string",
+            "format": "date-time"
+          }
+        ]
+      },
+      "bbox": {
+        "type": "array",
+        "items": [
+          {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          },
+          {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          }
+        ]
+      }
+    },
+    "additionalProperties": false
+  },
+  "data_vars": [
+    {
+      "name": "AOD550",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "Aerosol optical depth at 550 nm",
+        "standard_name": "atmosphere_optical_depth_due_to_ambient_aerosol",
+        "fill_value": -999.0,
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "NMEAS",
+      "dtype": "float32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "number of measurements per gridcell",
+        "standard_name": "NMEAS",
+        "data_type": "float32",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    }
+  ],
+  "dims": {
+    "lat": 180,
+    "lon": 360
+  },
+  "attrs": {
+    "Conventions": "CF-1.6",
+    "creator_email": "miriam.kosmale@dlr.de",
+    "creator_name": "German Aerospace Center, DFD",
+    "geospatial_lat_max": 70.0,
+    "geospatial_lat_min": -70.0,
+    "geospatial_lon_max": 180.0,
+    "geospatial_lon_min": -180.0,
+    "keywords": "satellite,observation,atmosphere",
+    "license": "ESA CCI Data policy: free and open access",
+    "platform": "ENVISAT",
+    "project": "Climate Change Initiative - European Space Agency",
+    "references": "http://www.esa-aerosol-cci.org",
+    "sensor": "AATSR",
+    "standard_name_vocabulary": "NetCDF Climate and Forecast (CF) Metadata Convention version 18",
+    "summary": "Level 2 aerosol properties retreived using satellite data",
+    "title": "ESA Aerosol Climate Change Initiative (Aerosol_cci): Level 3 aerosol products from AATSR (ensemble product), Version 2.6",
+    "tracking_id": "12816fc0-a2ac-11e6-bd79-1418773197c1",
+    "version": "v2.6",
+    "history": "Mon Apr 24 15:22:51 2017: ncatted -O -a fill_value,,d,, /home/turing5/kosm_mi/CCI_DATA/data_icare_server/ensemble/2002/L3_MONTHLY/v26/grid1/2002-ESACCI-L3C_AEROSOL-AER_PRODUCTS-AATSR-ENVISAT-ENS_ANNUAL-v2.6.nc\nMon Apr 24 15:22:51 2017: ncrename -v Aerosol optical depth at 550 nm,AOD550 /home/turing5/kosm_mi/CCI_DATA/data_icare_server/ensemble/2002/L3_MONTHLY/v26/grid1/2002-ESACCI-L3C_AEROSOL-AER_PRODUCTS-AATSR-ENVISAT-ENS_ANNUAL-v2.6.nc\nMon Apr 24 14:59:25 2017: ncatted -O -a fill_value,,d,, /home/turing5/kosm_mi/CCI_DATA/data_icare_server/ensemble/2002/L3_MONTHLY/v26/grid1/2002-ESACCI-L3C_AEROSOL-AER_PRODUCTS-AATSR-ENVISAT-ENS_ANNUAL-v2.6.nc\nFri Apr 21 14:49:05 2017: ncatted -O -a fill_value,,d,, /home/turing5/kosm_mi/CCI_DATA/data_icare_server/ensemble/2002/L3_MONTHLY/v26/grid1/2002-ESACCI-L3C_AEROSOL-AER_PRODUCTS-AATSR-ENVISAT-ENS_ANNUAL-v2.6.nc",
+    "ecv": "AEROSOL",
+    "institutes": [
+      "Deutsches Fernerkundungsdatenzentrum",
+      "Deutsches Zentrum fuer Luft- und Raumfahrt"
+    ],
+    "processing_level": "L3C",
+    "product_version": "v2-6",
+    "data_type": "AER_PRODUCTS",
+    "platform_id": "Envisat",
+    "file_formats": [
+      ".nc",
+      ".txt"
+    ],
+    "drs_ids": [
+      "esacci.AEROSOL.day.L3C.AER_PRODUCTS.ATSR-2.Envisat.AATSR-ENVISAT-ENS_DAILY.v2-6.r1",
+      "esacci.AEROSOL.yr.L3C.AER_PRODUCTS.AATSR.Envisat.AATSR-ENVISAT-ENS_ANNUAL.v2-6.r1"
+    ],
+    "abstract": "The ESA Climate Change Initiative Aerosol project has produced a number of global aerosol Essential Climate Variable (ECV) products from a set of European satellite instruments with different characteristics.   This dataset comprises Level 3 daily, monthly and yearly gridded aerosol products from the AATSR instrument on the ENVISAT satellite.    The data is an uncertainty-weighted ensemble of the outputs of three separate algorithms (the SU, ADV, and ORAC algorithms.)  This product is version 2.6 of the ensemble product.   Data is provided for the period 2002 to 2012.  In the early period, it also contains data from the ATSR-2 instrument on the ERS-2 satellite.  A separate ATSR-2 product covering the period 1995-2001 is also available, and together these form a continuous timeseries from 1995-2012.\n\nFor further details about these data products please see the documentation.",
+    "licences": "Use of these data is covered by the following licence: http://licences.ceda.ac.uk/image/data_access_condition/esacci_aerosol_terms_and_conditions.pdf . When using these data you must cite them correctly using the citation given on the CEDA Data Catalogue record.",
+    "bbox_minx": "-180.0",
+    "bbox_miny": "-90.0",
+    "bbox_maxx": "180.0",
+    "bbox_maxy": "90.0",
+    "temporal_coverage_start": "2002-01-01T00:00:00",
+    "temporal_coverage_end": "2012-04-08T23:59:59",
+    "publication_date": "2020-08-27T16:06:18",
+    "creation_date": "2020-08-27T16:06:18",
+    "uuid": "c183044b88734442b6d37f5c4f6b0092",
+    "variables": [
+      {
+        "name": "NMEAS",
+        "units": "",
+        "long_name": "number of measurements per gridcell"
+      },
+      {
+        "name": "AOD550",
+        "units": "#",
+        "long_name": "Aerosol optical depth at 550 nm"
+      },
+      {
+        "name": "AOD550_UNCERTAINTY_ENSEMBLE",
+        "units": "#",
+        "long_name": "Uncertainty Ensemble"
+      },
+      {
+        "name": "latitude",
+        "units": "degrees_north",
+        "long_name": "Latitude"
+      },
+      {
+        "name": "longitude",
+        "units": "degrees_east",
+        "long_name": "Longitude"
+      },
+      {
+        "name": "Latitude",
+        "units": "degrees_north",
+        "long_name": "Latitude"
+      },
+      {
+        "name": "Longitude",
+        "units": "degrees_east",
+        "long_name": "Longitude"
+      },
+      {
+        "name": "AOD550",
+        "units": "",
+        "long_name": "Aerosol optical depth at 550 nm"
+      },
+      {
+        "name": "Aerosol optical depth at 550 nm",
+        "units": "",
+        "long_name": "Aerosol optical depth at 550 nm"
+      }
+    ],
+    "odd_url": "http://archive.opensearch.ceda.ac.uk/opensearch/description.xml?parentIdentifier=c183044b88734442b6d37f5c4f6b0092",
+    "metadata_url": "https://catalogue.ceda.ac.uk/export/xml/c183044b88734442b6d37f5c4f6b0092.xml",
+    "time_frequency": "day",
+    "sensor_id": "ATSR-2",
+    "product_string": "AATSR-ENVISAT-ENS_DAILY",
+    "cci_project": "AEROSOL",
+    "fid": "c183044b88734442b6d37f5c4f6b0092"
+  }
+}

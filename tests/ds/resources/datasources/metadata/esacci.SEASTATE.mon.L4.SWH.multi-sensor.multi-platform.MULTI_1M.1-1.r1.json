@@ -1,0 +1,784 @@
+{
+  "data_id": "esacci.SEASTATE.mon.L4.SWH.multi-sensor.multi-platform.MULTI_1M.1-1.r1",
+  "type_id": "dataset",
+  "bbox": [
+    -180.0,
+    -80.0,
+    180.0,
+    80.0
+  ],
+  "spatial_res": 1.0,
+  "time_range": [
+    "1991-07-31T23:00:00",
+    "2018-12-31T23:59:59"
+  ],
+  "open_params_schema": {
+    "type": "object",
+    "properties": {
+      "variable_names": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "swh_mean",
+            "swh_rms",
+            "swh_count",
+            "swh_sum",
+            "swh_squared_sum",
+            "swh_log_sum",
+            "swh_log_squared_sum",
+            "swh_max",
+            "swh_count_greater_than_0_50",
+            "swh_count_greater_than_1_00",
+            "swh_count_greater_than_1_50",
+            "swh_count_greater_than_2_00",
+            "swh_count_greater_than_2_50",
+            "swh_count_greater_than_3_00",
+            "swh_count_greater_than_3_50",
+            "swh_count_greater_than_4_00",
+            "swh_count_greater_than_5_00",
+            "swh_count_greater_than_6_00",
+            "swh_count_greater_than_8_00",
+            "swh_count_greater_than_10_00"
+          ]
+        }
+      },
+      "time_range": {
+        "type": "array",
+        "items": [
+          {
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "type": "string",
+            "format": "date-time"
+          }
+        ]
+      },
+      "bbox": {
+        "type": "array",
+        "items": [
+          {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          },
+          {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          }
+        ]
+      }
+    },
+    "additionalProperties": false
+  },
+  "data_vars": [
+    {
+      "name": "swh_mean",
+      "dtype": "float64",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "mean of median significant wave height values",
+        "units": "m",
+        "coverage_content_type": "physicalMeasurement",
+        "grid_mapping": "crs",
+        "cell_method": "lat: lon: median (interval: 0.1 degree_N interval: 0.1 degree_E comment: median per bin and satellite pass) time: mean over days",
+        "chunk_sizes": [
+          1,
+          160,
+          360
+        ],
+        "data_type": "float64",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 57600
+      }
+    },
+    {
+      "name": "swh_rms",
+      "dtype": "float64",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "rms of median significant wave height values",
+        "units": "m",
+        "coverage_content_type": "physicalMeasurement",
+        "grid_mapping": "crs",
+        "cell_method": "lat: lon: median (interval: 0.1 degree_N interval: 0.1 degree_E comment: median per bin and satellite pass) time: root_mean_square over days",
+        "chunk_sizes": [
+          1,
+          160,
+          360
+        ],
+        "data_type": "float64",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 57600
+      }
+    },
+    {
+      "name": "swh_count",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "number of median significant wave height values",
+        "units": "1",
+        "coverage_content_type": "physicalMeasurement",
+        "grid_mapping": "crs",
+        "cell_method": "lat: lon: median (interval: 0.1 degree_N interval: 0.1 degree_E comment: median per bin and satellite pass) time: count over days",
+        "chunk_sizes": [
+          1,
+          160,
+          360
+        ],
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 57600
+      }
+    },
+    {
+      "name": "swh_sum",
+      "dtype": "float64",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "total of median significant wave height values",
+        "units": "m",
+        "coverage_content_type": "physicalMeasurement",
+        "grid_mapping": "crs",
+        "cell_method": "lat: lon: median (interval: 0.1 degree_N interval: 0.1 degree_E comment: median per bin and satellite pass) time: sum over days",
+        "chunk_sizes": [
+          1,
+          160,
+          360
+        ],
+        "data_type": "float64",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 57600
+      }
+    },
+    {
+      "name": "swh_squared_sum",
+      "dtype": "float64",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "total of median significant wave height squared values",
+        "units": "m2",
+        "coverage_content_type": "physicalMeasurement",
+        "grid_mapping": "crs",
+        "cell_method": "lat: lon: median (interval: 0.1 degree_N interval: 0.1 degree_E comment: median per bin and satellite pass) time: sum_of_squares over days",
+        "chunk_sizes": [
+          1,
+          160,
+          360
+        ],
+        "data_type": "float64",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 57600
+      }
+    },
+    {
+      "name": "swh_log_sum",
+      "dtype": "float64",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "total of median significant wave height log values",
+        "units": "m",
+        "coverage_content_type": "physicalMeasurement",
+        "grid_mapping": "crs",
+        "cell_method": "lat: lon: median (interval: 0.1 degree_N interval: 0.1 degree_E comment: median per bin and satellite pass) time: sum_of_log over days",
+        "chunk_sizes": [
+          1,
+          160,
+          360
+        ],
+        "data_type": "float64",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 57600
+      }
+    },
+    {
+      "name": "swh_log_squared_sum",
+      "dtype": "float64",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "total of median significant wave height log squared values",
+        "units": "m2",
+        "coverage_content_type": "physicalMeasurement",
+        "grid_mapping": "crs",
+        "cell_method": "lat: lon: median (interval: 0.1 degree_N interval: 0.1 degree_E comment: median per bin and satellite pass) time: sum_of_log_squares over days",
+        "chunk_sizes": [
+          1,
+          160,
+          360
+        ],
+        "data_type": "float64",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 57600
+      }
+    },
+    {
+      "name": "swh_max",
+      "dtype": "float64",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "long_name": "maximum median significant wave height value",
+        "units": "m",
+        "coverage_content_type": "physicalMeasurement",
+        "grid_mapping": "crs",
+        "cell_method": "lat: lon: median (interval: 0.1 degree_N interval: 0.1 degree_E comment: median per bin and satellite pass) time: maximum over days",
+        "chunk_sizes": [
+          1,
+          160,
+          360
+        ],
+        "data_type": "float64",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 57600
+      }
+    },
+    {
+      "name": "swh_count_greater_than_0_50",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 57600
+      }
+    },
+    {
+      "name": "swh_count_greater_than_1_00",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 57600
+      }
+    },
+    {
+      "name": "swh_count_greater_than_1_50",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 57600
+      }
+    },
+    {
+      "name": "swh_count_greater_than_2_00",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 57600
+      }
+    },
+    {
+      "name": "swh_count_greater_than_2_50",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 57600
+      }
+    },
+    {
+      "name": "swh_count_greater_than_3_00",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 57600
+      }
+    },
+    {
+      "name": "swh_count_greater_than_3_50",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 57600
+      }
+    },
+    {
+      "name": "swh_count_greater_than_4_00",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 57600
+      }
+    },
+    {
+      "name": "swh_count_greater_than_5_00",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 57600
+      }
+    },
+    {
+      "name": "swh_count_greater_than_6_00",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 57600
+      }
+    },
+    {
+      "name": "swh_count_greater_than_8_00",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 57600
+      }
+    },
+    {
+      "name": "swh_count_greater_than_10_00",
+      "dtype": "int32",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "data_type": "int32",
+        "dimensions": [
+          "time",
+          "lat",
+          "lon"
+        ],
+        "size": 57600
+      }
+    }
+  ],
+  "dims": {
+    "time": 1,
+    "lat": 160,
+    "lon": 360,
+    "nv": 2
+  },
+  "attrs": {
+    "Conventions": "CF-1.7, ACDD-1.3, ISO 8601",
+    "netcdf_version_id": "4.6.1 of Sep  8 2018 17:21:01 $",
+    "date_created": "2019-07-10T07:36:31",
+    "date_modified": "2019-07-10T07:36:31",
+    "id": "ESACCI-SEASTATE-L4-SWH",
+    "naming_authority": "fr.ifremer.cersat",
+    "standard_name_vocabulary": "NetCDF Climate and Forecast (CF) Metadata Convention version 1.7",
+    "institution": "Institut Francais de Recherche pour l'Exploitation de la mer / CERSAT, European Space Agency",
+    "institution_abbreviation": "Ifremer/Cersat, ESA",
+    "title": "ESA Sea State Climate Change Initiative (Sea_State_cci) : Global remote sensing merged multi-mission monthly gridded significant wave height,  L4 product, version 1.1",
+    "summary": "This dataset contains gridded statistics of significant wave height from multiple altimeters, denoised and cross-calibrated.",
+    "cdm_data_type": "grid",
+    "keywords": "Oceans > Ocean Waves > Significant Wave Height, Oceans > Ocean Waves > Sea State",
+    "keywords_vocabulary": "NASA Global Change Master Directory (GCMD) Science Keywords",
+    "project": "Climate Change Initiative - European Space Agency",
+    "acknowledgement": "Please acknowledge the use of these data with the following statement: these data were obtained from the ESA CCI Sea State project",
+    "license": "ESA CCI Data Policy: free and open access",
+    "format_version": "Data Standards v2.1",
+    "processing_software": "Cersat/Cerbere 1.0",
+    "product_version": "1-1",
+    "uuid": "47140d618dcc40309e1edbca7e773478",
+    "processing_level": "L4",
+    "history": "2019-07-10 07:36:32.005324 - Creation",
+    "publisher_name": "CERSAT",
+    "publisher_url": "cersat.ifremer.fr",
+    "publisher_email": "cersat@ifremer.fr",
+    "creator_name": "Cersat",
+    "creator_url": "http://cersat.ifremer.fr",
+    "creator_email": "cersat@ifremer.fr",
+    "references": "CCI Sea State Product Specification Document (PSD), v1.1",
+    "metadata_link": "",
+    "source": "CCI Sea State L4 Processor",
+    "source_version": "1.1",
+    "platform": "ERS-1",
+    "platform_type": "low earth orbit satellite",
+    "instrument": "RA",
+    "instrument_type": "altimeter",
+    "geospatial_lat_min": -80.0,
+    "geospatial_lat_max": 80.0,
+    "geospatial_lat_units": "degree_north",
+    "geospatial_lat_resolution": 1.0,
+    "geospatial_lon_min": -180.0,
+    "geospatial_lon_max": 180.0,
+    "geospatial_lon_units": "degree_east",
+    "geospatial_lon_resolution": 1.0,
+    "geospatial_vertical_min": "",
+    "geospatial_vertical_max": "",
+    "geospatial_vertical_units": "meters above mean sea level",
+    "geospatial_vertical_positive": "up",
+    "time_coverage_start": "19910801T000000Z",
+    "time_coverage_end": "19910901T000000Z",
+    "time_coverage_resolution": "1M",
+    "band": "Ku",
+    "comment": "These data were produced at ESACCI as part of the ESA SST CCI project.",
+    "creator_institution": "Ifremer / Cersat",
+    "featureType": "Grid",
+    "instrument_vocabulary": "CCI",
+    "key_variables": "swh_mean",
+    "platform_vocabulary": "CCI",
+    "publisher_institution": "Ifremer / Cersat",
+    "scientific_support_contact": "Guillaume.Dodet@ifremer.fr",
+    "spatial_resolution": "1 degree",
+    "technical_support_contact": "cersat@ifremer.fr",
+    "track_id": "0ff8df5c-ab82-4b59-8026-b4f1562161df",
+    "ecv": "SEASTATE",
+    "institute": "European Space Agency",
+    "product_string": "MULTI_1M",
+    "data_type": "SWH",
+    "file_formats": [
+      ".nc",
+      ".txt"
+    ],
+    "drs_id": "esacci.SEASTATE.mon.L4.SWH.multi-sensor.multi-platform.MULTI_1M.1-1.r1",
+    "abstract": "The ESA Sea State Climate Change Initiative (CCI) project has produced global merged multi-sensor time-series of monthly gridded satellite altimeter significant wave height (referred to as Level 4 (L4) data) with a particular focus for use in climate studies.\n\nThis dataset contains the Version 1.1 Remote Sensing Sea Surface Height product, gridded over a global regular cylindrical projection (1\u00b0x1\u00b0 resolution), averaging valid and good measurements from all available altimeters on a monthly basis (using the L2P products also available). These L4 products are meant for statistics and visualization.\n\nThis first version of the Sea State CCI products is inherited from the GlobWave project, building on experience and existing outputs. It extends and improves the GlobWave products ,which were a post-processing over existing L2 altimeter agency products with additional filtering, corrections and variables. A major improvement consists in a new denoised sea surface height variable using Empirical Mode Decomposition, which was used as input to these monthly statistical fields.\n\nThe altimeter data used in the Sea State CCI dataset v1.1 come from multiple satellite missions spanning from 1991 to 2018 (ERS-1, ERS-2, Topex, Envisat, GFO, CryoSat-2, Jason-1, Jason-2, Jason-3, SARAL). Many altimeters are bi-frequency (Ku-C or Ku-S) and only measurements in Ku band were used, for consistency reasons, being available on each altimeter but SARAL (Ka band).",
+    "licences": "Use of these data is covered by the following licence: https://artefacts.ceda.ac.uk/licences/specific_licences/esacci_sea_state_terms_and_conditions.pdf . When using these data you must cite them correctly using the citation given on the CEDA Data Catalogue record.",
+    "bbox_minx": "-180.0",
+    "bbox_miny": "-80.0",
+    "bbox_maxx": "180.0",
+    "bbox_maxy": "80.0",
+    "temporal_coverage_start": "1991-07-31T23:00:00",
+    "temporal_coverage_end": "2018-12-31T23:59:59",
+    "publication_date": "2020-01-30T16:47:40",
+    "creation_date": "2020-01-30T16:47:40",
+    "variables": [
+      {
+        "name": "lat",
+        "units": "degrees_north",
+        "long_name": "latitude"
+      },
+      {
+        "name": "lon",
+        "units": "degrees_east",
+        "long_name": "longitude"
+      },
+      {
+        "name": "swh_max",
+        "units": "m",
+        "long_name": "maximum median significant wave height value"
+      },
+      {
+        "name": "swh_mean",
+        "units": "m",
+        "long_name": "mean of median significant wave height values"
+      },
+      {
+        "name": "swh_count_greater_than_0_50",
+        "units": "1",
+        "long_name": "number of median significant wave height values greater than 0.5m"
+      },
+      {
+        "name": "swh_count_greater_than_1_00",
+        "units": "1",
+        "long_name": "number of median significant wave height values greater than 1.0m"
+      },
+      {
+        "name": "swh_count_greater_than_1_50",
+        "units": "1",
+        "long_name": "number of median significant wave height values greater than 1.5m"
+      },
+      {
+        "name": "swh_count_greater_than_10_00",
+        "units": "1",
+        "long_name": "number of median significant wave height values greater than 10.0m"
+      },
+      {
+        "name": "swh_count_greater_than_2_00",
+        "units": "1",
+        "long_name": "number of median significant wave height values greater than 2.0m"
+      },
+      {
+        "name": "swh_count_greater_than_2_50",
+        "units": "1",
+        "long_name": "number of median significant wave height values greater than 2.5m"
+      },
+      {
+        "name": "swh_count_greater_than_3_00",
+        "units": "1",
+        "long_name": "number of median significant wave height values greater than 3.0m"
+      },
+      {
+        "name": "swh_count_greater_than_3_50",
+        "units": "1",
+        "long_name": "number of median significant wave height values greater than 3.5m"
+      },
+      {
+        "name": "swh_count_greater_than_4_00",
+        "units": "1",
+        "long_name": "number of median significant wave height values greater than 4.0m"
+      },
+      {
+        "name": "swh_count_greater_than_5_00",
+        "units": "1",
+        "long_name": "number of median significant wave height values greater than 5.0m"
+      },
+      {
+        "name": "swh_count_greater_than_6_00",
+        "units": "1",
+        "long_name": "number of median significant wave height values greater than 6.0m"
+      },
+      {
+        "name": "swh_count_greater_than_8_00",
+        "units": "1",
+        "long_name": "number of median significant wave height values greater than 8.0m"
+      },
+      {
+        "name": "swh_count",
+        "units": "1",
+        "long_name": "number of median significant wave height values"
+      },
+      {
+        "name": "swh_rms",
+        "units": "m",
+        "long_name": "rms of median significant wave height values"
+      },
+      {
+        "name": "time",
+        "units": "",
+        "long_name": "time"
+      },
+      {
+        "name": "swh_log_squared_sum",
+        "units": "m2",
+        "long_name": "total of median significant wave height log squared values"
+      },
+      {
+        "name": "swh_log_sum",
+        "units": "m",
+        "long_name": "total of median significant wave height log values"
+      },
+      {
+        "name": "swh_squared_sum",
+        "units": "m2",
+        "long_name": "total of median significant wave height squared values"
+      },
+      {
+        "name": "swh_sum",
+        "units": "m",
+        "long_name": "total of median significant wave height values"
+      },
+      {
+        "name": "crs",
+        "units": "",
+        "long_name": null
+      },
+      {
+        "name": "lat_bnds",
+        "units": "",
+        "long_name": null
+      },
+      {
+        "name": "lon_bnds",
+        "units": "",
+        "long_name": null
+      },
+      {
+        "name": "time_bnds",
+        "units": "",
+        "long_name": null
+      }
+    ],
+    "odd_url": "http://archive.opensearch.ceda.ac.uk/opensearch/description.xml?parentIdentifier=47140d618dcc40309e1edbca7e773478",
+    "metadata_url": "https://catalogue.ceda.ac.uk/export/xml/47140d618dcc40309e1edbca7e773478.xml",
+    "time_frequency": "month",
+    "sensor_id": "multi-sensor",
+    "platform_id": "multi-platform",
+    "cci_project": "SEASTATE",
+    "fid": "47140d618dcc40309e1edbca7e773478"
+  }
+}

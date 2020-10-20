@@ -1,0 +1,282 @@
+{
+  "data_id": "esacci.OZONE.day.L3S.TC.multi-sensor.multi-platform.MERGED.fv0100.r1",
+  "type_id": "dataset",
+  "bbox": [
+    -180.0,
+    -90.0,
+    180.0,
+    90.0
+  ],
+  "spatial_res": 1.0,
+  "time_range": [
+    "1996-03-31T23:00:00",
+    "2011-06-29T23:00:00"
+  ],
+  "time_period": "1D",
+  "open_params_schema": {
+    "type": "object",
+    "properties": {
+      "variable_names": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "atmosphere_mole_content_of_ozone_standard_deviation",
+            "atmosphere_mole_content_of_ozone_standard_error",
+            "atmosphere_mole_content_of_ozone_number_of_observations",
+            "atmosphere_mole_content_of_ozone"
+          ]
+        }
+      },
+      "time_range": {
+        "type": "array",
+        "items": [
+          {
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "type": "string",
+            "format": "date-time"
+          }
+        ]
+      },
+      "bbox": {
+        "type": "array",
+        "items": [
+          {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          },
+          {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          }
+        ]
+      }
+    },
+    "additionalProperties": false
+  },
+  "data_vars": [
+    {
+      "name": "atmosphere_mole_content_of_ozone_standard_deviation",
+      "dtype": "float64",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "valid_range": [
+          0.0,
+          200.0
+        ],
+        "long_name": "Standard Deviation of the Mean Total Ozone Column in Dobson Units",
+        "standard_name": "atmosphere_mole_content_of_ozone_standard_deviation",
+        "units": "DU",
+        "data_type": "float64",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "atmosphere_mole_content_of_ozone_standard_error",
+      "dtype": "float64",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "valid_range": [
+          0.0,
+          100.0
+        ],
+        "long_name": "Standard Error of the Mean Total Ozone Column in Dobson Units",
+        "standard_name": "atmosphere_mole_content_of_ozone_standard_error",
+        "units": "DU",
+        "data_type": "float64",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "atmosphere_mole_content_of_ozone_number_of_observations",
+      "dtype": "float64",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "standard_name": "atmosphere_mole_content_of_ozone_number_of_observations",
+        "valid_range": [
+          0.0,
+          1000.0
+        ],
+        "long_name": "The number of measurements use to derive the Mean Total Ozone Column in Dobson Units",
+        "units": "1",
+        "data_type": "float64",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    },
+    {
+      "name": "atmosphere_mole_content_of_ozone",
+      "dtype": "float64",
+      "dims": [
+        "time",
+        "lat",
+        "lon"
+      ],
+      "ndim": 3,
+      "attrs": {
+        "ancillary_variables": "atmosphere_mole_content_of_ozone_standard_deviation atmosphere_mole_content_of_ozone_standard_error atmosphere_mole_content_of_ozone_number_of_observations",
+        "valid_range": [
+          50.0,
+          650.0
+        ],
+        "long_name": "Mean Total Ozone Column in Dobson Units",
+        "standard_name": "atmosphere_mole_content_of_ozone",
+        "units": "DU",
+        "data_type": "float64",
+        "dimensions": [
+          "latitude",
+          "longitude"
+        ],
+        "size": 64800
+      }
+    }
+  ],
+  "dims": {
+    "lat": 180,
+    "lon": 360
+  },
+  "attrs": {
+    "Conventions": "CF-1.5",
+    "comment": "Product generated at DLR as part of the ESA O3 CCI project.",
+    "time_coverage_resolution": "P1D",
+    "geospatial_vertical_max": "80000",
+    "product_version": "fv0100",
+    "geospatial_lat_units": "degrees_north",
+    "geospatial_lon_units": "degrees_east",
+    "references": "GTO-ECV reference: Loyola et al., Global long-term monitoring of the ozone layer - a prerequisite for predictions, International Journal of Remote Sensing, vol. 30, no. 15, pp. 4295-4318, 2009.",
+    "keywords": "ozone, total column, GOME, SCIAMACHY, GOME-2, GTO-ECV, level-3, satellite",
+    "id": "ESACCI-OZONE-L3S-TC-MERGED-DLR_1M-19960310-fv0100.nc",
+    "naming_authority": "DLR",
+    "spatial_resolution": "320x80 km^2",
+    "geospatial_lat_max": "+90",
+    "title": "ESA Ozone Climate Change Initiative (Ozone CCI): Level 3 Total Ozone Merged Data Product, version 01",
+    "standard_name_vocabulary": "NetCDF Climate and Forecast (CF) Metadata Convention version 21, 12 January 2013",
+    "platform": "ERS-2",
+    "L2_version": "GODFIT v3.0 - BIRA-IASB - Ozone_CCI",
+    "cdm_data_type": "Grid",
+    "sensor": "GOME",
+    "time_coverage_duration": "P1M",
+    "keywords_vocabulary": "NASA  Global  Change  Master  Directory  (GCMD)  Science  Keywords",
+    "geospatial_lat_min": "-90",
+    "geospatial_lat_resolution": "1.0",
+    "time_coverage_start": "19960310",
+    "creator_email": "Diego.Loyola@dlr.de",
+    "creator_url": "http://atmos.eoc.dlr.de/gome/gto-ecv.html",
+    "institution": "Deutsches Zentrum fuer Luft- und Raumfahrt (DLR)",
+    "geospatial_lon_max": "360",
+    "geospatial_lon_min": "0",
+    "geospatial_lon_resolution": "1.0",
+    "creator_name": "Diego Loyola",
+    "license": "ESA CCI Data Policy: free and open access",
+    "time_coverage_end": "19960331",
+    "summary": "L3 total ozone columns merged using the algorithm GTO-ECV as part of the ESA Ozone CCI",
+    "project": "Climate Change Initiative - European Space Agency",
+    "time_coverage_list": "19960310 19960315 19960316 19960317 19960318 19960319 19960320 19960321 19960322 19960323 19960324 19960325 19960326 19960327 19960328 19960329 19960330 19960331",
+    "source": "UCAS v3.0 - Ozone_CCI",
+    "tracking_id": "e0c8b329-2740-4464-8fcb-d5e762132220\n",
+    "geospatial_vertical_min": "0",
+    "date_created": "20130807",
+    "history": "Processing #1 of CCI total ozone columns",
+    "ecv": "OZONE",
+    "time_frequency": "day",
+    "institute": "Deutsches Zentrum fuer Luft- und Raumfahrt",
+    "processing_level": "L3S",
+    "product_string": "MERGED",
+    "data_type": "TC",
+    "file_formats": [
+      ".nc",
+      ".txt"
+    ],
+    "drs_id": "esacci.OZONE.day.L3S.TC.multi-sensor.multi-platform.MERGED.fv0100.r1",
+    "abstract": "This dataset is a monthly mean gridded total ozone data record (level 3) produced by the ESA Ozone Climate Change Initiative project (Ozone CCI).  The dataset is a prototype of a merged harmonised ozone data record combining ozone data from the GOME instrument on ERS-2, the SCIAMACHY instrument on ENVISAT and the GOME-2 instrument on METOP-A, and covers the period between April 1996 to June 2011.",
+    "licences": "Use of these data is covered by the following licence: http://licences.ceda.ac.uk/image/data_access_condition/esacci_ozone_terms_and_conditions.pdf . When using these data you must cite them correctly using the citation given on the CEDA Data Catalogue record.",
+    "bbox_minx": "-180.0",
+    "bbox_miny": "-90.0",
+    "bbox_maxx": "180.0",
+    "bbox_maxy": "90.0",
+    "temporal_coverage_start": "1996-03-31T23:00:00",
+    "temporal_coverage_end": "2011-06-29T23:00:00",
+    "publication_date": "2016-03-08T16:55:06",
+    "creation_date": "2016-03-08T16:55:06",
+    "uuid": "0d2260ad4e2c42b6b14fe5b3308f5eaa",
+    "variables": [
+      {
+        "name": "latitude",
+        "units": "degrees_north",
+        "long_name": "Latitude of the grid center"
+      },
+      {
+        "name": "longitude",
+        "units": "degrees_east",
+        "long_name": "Longitude of the grid center"
+      },
+      {
+        "name": "atmosphere_mole_content_of_ozone",
+        "units": "DU",
+        "long_name": "Mean Total Ozone Column in Dobson Units"
+      },
+      {
+        "name": "atmosphere_mole_content_of_ozone_standard_deviation",
+        "units": "DU",
+        "long_name": "Standard Deviation of the Mean Total Ozone Column in Dobson Units"
+      },
+      {
+        "name": "atmosphere_mole_content_of_ozone_standard_error",
+        "units": "DU",
+        "long_name": "Standard Error of the Mean Total Ozone Column in Dobson Units"
+      },
+      {
+        "name": "atmosphere_mole_content_of_ozone_number_of_observations",
+        "units": "1",
+        "long_name": "The number of measurements use to derive the Mean Total Ozone Column in Dobson Units"
+      }
+    ],
+    "odd_url": "http://archive.opensearch.ceda.ac.uk/opensearch/description.xml?parentIdentifier=0d2260ad4e2c42b6b14fe5b3308f5eaa",
+    "metadata_url": "https://catalogue.ceda.ac.uk/export/xml/0d2260ad4e2c42b6b14fe5b3308f5eaa.xml",
+    "sensor_id": "multi-sensor",
+    "platform_id": "multi-platform",
+    "cci_project": "OZONE",
+    "fid": "0d2260ad4e2c42b6b14fe5b3308f5eaa"
+  }
+}
