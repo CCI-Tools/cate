@@ -1146,8 +1146,8 @@ class DataSourceCommand(SubCommandCommand):
                                       "The comparison is case insensitive.")
         list_parser.add_argument('--coverage', '-c', action='store_true',
                                  help="Also display temporal coverage")
-        list_parser.add_argument('--update', '-u', action='store_true',
-                                 help='Display data store updates')
+        # list_parser.add_argument('--update', '-u', action='store_true',
+        #                          help='Display data store updates')
         # Improvement (marcoz, 20160905): implement "cate ds list --var"
         # list_parser.add_argument('--var', '-v', metavar='VAR',
         #                          help="List only data sources with a variable named NAME or "
@@ -1197,64 +1197,53 @@ class DataSourceCommand(SubCommandCommand):
     # noinspection PyShadowingNames
     @classmethod
     def _execute_list(cls, command_args):
-        from cate.core.ds import find_data_sources, find_data_sources_update
-        from cate.core.types import TimeRangeLike
-
+        from cate.core.ds import DATA_STORE_REGISTRY, get_data_descriptor
         ds_name = command_args.name
-        data_sources = sorted(find_data_sources(query_expr=ds_name), key=lambda ds: ds.id)
+        data_ids = []
+        for data_store in DATA_STORE_REGISTRY.get_data_stores():
+            data_store_ids = [data_id[0] for data_id in data_store.get_data_ids()]
+            if ds_name:
+                data_store_ids = [data_id for data_id in data_store_ids if ds_name in data_id]
+            data_ids.extend(data_store_ids)
         if command_args.coverage:
             ds_names = []
-            for ds in data_sources:
+            for ds in data_ids:
                 time_range = 'None'
-                temporal_coverage = ds.temporal_coverage()
-                if temporal_coverage:
-                    time_range = TimeRangeLike.format(temporal_coverage)
-                ds_names.append('%s [%s]' % (ds.id, time_range))
+                data_descriptor = get_data_descriptor(ds_id=ds)
+                if data_descriptor.time_range:
+                    time_range = data_descriptor.time_range
+                ds_names.append('%s [%s]' % (ds, time_range))
         else:
-            ds_names = [ds.id for ds in data_sources]
+            ds_names = data_ids
         _list_items('data source', 'data sources', ds_names, None)
-
-        if command_args.update:
-            ds_updates = find_data_sources_update()
-            if len(ds_updates) == 0:
-                print('All datastores are up to date.')
-            else:
-                for k in ds_updates.keys():
-                    upd = ds_updates[k]
-                    msg = 'Updates found in "{}" with snapshot reference time {}'.format(k, upd['source_ref_time'])
-                    print(msg)
-                    if upd['new']:
-                        _list_items('new data source', 'new data sources', upd['new'], None)
-                    if upd['del']:
-                        _list_items('removed data source', 'removed data sources', upd['del'], None)
 
     @classmethod
     def _execute_info(cls, command_args):
-        from cate.core.ds import find_data_sources, format_cached_datasets_coverage_string, format_variables_info_string
+        from cate.core.ds import format_cached_datasets_coverage_string, format_variables_info_string, \
+            find_data_store, get_info_string_from_data_descriptor
 
         ds_name = command_args.ds_name
-        data_sources = [data_source for data_source in find_data_sources(ds_id=ds_name) if data_source.id == ds_name]
-        if not data_sources:
-            raise CommandError('data source "%s" not found' % ds_name)
-
-        data_source = data_sources[0]
-        title = 'Data source %s' % data_source.id
+        data_store = find_data_store(ds_id=ds_name)
+        if not data_store:
+            raise CommandError(f"No data store found that contains the ID '{ds_name}'")
+        descriptor = data_store.describe_data(ds_name)
+        title = 'Data source %s' % descriptor.data_id
         print()
         print(title)
         print('=' * len(title))
         print()
-        print(data_source.info_string)
+        print(get_info_string_from_data_descriptor(descriptor))
         if command_args.local:
             print('\n'
                   'Locally stored datasets:\n'
                   '------------------------\n'
-                  '{info}'.format(info=format_cached_datasets_coverage_string(data_source.cache_info)))
+                  '{info}'.format(info=format_cached_datasets_coverage_string({})))
         if command_args.var:
             print()
             print('Variables')
             print('---------')
             print()
-            print(format_variables_info_string(data_source.variables_info))
+            print(format_variables_info_string(descriptor))
 
     @classmethod
     def _execute_add(cls, command_args):
@@ -1289,28 +1278,15 @@ class DataSourceCommand(SubCommandCommand):
 
     @classmethod
     def _execute_copy(cls, command_args):
-        from cate.core.ds import DATA_STORE_REGISTRY, find_data_sources
-        from cate.core.types import TimeRangeLike, PolygonLike, VarNamesLike
-
-        local_store = DATA_STORE_REGISTRY.get_data_store('local')
-        if local_store is None:
-            raise RuntimeError('internal error: no file data store found')
-
-        ds_name = command_args.ref_ds
-        data_source = next(iter(find_data_sources(ds_id=ds_name)), None)
-        if data_source is None:
-            raise RuntimeError('internal error: no file data source found: %s' % ds_name)
-
-        local_name = command_args.name if command_args.name else None
-
-        time_range = TimeRangeLike.convert(command_args.time)
-        region = PolygonLike.convert(command_args.region)
-        var_names = VarNamesLike.convert(command_args.vars)
-
-        ds = data_source.make_local(local_name, time_range=time_range, region=region, var_names=var_names,
-                                    monitor=cls.new_monitor())
-        if ds:
-            print("File data source with name '%s' has been created." % ds.id)
+        from cate.core.ds import open_dataset
+        local_dataset, local_dataset_id = open_dataset(dataset_id=command_args.ref_ds,
+                                                       time_range=command_args.time,
+                                                       region=command_args.region,
+                                                       var_names=command_args.vars,
+                                                       force_local=True,
+                                                       local_ds_id=command_args.name)
+        if local_dataset:
+            print("File data source with name '%s' has been created." % local_dataset_id)
         else:
             print("File data source not created. It would have been empty. Please check constraint.")
 

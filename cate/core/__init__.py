@@ -38,7 +38,7 @@ initialize_proxy()
 configure_user_agent()
 
 # noinspection PyUnresolvedReferences
-from .ds import DataStore, DataSource, open_dataset, find_data_sources, DATA_STORE_REGISTRY
+from .ds import DataStore, open_dataset, find_data_store, DATA_STORE_REGISTRY
 
 # noinspection PyUnresolvedReferences
 from .op import op, op_input, op_output, op_return, Operation, OP_REGISTRY, \

@@ -1,3 +1,4 @@
+import glob
 import json
 import os
 import os.path
@@ -11,11 +12,10 @@ from typing import Union, List, Optional
 from unittest import TestCase
 
 from cate.cli import main
-from cate.core.ds import DATA_STORE_REGISTRY
+from cate.core.ds import DATA_STORE_REGISTRY, XcubeDataStore
 from cate.core.op import OP_REGISTRY
 from cate.core.types import PointLike, TimeRangeLike
 from cate.core.wsmanag import FSWorkspaceManager
-from cate.ds.esa_cci_odp import EsaCciOdpDataStore
 from cate.util.misc import fetch_std_streams
 from cate.util.monitor import Monitor
 
@@ -23,16 +23,22 @@ NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip
 
 
 def _create_test_data_store():
-    with open(os.path.join(os.path.dirname(__file__), '..', 'ds', 'resources', 'os-data-list.json')) as fp:
-        json_text = fp.read()
-    json_dict = json.loads(json_text)
     metadata_path = os.path.join(os.path.dirname(__file__), '..', 'ds', 'resources', 'datasources', 'metadata')
-
-    # The EsaCciOdpDataStore created with an initial json_dict and a metadata dir avoids fetching from remote
-    return EsaCciOdpDataStore('test-odp', index_cache_json_dict=json_dict, index_cache_update_tag='test2',
-                              meta_data_store_path=metadata_path)
-    # The EsaCciOdpDataStore created with an initial json_dict avoids fetching it from remote
-    # return EsaCciOdpDataStore('test-odp', index_cache_json_dict=json_dict, index_cache_update_tag='test2')
+    json_files = glob.glob(f'{metadata_path}/*.json')
+    for json_file in json_files:
+        timestamp_file = json_file.replace('.json', '-timestamp.txt')
+        with open(timestamp_file, "w+") as fp:
+            fp.write(datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S"))
+    test_store_configs = {
+        "cci-store": {
+            "store_id": "cciodp"
+        }
+    }
+    return XcubeDataStore(
+        test_store_configs['cci-store'],
+        'cci-store',
+        meta_data_store_path=metadata_path
+    )
 
 
 class CliTestCase(unittest.TestCase):
@@ -196,7 +202,8 @@ class WorkspaceCommandTest(CliTestCase):
 
     def test_ws_clean(self):
         self.assert_main(['ws', 'init'], expected_stdout=['Workspace initialized'])
-        self.assert_main(['res', 'read', 'ds', NETCDF_TEST_FILE], expected_stdout=['Resource "ds" set.'])
+        self.assert_main(['res', 'read', 'ds', NETCDF_TEST_FILE], expected_stdout=['Resource "ds" set.'],
+                         expected_stderr=[])
         self.assert_main(['ws', 'clean', '-y'], expected_stdout=['Workspace cleaned'])
 
 
@@ -217,7 +224,8 @@ class ResourceCommandTest(CliTestCase):
         self.assert_main(['ws', 'new'],
                          expected_stdout=['Workspace created'])
         self.assert_main(['res', 'read', 'ds', input_file],
-                         expected_stdout=['Resource "ds" set.'])
+                         expected_stdout=['Resource "ds" set.'],
+                         expected_stderr=[])
         self.assert_main(['res', 'set', 'ts', 'cate.ops.timeseries.tseries_mean', 'ds=@ds', 'var=temperature'],
                          expected_stdout=['Resource "ts" set.'])
         self.assert_main(['res', 'write', 'ts', output_file],
@@ -233,7 +241,8 @@ class ResourceCommandTest(CliTestCase):
         self.assert_main(['ws', 'new'],
                          expected_stdout=['Workspace created'])
         self.assert_main(['res', 'read', 'ds', input_file],
-                         expected_stdout=['Resource "ds" set.'])
+                         expected_stdout=['Resource "ds" set.'],
+                         expected_stderr=[])
         self.assert_main(['res', 'rename', 'ds', 'myDS'],
                          expected_stdout=['Resource "ds" renamed to "myDS".'])
 
@@ -243,9 +252,11 @@ class ResourceCommandTest(CliTestCase):
         self.assert_main(['ws', 'new'],
                          expected_stdout=['Workspace created'])
         self.assert_main(['res', 'read', 'ds1', input_file],
-                         expected_stdout=['Resource "ds1" set.'])
+                         expected_stdout=['Resource "ds1" set.'],
+                         expected_stderr=[])
         self.assert_main(['res', 'read', 'ds2', input_file],
-                         expected_stdout=['Resource "ds2" set.'])
+                         expected_stdout=['Resource "ds2" set.'],
+                         expected_stderr=[])
         self.assert_main(['res', 'rename', 'ds1', 'ds2'],
                          expected_status=1,
                          expected_stderr=['Resource "ds1" cannot be renamed to "ds2", '
@@ -255,9 +266,11 @@ class ResourceCommandTest(CliTestCase):
         self.assert_main(['ws', 'new'],
                          expected_stdout=['Workspace created'])
         self.assert_main(['res', 'read', 'ds1', NETCDF_TEST_FILE],
-                         expected_stdout=['Resource "ds1" set.'])
+                         expected_stdout=['Resource "ds1" set.'],
+                         expected_stderr=[])
         self.assert_main(['res', 'read', 'ds2', NETCDF_TEST_FILE],
-                         expected_stdout=['Resource "ds2" set.'])
+                         expected_stdout=['Resource "ds2" set.'],
+                         expected_stderr=[])
         self.assert_main(['res', 'set', 'ts', 'cate.ops.timeseries.tseries_mean', 'ds=@ds2', 'var=temperature'],
                          expected_stdout=['Resource "ts" set.'])
         self.assert_main(['ws', 'status'],
@@ -328,42 +341,57 @@ class OperationCommandTest(CliTestCase):
 class DataSourceCommandTest(CliTestCase):
     def test_ds_info(self):
         self.assert_main(['ds', 'info',
-                          'esacci.OC.day.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.3-1.sinusoidal'],
+                          'esacci.AEROSOL.day.L3C.AER_PRODUCTS.ATSR-2.Envisat.AATSR-ENVISAT-ENS_DAILY.v2-6.r1'],
                          expected_status=0,
                          expected_stdout=[
-                             'Data source esacci.OC.day.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.3-1.sinusoidal'])
+                             'Data source esacci.AEROSOL.day.L3C.AER_PRODUCTS.ATSR-2.Envisat.AATSR-ENVISAT-ENS_DAILY.v2-6.r1'])
         self.assert_main(['ds', 'info',
-                          'esacci.OC.day.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.3-1.sinusoidal', '--var'],
+                          'esacci.AEROSOL.day.L3C.AER_PRODUCTS.ATSR-2.Envisat.AATSR-ENVISAT-ENS_DAILY.v2-6.r1', '--var'],
                          expected_status=0,
                          expected_stdout=[
-                             'esacci.OC.day.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.3-1.sinusoidal',
-                             'VIIRS_nobs ():'])
+                             'esacci.AEROSOL.day.L3C.AER_PRODUCTS.ATSR-2.Envisat.AATSR-ENVISAT-ENS_DAILY.v2-6.r1',
+                             'AOD550 ():'])
         self.assert_main(['ds', 'info', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'],
                          expected_status=1,
-                         expected_stderr=['data source "SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2" not found'])
+                         expected_stderr=["No data store found that contains the ID 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'"])
 
     def test_ds_list(self):
         self.assert_main(['ds', 'list'],
-                         expected_stdout=['4 data sources found'])
+                         expected_stdout=['6 data sources found'])
         self.assert_main(['ds', 'list', '--name', 'OZONE'],
                          expected_stdout=['One data source found'])
 
-    def test_ds_update(self):
-        self.assert_main(['ds', 'list', '-u'],
-                         expected_stdout=['All datastores are up to date.'])
-        self.create_catalog_differences('test_diff_new')
-        self.assert_main(['ds', 'list', '-u'],
-                         expected_stdout=['test_diff_new'])
+    def test_ds_coverage(self):
+        self.assert_main(['ds', 'list', '--name', 'OZONE', '--coverage'],
+                          expected_stdout="One data source found\n"
+                                          "   0: esacci.OZONE.day.L3S.TC.multi-sensor.multi-platform.MERGED.fv0100.r1 [('1996-03-31T23:00:00', '2011-06-29T23:00:00')]\n")
 
     @unittest.skip(reason="skipped unless you want to debug data source synchronisation")
     def test_ds_copy(self):
-        self.assert_main(['ds', 'copy', 'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1'])
+        for orig_store in self._orig_stores:
+            if orig_store.id == 'local':
+                DATA_STORE_REGISTRY.add_data_store(orig_store)
+                break
+        try:
+            self.assert_main(
+                ['ds', 'copy', 'esacci.OZONE.day.L3S.TC.multi-sensor.multi-platform.MERGED.fv0100.r1'],
+                expected_stderr=[])
+        finally:
+            DATA_STORE_REGISTRY.remove_data_store('local')
 
     @unittest.skip(reason="skipped unless you want to debug data source synchronisation")
     def test_ds_copy_with_period(self):
-        self.assert_main(
-            ['ds', 'copy', 'esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1',
-             't=2007-12-01,2007-12-31'])
+        for orig_store in self._orig_stores:
+            if orig_store.id == 'local':
+                DATA_STORE_REGISTRY.add_data_store(orig_store)
+                break
+        try:
+            self.assert_main(
+                ['ds', 'copy', 'esacci.OZONE.day.L3S.TC.multi-sensor.multi-platform.MERGED.fv0100.r1',
+                '-t=2007-12-01,2007-12-31'],
+                expected_stderr=[])
+        finally:
+            DATA_STORE_REGISTRY.remove_data_store('local')
 
     def test_ds(self):
         self.assert_main(['ds'],
