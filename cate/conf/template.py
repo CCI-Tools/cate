@@ -93,3 +93,20 @@ excluded_ds_ids = [
 # https://matplotlib.org/examples/color/colormaps_reference.html
 # default_color_map = 'jet'
 default_color_map = 'inferno'
+
+# Data Store Configurations
+# Load from here the configurations of the data stores that will eventually be loaded into cate
+store_configs = {
+    "local": {
+        "store_id": "directory",
+        "store_params": {
+            "base_dir": "",
+        }
+     },
+     "cci-store": {
+        "store_id": "cciodp"
+     },
+     "cds-store": {
+        "store_id": "cds"
+    }
+}

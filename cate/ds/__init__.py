@@ -42,29 +42,21 @@ Components
 
 def cate_init():
     # Plugin initializer.
-    from cate.ds.local import get_data_store_path
+    from cate.conf import get_data_stores_path, get_config_value
     from cate.core.ds import DATA_STORE_REGISTRY
     from cate.core.ds import XcubeDataStore
 
-    store_configs = {
-        "local-store": {
-            "store_id": "directory",
-            "store_params": {
-                "base_dir": f"{get_data_store_path()}",
-            }
-        },
-        "cci-store": {
-            "store_id": "cciodp"
-        },
-        "cds-store": {
-            "store_id": "cds"
-        }
-    }
+    import os
 
-    for store_id in store_configs:
+    store_configs = get_config_value('store_configs')
+    for store_name, store_config in store_configs.items():
+        if store_config.get('store_id', '') == 'directory' and 'store_params' in store_config and \
+                store_config.get('store_params', {}).get('base_dir', '') == '':
+            base_dir = os.environ.get('CATE_LOCAL_DATA_STORE_PATH', os.path.join(get_data_stores_path(), store_name))
+            store_config['store_params']['base_dir'] = base_dir
         DATA_STORE_REGISTRY.add_data_store(
             XcubeDataStore(
-                store_configs[store_id],
-                store_id
+                store_config,
+                store_name
             )
         )
