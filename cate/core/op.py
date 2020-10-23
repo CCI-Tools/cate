@@ -286,10 +286,17 @@ class Operation:
 
         # Append the stamp to existing history information or create history
         # attribute if none is found
-        try:
-            ds.attrs['history'] = ds.attrs['history'] + stamp
-        except KeyError:
-            # History doesn't yet exist
+        if 'history' in ds.attrs:
+            if isinstance(ds.attrs['history'], str):
+                ds.attrs['history'] = ds.attrs['history'] + stamp
+            elif isinstance(ds.attrs['history'], list):
+                if isinstance(ds.attrs['history'], dict):
+                    ds.attrs['history'][0]['program'] = ds.attrs['history'][0]['program'] + stamp
+                else:
+                    ds.attrs['history'].append(stamp)
+            else:
+                ds.attrs['history'] = stamp
+        else:
             ds.attrs['history'] = stamp
         return ds
 
