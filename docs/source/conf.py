@@ -39,6 +39,7 @@ import mock
 #    sys.modules[mod_name] = mock.Mock()
 
 autodoc_mock_imports = ['aiofiles',
+                        'aiohttp',
                         'cartopy',
                         'dask',
                         'dateutil',
