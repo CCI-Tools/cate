@@ -89,7 +89,6 @@ from abc import ABCMeta, abstractmethod
 from typing import Sequence, Optional, Union, Any, Dict, Set, List, Tuple
 
 import xarray as xr
-
 import xcube.core.store as xcube_store
 import xcube.util.extension as xcube_extension
 
@@ -101,9 +100,10 @@ from ..util.monitor import Monitor
 
 _TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
-             "Marco Zühlke (Brockmann Consult GmbH), " \
-             "Chris Bernat (Telespazio VEGA UK Ltd)"
+__author__ = "Chris Bernat (Telespazio VEGA UK Ltd), ", \
+             "Tonio Fincke (Brockmann Consult GmbH), " \
+             "Norman Fomferra (Brockmann Consult GmbH), " \
+             "Marco Zühlke (Brockmann Consult GmbH)"
 
 URL_REGEX = re.compile(
     r'^(?:http|ftp)s?://'  # http:// or https://
@@ -386,8 +386,8 @@ class XcubeDataStore(DataStore):
         if meta_data_store_path:
             self._metadata_store_path = meta_data_store_path
         else:
-            self._metadata_store_path =  os.environ.get('CATE_ESA_CCI_ODP_DATA_STORE_PATH',
-                                                        os.path.join(get_data_stores_path(), self.id))
+            self._metadata_store_path = os.environ.get('CATE_ESA_CCI_ODP_DATA_STORE_PATH',
+                                                       os.path.join(get_data_stores_path(), self.id))
 
     # noinspection PyTypeChecker
     @property
@@ -486,6 +486,7 @@ class XcubeDataStore(DataStore):
         store = self._get_store()
         return list(store.get_data_ids())
 
+    # TODO xcube integ.: make this generic, e.g. class method DataDescriptor.from_dict()
     def describe_data(self, data_id: str) -> xcube_store.DataDescriptor:
         descriptor_dict = self._load_or_fetch_json(self._describe_data,
                                                    fetch_json_args=[data_id],
@@ -493,17 +494,15 @@ class XcubeDataStore(DataStore):
                                                    cache_dir=self._metadata_store_path,
                                                    cache_json_filename=f'{data_id}.json',
                                                    cache_timestamp_filename=f'{data_id}-timestamp.txt',
-                                                   cache_expiration_days=self._index_cache_expiration_days
-                                                   )
-        if descriptor_dict['type_id'] == 'dataset':
-            return xcube_store.DatasetDescriptor.from_dict(descriptor_dict)
-        elif descriptor_dict['type_id'] == 'mldataset':
+                                                   cache_expiration_days=self._index_cache_expiration_days)
+        type_specifier = xcube_store.TypeSpecifier.parse(descriptor_dict['type_specifier'])
+        if xcube_store.TYPE_SPECIFIER_MULTILEVEL_DATASET.satisfies(type_specifier):
             return xcube_store.MultiLevelDatasetDescriptor.from_dict(descriptor_dict)
-        elif descriptor_dict['type_id'] == 'geodataframe':
+        if xcube_store.TYPE_SPECIFIER_DATASET.satisfies(type_specifier):
+            return xcube_store.DatasetDescriptor.from_dict(descriptor_dict)
+        if xcube_store.TYPE_SPECIFIER_GEODATAFRAME.satisfies(type_specifier):
             return xcube_store.GeoDataFrameDescriptor.from_dict(descriptor_dict)
-        else:
-            return xcube_store.DataDescriptor.from_dict(descriptor_dict)
-
+        return xcube_store.DataDescriptor.from_dict(descriptor_dict)
 
     def _describe_data(self, data_id: str) -> Dict:
         store = self._get_store()
@@ -566,7 +565,6 @@ class DataStoreRegistry:
 #: Use it add new data stores to Cate.
 DATA_STORE_REGISTRY = DataStoreRegistry()
 
-
 INFO_FIELD_NAMES = sorted(["title",
                            "abstract",
                            "licences",
@@ -602,8 +600,8 @@ INFO_FIELD_NAMES = sorted(["title",
 
 
 def get_metadata_from_descriptor(descriptor: xcube_store.DataDescriptor) -> Dict:
-    metadata = dict(data_id = descriptor.data_id,
-                    type_id = descriptor.type_id)
+    metadata = dict(data_id=descriptor.data_id,
+                    type_specifier=descriptor.type_specifier)
     if descriptor.crs:
         metadata['crs'] = descriptor.crs
     if descriptor.bbox:
@@ -647,7 +645,6 @@ def get_info_string_from_data_descriptor(descriptor: xcube_store.DataDescriptor)
             info_lines.append('%s:%s %s' % (name, (1 + max_len - len(name)) * ' ', value))
 
     return '\n'.join(info_lines)
-
 
 
 def find_data_store(ds_id: str, data_stores: Union[DataStore, Sequence[DataStore]] = None) -> Optional[DataStore]:
@@ -724,7 +721,7 @@ def open_dataset(dataset_id: str,
                                    **args)
     if force_local:
         dataset, dataset_id = make_local(data=dataset,
-                             local_name=local_ds_id)
+                                         local_name=local_ds_id)
     return dataset, dataset_id
 
 
@@ -819,8 +816,8 @@ def open_xarray_dataset(paths,
                                preprocess=preprocess,
                                # Future behaviour will be
                                combine='by_coords',
-                               #combine='nested',
-                               #parallel=True,
+                               # combine='nested',
+                               # parallel=True,
                                compat='override',
                                **kwargs)
 
@@ -902,7 +899,7 @@ def format_variables_info_string(descriptor: xcube_store.DataDescriptor):
         return 'No variables information available.'
 
     info_lines = []
-    for variable  in variables:
+    for variable in variables:
         info_lines.append('%s (%s):' % (variable.get('name', '?'), variable.get('units', '-')))
         info_lines.append('  Long name:        %s' % variable.get('long_name', '?'))
         info_lines.append('  CF standard name: %s' % variable.get('standard_name', '?'))
