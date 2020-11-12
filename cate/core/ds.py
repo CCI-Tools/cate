@@ -495,13 +495,14 @@ class XcubeDataStore(DataStore):
                                                    cache_json_filename=f'{data_id}.json',
                                                    cache_timestamp_filename=f'{data_id}-timestamp.txt',
                                                    cache_expiration_days=self._index_cache_expiration_days)
-        type_specifier = xcube_store.TypeSpecifier.parse(descriptor_dict['type_specifier'])
-        if xcube_store.TYPE_SPECIFIER_MULTILEVEL_DATASET.satisfies(type_specifier):
-            return xcube_store.MultiLevelDatasetDescriptor.from_dict(descriptor_dict)
-        if xcube_store.TYPE_SPECIFIER_DATASET.satisfies(type_specifier):
-            return xcube_store.DatasetDescriptor.from_dict(descriptor_dict)
-        if xcube_store.TYPE_SPECIFIER_GEODATAFRAME.satisfies(type_specifier):
-            return xcube_store.GeoDataFrameDescriptor.from_dict(descriptor_dict)
+        type_specifier = descriptor_dict.get('type_specifier')
+        if type_specifier is not None:
+            if xcube_store.TYPE_SPECIFIER_MULTILEVEL_DATASET.is_satisfied_by(type_specifier):
+                return xcube_store.MultiLevelDatasetDescriptor.from_dict(descriptor_dict)
+            if xcube_store.TYPE_SPECIFIER_DATASET.is_satisfied_by(type_specifier):
+                return xcube_store.DatasetDescriptor.from_dict(descriptor_dict)
+            if xcube_store.TYPE_SPECIFIER_GEODATAFRAME.is_satisfied_by(type_specifier):
+                return xcube_store.GeoDataFrameDescriptor.from_dict(descriptor_dict)
         return xcube_store.DataDescriptor.from_dict(descriptor_dict)
 
     def _describe_data(self, data_id: str) -> Dict:
