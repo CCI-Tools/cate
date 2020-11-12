@@ -40,9 +40,9 @@ for extra code coverage information.
 Components
 ==========
 """
-import warnings
 
-warnings.filterwarnings("ignore")  # never print any warnings to users
+# import warnings
+# warnings.filterwarnings("ignore")  # never print any warnings to users
 
 import os
 import sys
