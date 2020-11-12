@@ -713,8 +713,8 @@ def open_dataset(dataset_id: str,
         args['var_names'] = VarNamesLike.convert(var_names)
     if time_range:
         time_range = TimeRangeLike.convert(time_range)
-        args['time_range'] = [datetime.datetime.strftime(time_range[0], '%Y%m%d%H%M%S'),
-                              datetime.datetime.strftime(time_range[1], '%Y%m%d%H%M%S')]
+        args['time_range'] = [datetime.datetime.strftime(time_range[0], '%Y-%m-%d'),
+                              datetime.datetime.strftime(time_range[1], '%Y-%m-%d')]
     if region:
         args['bbox'] = list(PolygonLike.convert(region).bounds)
 
