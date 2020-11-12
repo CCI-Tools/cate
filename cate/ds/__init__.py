@@ -49,9 +49,22 @@ def cate_init():
     import os
 
     store_configs = get_config_value('store_configs')
+    if store_configs is None:
+        store_configs = {
+            "local": {
+                "store_id": "directory",
+                "store_params": {
+                    "base_dir": None,
+                }
+            },
+            "cci-store": {
+                "store_id": "cciodp"
+            },
+        }
+
     for store_name, store_config in store_configs.items():
         if store_config.get('store_id', '') == 'directory' and 'store_params' in store_config and \
-                store_config.get('store_params', {}).get('base_dir', '') == '':
+                store_config.get('store_params', {}).get('base_dir') is None:
             base_dir = os.environ.get('CATE_LOCAL_DATA_STORE_PATH', os.path.join(get_data_stores_path(), store_name))
             store_config['store_params']['base_dir'] = base_dir
         DATA_STORE_REGISTRY.add_data_store(
