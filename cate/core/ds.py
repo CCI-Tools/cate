@@ -515,7 +515,12 @@ class XcubeDataStore(DataStore):
 
     def open_data(self, data_id: str, **open_params):
         store = self._get_store()
-        return store.open_data(data_id, **open_params)
+        #todo exchange this code when we have decided how to deal with type specifiers
+        try:
+            cube_opener_id = store.get_data_opener_ids(type_specifier='dataset[cube]')[0]
+            return store.open_data(data_id, opener_id=cube_opener_id, **open_params)
+        except ValueError:
+            return store.open_data(data_id, **open_params)
 
     def write_data(self, data: Any, data_id: str = None) -> str:
         store = self._get_store()
