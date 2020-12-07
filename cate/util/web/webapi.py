@@ -670,7 +670,10 @@ class _GlobalEventLoopPolicy(asyncio.DefaultEventLoopPolicy):
         self._global_loop = global_loop
 
     def get_event_loop(self):
-        return self._global_loop
+        if threading.current_thread() == threading.main_thread() or \
+                threading.current_thread().name.startswith("JsonRpcWebSocketHandler"):
+            return self._global_loop
+        return self.new_event_loop()
 
 
 # noinspection PyAbstractClass
