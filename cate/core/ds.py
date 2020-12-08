@@ -716,7 +716,7 @@ def open_dataset(dataset_id: str,
 
     args = {}
     if var_names:
-        args['var_names'] = VarNamesLike.convert(var_names)
+        args['variable_names'] = VarNamesLike.convert(var_names)
     if time_range:
         time_range = TimeRangeLike.convert(time_range)
         args['time_range'] = [datetime.datetime.strftime(time_range[0], '%Y-%m-%d'),
