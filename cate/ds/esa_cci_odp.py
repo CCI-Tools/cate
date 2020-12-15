@@ -55,7 +55,7 @@ import warnings
 from collections import OrderedDict
 from datetime import datetime, timedelta
 import lxml.etree as etree
-from typing import Sequence, Tuple, Optional, Any, Dict, List, Union
+from typing import Sequence, Tuple, Optional, Any, Dict, List, Union, AbstractSet
 from urllib.error import URLError, HTTPError
 
 import pandas as pd
