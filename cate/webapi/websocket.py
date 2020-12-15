@@ -153,14 +153,16 @@ class WebSocketService:
         data_sources = data_store.query(monitor=monitor)
         if data_store_id == 'esa_cci_odp_os':
             # Filter ESA Open Data Portal data sources
-            data_source_dict = {ds.id: ds for ds in data_sources if ds.cate_openable}
+            data_source_dict = {ds.id: ds for ds in data_sources}
             data_source_ids = list(data_source_dict.keys())
             data_sources = [data_source_dict[ds_id] for ds_id in data_source_ids]
 
         data_sources = sorted(data_sources, key=lambda ds: ds.title or ds.id)
         return [dict(id=data_source.id,
                      title=data_source.title,
-                     meta_info=data_source.meta_info) for data_source in data_sources]
+                     metaInfo=data_source.meta_info,
+                     verificationFlags=list(data_source.flags),
+                     typeSpecifier=data_source.type_specifier) for data_source in data_sources]
 
     def get_data_source_temporal_coverage(self, data_store_id: str, data_source_id: str, monitor: Monitor) \
             -> Dict[str, Any]:

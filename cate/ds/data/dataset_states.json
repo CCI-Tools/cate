@@ -1,0 +1,1881 @@
+{
+  "esacci.AEROSOL.5-days.L3C.AEX.GOMOS.Envisat.AERGOM.3-00.r1": {
+    "verification_flags": [
+      "open",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.climatology.L3.AAI.multi-sensor.multi-platform.MSAAI.1-7.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.day.L3.AAI.multi-sensor.multi-platform.MSAAI.1-7.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.day.L3C.AER_PRODUCTS.AATSR.Envisat.AATSR-ENVISAT-ENS_DAILY.v2-6.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.day.L3C.AER_PRODUCTS.AATSR.Envisat.ADV.2-31.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.day.L3C.AER_PRODUCTS.AATSR.Envisat.ATSR2-ENVISAT-ENS_DAILY.v2-6.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.day.L3C.AER_PRODUCTS.AATSR.Envisat.ORAC.04-01-.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.day.L3C.AER_PRODUCTS.AATSR.Envisat.ORAC.04-01_seg-.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.day.L3C.AER_PRODUCTS.AATSR.Envisat.SU.4-3.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.day.L3C.AER_PRODUCTS.ATSR-2.ERS-2.ADV.2-31.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.day.L3C.AER_PRODUCTS.ATSR-2.ERS-2.ORAC.04-01-.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.day.L3C.AER_PRODUCTS.ATSR-2.ERS-2.ORAC.04-01_seg-.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.day.L3C.AER_PRODUCTS.ATSR-2.ERS-2.SU.4-3.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.day.L3C.AER_PRODUCTS.ATSR-2.Envisat.AATSR-ENVISAT-ENS_DAILY.v2-6.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.day.L3C.AER_PRODUCTS.ATSR-2.Envisat.ATSR2-ENVISAT-ENS_DAILY.v2-6.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.day.L3C.AOD.MERIS.Envisat.MERIS_ENVISAT.2-2.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.mon.L3.AAI.multi-sensor.multi-platform.MSAAI.1-7.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.mon.L3C.AER_PRODUCTS.AATSR.Envisat.AATSR.v2-6.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.mon.L3C.AER_PRODUCTS.AATSR.Envisat.ADV.2-31.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.mon.L3C.AER_PRODUCTS.AATSR.Envisat.ORAC.04-01-.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.mon.L3C.AER_PRODUCTS.AATSR.Envisat.ORAC.04-01_seg-.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.mon.L3C.AER_PRODUCTS.AATSR.Envisat.SU.4-3.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.mon.L3C.AER_PRODUCTS.ATSR-2.ERS-2.ADV.2-31.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.mon.L3C.AER_PRODUCTS.ATSR-2.ERS-2.ORAC.04-01-.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.mon.L3C.AER_PRODUCTS.ATSR-2.ERS-2.ORAC.04-01_seg-.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.mon.L3C.AER_PRODUCTS.ATSR-2.Envisat.ATSR2.v2-6.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.mon.L3C.AOD.MERIS.Envisat.MERIS_ENVISAT.2-2.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.satellite-orbit-frequency.L2P.AER_PRODUCTS.AATSR.Envisat.AATSR-ENVISAT-ENS.v2-6.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.satellite-orbit-frequency.L2P.AER_PRODUCTS.AATSR.Envisat.ADV.2-31.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.satellite-orbit-frequency.L2P.AER_PRODUCTS.AATSR.Envisat.ORAC.04-01.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.satellite-orbit-frequency.L2P.AER_PRODUCTS.AATSR.Envisat.SU.4-3.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.satellite-orbit-frequency.L2P.AER_PRODUCTS.ATSR-2.ERS-2.ADV.2-31.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.satellite-orbit-frequency.L2P.AER_PRODUCTS.ATSR-2.ERS-2.ORAC.04-01.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.satellite-orbit-frequency.L2P.AER_PRODUCTS.ATSR-2.ERS-2.SU.4-3.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.satellite-orbit-frequency.L2P.AER_PRODUCTS.ATSR-2.Envisat.ATSR2-ENVISAT-ENS.v2-6.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.satellite-orbit-frequency.L2P.AOD.MERIS.Envisat.MERIS_ENVISAT.2-2.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.yr.L3C.AER_PRODUCTS.AATSR.Envisat.AATSR-ENVISAT-ENS_ANNUAL.v2-6.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.AEROSOL.yr.L3C.AER_PRODUCTS.ATSR-2.Envisat.ATSR2-ENVISAT-ENS_ANNUAL.v2-6.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.BIOMASS.yr.L4.AGB.multi-sensor.multi-platform.MERGED.1-0.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.CLOUD.mon.L3C.CLD_PRODUCTS.MODIS.Aqua.MODIS_AQUA.2-0.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.CLOUD.mon.L3C.CLD_PRODUCTS.MODIS.Terra.MODIS_TERRA.2-0.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.CLOUD.mon.L3C.CLD_PRODUCTS.multi-sensor.multi-platform.ATSR2-AATSR.3-0.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.CLOUD.mon.L3C.CLD_PRODUCTS.multi-sensor.multi-platform.AVHRR-AM.3-0.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.CLOUD.mon.L3C.CLD_PRODUCTS.multi-sensor.multi-platform.AVHRR-PM.3-0.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.CLOUD.mon.L3C.CLD_PRODUCTS.multi-sensor.multi-platform.MERIS-AATSR.2-0.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.FIRE.mon.L3S.BA.MODIS.Terra.MODIS_TERRA.v5-1.pixel": {
+    "verification_flags": [],
+    "type_specifier": null
+  },
+  "esacci.FIRE.mon.L3S.BA.MSI-(Sentinel-2).Sentinel-2A.MSI.v1-1.pixel": {
+    "verification_flags": [],
+    "type_specifier": null
+  },
+  "esacci.FIRE.mon.L4.BA.MODIS.Terra.MODIS_TERRA.v5-1.grid": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.FIRE.mon.L4.BA.MSI-(Sentinel-2).Sentinel-2A.MSI.v1-1.grid": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.GHG.satellite-orbit-frequency.L2.CH4.SCIAMACHY.Envisat.IMAP.v7-2.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.GHG.satellite-orbit-frequency.L2.CH4.SCIAMACHY.Envisat.WFMD.v4-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.GHG.satellite-orbit-frequency.L2.CH4.TANSO-FTS.GOSAT.EMMA.ch4_v1-2.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.GHG.satellite-orbit-frequency.L2.CH4.TANSO-FTS.GOSAT.OCFP.v2-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.GHG.satellite-orbit-frequency.L2.CH4.TANSO-FTS.GOSAT.OCPR.v7-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.GHG.satellite-orbit-frequency.L2.CH4.TANSO-FTS.GOSAT.SRFP.v2-3-8.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.GHG.satellite-orbit-frequency.L2.CH4.TANSO-FTS.GOSAT.SRPR.v2-3-8.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.GHG.satellite-orbit-frequency.L2.CH4.TROPOMI.Sentinel-5P.WFMD.v1-2.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.GHG.satellite-orbit-frequency.L2.CO2.OCO.OCO-2.UNSPECIFIED.v08.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.GHG.satellite-orbit-frequency.L2.CO2.SCIAMACHY.Envisat.BESD.v02-01-02.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.GHG.satellite-orbit-frequency.L2.CO2.SCIAMACHY.Envisat.WFMD.v4-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.GHG.satellite-orbit-frequency.L2.CO2.TANSO-FTS.GOSAT.EMMA.v2-2c.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.GHG.satellite-orbit-frequency.L2.CO2.TANSO-FTS.GOSAT.OCFP.v7-0-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.GHG.satellite-orbit-frequency.L2.CO2.TANSO-FTS.GOSAT.SRFP.v2-3-8.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.GHG.satellite-orbit-frequency.L2.CO2.multi-sensor.multi-platform.EMMA.v2-2a.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.GHG.satellite-orbit-frequency.L2.CO2.multi-sensor.multi-platform.EMMA.v2-2b.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.mon.IND.GMB.GRACE-instrument.GRACE.VARIOUS.1-3.greenland_gmb_time_series": {
+    "verification_flags": [],
+    "type_specifier": null
+  },
+  "esacci.ICESHEETS.unspecified.L4.IV.SAR-C-(Sentinel-1).multi-platform.UNSPECIFIED.1-1.greenland_s1_250m_20150610_20170321_Helheim": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.L4.SEC.multi-sensor.multi-platform.UNSPECIFIED.0-1.greenland_sec_saral_altika": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.CFL.multi-sensor.multi-platform.UNSPECIFIED.v3-0.greenland": {
+    "verification_flags": [],
+    "type_specifier": "geodataframe"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.GLL.multi-sensor.multi-platform.UNSPECIFIED.v1-3.greenland": {
+    "verification_flags": [],
+    "type_specifier": "geodataframe"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.AMI-SAR.ERS-1.UNSPECIFIED.1-1.greenland_northern_drainage_basin_winter_1991_1992": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.AMI-SAR.ERS-2.UNSPECIFIED.1-1.greenland_margin_1995_1996": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.MSI-(Sentinel-2).Sentinel-2A.UNSPECIFIED.1-0.greenland_s2_50m_20160508_20160518_docker_smith": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.MSI-(Sentinel-2).multi-platform.UNSPECIFIED.1-1.greenland_s2_50m_seasonal_20170501_20170829_Helheim": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.MSI-(Sentinel-2).multi-platform.UNSPECIFIED.1-1.greenland_s2_50m_seasonal_20170501_20170914_Petermann": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.MSI-(Sentinel-2).multi-platform.UNSPECIFIED.1-1.greenland_s2_50m_seasonal_20170603_20170908_Jakobshavn": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.MSI-(Sentinel-2).multi-platform.UNSPECIFIED.1-1.greenland_s2_50m_seasonal_20170625_20170810_79Fjord": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.MSI-(Sentinel-2).multi-platform.UNSPECIFIED.1-1.greenland_s2_50m_seasonal_20170625_20170810_Zachariae": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.MSI-(Sentinel-2).multi-platform.UNSPECIFIED.1-1.greenland_s2_50m_seasonal_20170630_20170814_Hagen": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.MSI-(Sentinel-2).multi-platform.UNSPECIFIED.1-1.greenland_s2_50m_seasonal_20170715_20170814_Upernavik": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.MSI-(Sentinel-2).multi-platform.UNSPECIFIED.1-1.greenland_s2_50m_seasonal_20170721_20170820_Kangerdlugssuaq": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.MSI-(Sentinel-2).multi-platform.UNSPECIFIED.1-1.greenland_s2_50m_timeseries_20170501_20170829_Helheim": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.MSI-(Sentinel-2).multi-platform.UNSPECIFIED.1-1.greenland_s2_50m_timeseries_20170501_20170914_Petermann": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.MSI-(Sentinel-2).multi-platform.UNSPECIFIED.1-1.greenland_s2_50m_timeseries_20170603_20170908_Jakobshavn": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.MSI-(Sentinel-2).multi-platform.UNSPECIFIED.1-1.greenland_s2_50m_timeseries_20170625_20170810_79Fjord": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.MSI-(Sentinel-2).multi-platform.UNSPECIFIED.1-1.greenland_s2_50m_timeseries_20170625_20170810_Zachariae": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.MSI-(Sentinel-2).multi-platform.UNSPECIFIED.1-1.greenland_s2_50m_timeseries_20170630_20170814_Hagen": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.MSI-(Sentinel-2).multi-platform.UNSPECIFIED.1-1.greenland_s2_50m_timeseries_20170715_20170814_Upernavik": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.MSI-(Sentinel-2).multi-platform.UNSPECIFIED.1-1.greenland_s2_50m_timeseries_20170721_20170820_Kangerdlugssuaq": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.SAR-(RadarSat-2).RadarSat-2.UNSPECIFIED.1-0.greenland_map_winter_2013_2014": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.SAR-2000.multi-platform.UNSPECIFIED.1-0.greenland_csk_250m_timeseries_20120604_20141223_Jakobshavn": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.SAR-C-(Sentinel-1).Sentinel-1A.UNSPECIFIED.1-0.greenland_map_winter_2014_2015": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.SAR-C-(Sentinel-1).Sentinel-1A.UNSPECIFIED.1-2.greenland_map_winter_2015_2016": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.SAR-C-(Sentinel-1).multi-platform.UNSPECIFIED.1-0.greenland_map_winter_2016_2017": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.SAR-C-(Sentinel-1).multi-platform.UNSPECIFIED.1-0.greenland_map_winter_2017_2018": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.SAR-C-(Sentinel-1).multi-platform.UNSPECIFIED.1-1.greenland_s1_250m_20141010_20170317_Upernavik": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.SAR-C-(Sentinel-1).multi-platform.UNSPECIFIED.1-1.greenland_s1_250m_20141011_20170317_20150122_20170322_Hagen": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.SAR-C-(Sentinel-1).multi-platform.UNSPECIFIED.1-1.greenland_s1_250m_20141011_20170317_Jakobshavn": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.SAR-C-(Sentinel-1).multi-platform.UNSPECIFIED.1-1.greenland_s1_250m_20150118_20170321_Kangerlussuaq": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.SAR-C-(Sentinel-1).multi-platform.UNSPECIFIED.1-1.greenland_s1_250m_20150122_20170319_Petermann": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.SAR-C-(Sentinel-1).multi-platform.UNSPECIFIED.1-1.greenland_s1_250m_20150122_20170322_79-Fjord": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.SAR-C-(Sentinel-1).multi-platform.UNSPECIFIED.1-1.greenland_s1_250m_20150124_20170322_Storstroemmen": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.SAR-C-(Sentinel-1).multi-platform.UNSPECIFIED.1-1.greenland_s1_250m_20150126_20170322_Zachariae": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.multi-sensor.multi-platform.UNSPECIFIED.1-0.greenland_timeseries_Kangerlussuaq": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.multi-sensor.multi-platform.UNSPECIFIED.1-1.greenland_timeseries_2002_2010_Jakobshavn": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.multi-sensor.multi-platform.UNSPECIFIED.1-1.greenland_timeseries_Hagen": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.multi-sensor.multi-platform.UNSPECIFIED.1-1.greenland_timeseries_Helheim": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.multi-sensor.multi-platform.UNSPECIFIED.1-1.greenland_timeseries_Petermann": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.multi-sensor.multi-platform.UNSPECIFIED.1-1.greenland_timeseries_Storstrommen": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.multi-sensor.multi-platform.UNSPECIFIED.1-1.greenland_timeseries_Zachariae_79Fjord": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.multi-sensor.multi-platform.UNSPECIFIED.1-2.greenland_timeseries_1992_2010_Jakobshavn": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.unspecified.Unspecified.IV.multi-sensor.multi-platform.UNSPECIFIED.1-2.greenland_timeseries_Upernarvik": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.yr.Unspecified.GMB.GRACE-instrument.GRACE.UNSPECIFIED.1-2.greenland_gmb_mass_trends": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.yr.Unspecified.GMB.GRACE-instrument.GRACE.UNSPECIFIED.1-2.greenland_gmb_timeseries": {
+    "verification_flags": [],
+    "type_specifier": null
+  },
+  "esacci.ICESHEETS.yr.Unspecified.GMB.GRACE-instrument.GRACE.UNSPECIFIED.1-3.greenland_gmb_mass_trends": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.yr.Unspecified.GMB.GRACE-instrument.GRACE.UNSPECIFIED.1-4.greenland_gmb_mass_trends": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.yr.Unspecified.GMB.GRACE-instrument.GRACE.UNSPECIFIED.1-4.greenland_gmb_time_series": {
+    "verification_flags": [],
+    "type_specifier": null
+  },
+  "esacci.ICESHEETS.yr.Unspecified.GMB.GRACE-instrument.GRACE.UNSPECIFIED.1-5.greenland_gmb_mass_trends": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.yr.Unspecified.GMB.GRACE-instrument.GRACE.UNSPECIFIED.1-5.greenland_gmb_time_series": {
+    "verification_flags": [],
+    "type_specifier": null
+  },
+  "esacci.ICESHEETS.yr.Unspecified.IV.PALSAR.ALOS.UNSPECIFIED.1-1.greenland_margin_2006_2011": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.yr.Unspecified.SEC.SIRAL.CryoSat-2.UNSPECIFIED.2-2.greenland_sec_cryosat_2yr": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.yr.Unspecified.SEC.SIRAL.CryoSat-2.UNSPECIFIED.2-2.greenland_sec_cryosat_5yr": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.ICESHEETS.yr.Unspecified.SEC.multi-sensor.multi-platform.UNSPECIFIED.1-2.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.LAKES.day.L3S.LK_PRODUCTS.multi-sensor.multi-platform.MERGED.v1-0.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.LC.13-yrs.L4.WB.ASAR.Envisat.Map.4-0.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.LC.yr.L4.LCCS.multi-sensor.multi-platform.Map.2-0-7.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.5-days.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.3-1.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.5-days.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.3-1.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.5-days.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.4-2.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.5-days.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.4-2.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.5-days.L3S.IOP.multi-sensor.multi-platform.MERGED.3-1.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.5-days.L3S.IOP.multi-sensor.multi-platform.MERGED.3-1.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.5-days.L3S.IOP.multi-sensor.multi-platform.MERGED.4-2.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.5-days.L3S.IOP.multi-sensor.multi-platform.MERGED.4-2.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.5-days.L3S.K_490.multi-sensor.multi-platform.MERGED.3-1.geographic": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.5-days.L3S.K_490.multi-sensor.multi-platform.MERGED.3-1.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.5-days.L3S.K_490.multi-sensor.multi-platform.MERGED.4-2.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.5-days.L3S.K_490.multi-sensor.multi-platform.MERGED.4-2.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.5-days.L3S.OC_PRODUCTS.multi-sensor.multi-platform.MERGED.3-1.geographic": {
+    "verification_flags": [
+      "open",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.5-days.L3S.OC_PRODUCTS.multi-sensor.multi-platform.MERGED.3-1.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.5-days.L3S.OC_PRODUCTS.multi-sensor.multi-platform.MERGED.4-2.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.5-days.L3S.OC_PRODUCTS.multi-sensor.multi-platform.MERGED.4-2.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.5-days.L3S.RRS.multi-sensor.multi-platform.MERGED.3-1.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.5-days.L3S.RRS.multi-sensor.multi-platform.MERGED.3-1.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.5-days.L3S.RRS.multi-sensor.multi-platform.MERGED.4-2.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.5-days.L3S.RRS.multi-sensor.multi-platform.MERGED.4-2.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.8-days.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.3-1.geographic": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.8-days.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.3-1.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.8-days.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.4-2.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.8-days.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.4-2.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.8-days.L3S.IOP.multi-sensor.multi-platform.MERGED.3-1.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.8-days.L3S.IOP.multi-sensor.multi-platform.MERGED.3-1.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.8-days.L3S.IOP.multi-sensor.multi-platform.MERGED.4-2.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.8-days.L3S.IOP.multi-sensor.multi-platform.MERGED.4-2.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.8-days.L3S.K_490.multi-sensor.multi-platform.MERGED.3-1.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.8-days.L3S.K_490.multi-sensor.multi-platform.MERGED.3-1.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.8-days.L3S.K_490.multi-sensor.multi-platform.MERGED.4-2.geographic": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.8-days.L3S.K_490.multi-sensor.multi-platform.MERGED.4-2.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.8-days.L3S.OC_PRODUCTS.multi-sensor.multi-platform.MERGED.3-1.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.8-days.L3S.OC_PRODUCTS.multi-sensor.multi-platform.MERGED.3-1.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.8-days.L3S.OC_PRODUCTS.multi-sensor.multi-platform.MERGED.4-2.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.8-days.L3S.OC_PRODUCTS.multi-sensor.multi-platform.MERGED.4-2.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.8-days.L3S.RRS.multi-sensor.multi-platform.MERGED.3-1.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.8-days.L3S.RRS.multi-sensor.multi-platform.MERGED.3-1.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.8-days.L3S.RRS.multi-sensor.multi-platform.MERGED.4-2.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.8-days.L3S.RRS.multi-sensor.multi-platform.MERGED.4-2.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.climatology.L4.OC_PRODUCTS.multi-sensor.multi-platform.UNSPECIFIED.4-2.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.day.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.3-1.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.day.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.3-1.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.day.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.4-2.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.day.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.4-2.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.day.L3S.IOP.multi-sensor.multi-platform.MERGED.3-1.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.day.L3S.IOP.multi-sensor.multi-platform.MERGED.3-1.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.day.L3S.IOP.multi-sensor.multi-platform.MERGED.4-2.geographic": {
+    "verification_flags": [
+      "open",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.day.L3S.IOP.multi-sensor.multi-platform.MERGED.4-2.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.day.L3S.K_490.multi-sensor.multi-platform.MERGED.3-1.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.day.L3S.K_490.multi-sensor.multi-platform.MERGED.3-1.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.day.L3S.K_490.multi-sensor.multi-platform.MERGED.4-2.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.day.L3S.K_490.multi-sensor.multi-platform.MERGED.4-2.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.day.L3S.OC_PRODUCTS.multi-sensor.multi-platform.MERGED.3-1.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.day.L3S.OC_PRODUCTS.multi-sensor.multi-platform.MERGED.3-1.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.day.L3S.OC_PRODUCTS.multi-sensor.multi-platform.MERGED.4-2.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.day.L3S.OC_PRODUCTS.multi-sensor.multi-platform.MERGED.4-2.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.day.L3S.RRS.multi-sensor.multi-platform.MERGED.3-1.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.day.L3S.RRS.multi-sensor.multi-platform.MERGED.3-1.sinusoidal": {
+    "verification_flags": []
+  },
+  "esacci.OC.day.L3S.RRS.multi-sensor.multi-platform.MERGED.4-2.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.day.L3S.RRS.multi-sensor.multi-platform.MERGED.4-2.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.mon.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.3-1.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.mon.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.3-1.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.mon.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.4-2.geographic": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.mon.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.4-2.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.mon.L3S.IOP.multi-sensor.multi-platform.MERGED.3-1.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.mon.L3S.IOP.multi-sensor.multi-platform.MERGED.3-1.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.mon.L3S.IOP.multi-sensor.multi-platform.MERGED.4-2.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.mon.L3S.IOP.multi-sensor.multi-platform.MERGED.4-2.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.mon.L3S.K_490.multi-sensor.multi-platform.MERGED.3-1.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.mon.L3S.K_490.multi-sensor.multi-platform.MERGED.3-1.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.mon.L3S.K_490.multi-sensor.multi-platform.MERGED.4-2.geographic": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.mon.L3S.K_490.multi-sensor.multi-platform.MERGED.4-2.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.mon.L3S.OC_PRODUCTS.multi-sensor.multi-platform.MERGED.3-1.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.mon.L3S.OC_PRODUCTS.multi-sensor.multi-platform.MERGED.3-1.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.mon.L3S.OC_PRODUCTS.multi-sensor.multi-platform.MERGED.4-2.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.mon.L3S.OC_PRODUCTS.multi-sensor.multi-platform.MERGED.4-2.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.mon.L3S.RRS.multi-sensor.multi-platform.MERGED.3-1.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.mon.L3S.RRS.multi-sensor.multi-platform.MERGED.3-1.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.mon.L3S.RRS.multi-sensor.multi-platform.MERGED.4-2.geographic": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OC.mon.L3S.RRS.multi-sensor.multi-platform.MERGED.4-2.sinusoidal": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.OZONE.day.L3S.TC.multi-sensor.multi-platform.MERGED.fv0100.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OZONE.mon.L3.LP.GOMOS.Envisat.GOMOS_ENVISAT.v0001.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OZONE.mon.L3.LP.MIPAS.Envisat.MIPAS_ENVISAT.v0001.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OZONE.mon.L3.LP.OSIRIS.ODIN.OSIRIS_ODIN.v0001.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OZONE.mon.L3.LP.SCIAMACHY.Envisat.SCIAMACHY_ENVISAT.v0001.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OZONE.mon.L3.LP.SMR.ODIN.MZM.v0001.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OZONE.mon.L3.LP.SMR.ODIN.SMR_ODIN.v0001.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.PERMAFROST.yr.L4.ALT.multi-sensor.multi-platform.ERA5_MODISLST_BIASCORRECTED.02-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.PERMAFROST.yr.L4.ALT.multi-sensor.multi-platform.MODISLST_CRYOGRID.02-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.PERMAFROST.yr.L4.GTD.multi-sensor.multi-platform.ERA5_MODISLST_BIASCORRECTED.02-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.PERMAFROST.yr.L4.GTD.multi-sensor.multi-platform.MODISLST_CRYOGRID.02-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.PERMAFROST.yr.L4.PFR.multi-sensor.multi-platform.ERA5_MODISLST_BIASCORRECTED.02-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.PERMAFROST.yr.L4.PFR.multi-sensor.multi-platform.MODISLST_CRYOGRID.02-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEAICE.day.L4.SICONC.multi-sensor.multi-platform.AMSR_25kmEASE2.2-1.NH": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEAICE.day.L4.SICONC.multi-sensor.multi-platform.AMSR_25kmEASE2.2-1.SH": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEAICE.day.L4.SICONC.multi-sensor.multi-platform.AMSR_50kmEASE2.2-1.NH": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEAICE.day.L4.SICONC.multi-sensor.multi-platform.AMSR_50kmEASE2.2-1.SH": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEAICE.mon.L3C.SITHICK.RA-2.Envisat.NH25KMEASE2.2-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEAICE.mon.L3C.SITHICK.RA-2.Envisat.SH50KMEASE2.2-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEAICE.mon.L3C.SITHICK.SIRAL.CryoSat-2.NH25KMEASE2.2-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEAICE.mon.L3C.SITHICK.SIRAL.CryoSat-2.SH50KMEASE2.2-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEAICE.satellite-orbit-frequency.L2P.SITHICK.RA-2.Envisat.NH.2-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEAICE.satellite-orbit-frequency.L2P.SITHICK.RA-2.Envisat.SH.2-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEAICE.satellite-orbit-frequency.L2P.SITHICK.SIRAL.CryoSat-2.NH.2-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEAICE.satellite-orbit-frequency.L2P.SITHICK.SIRAL.CryoSat-2.SH.2-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEALEVEL.10-days.L3.SLA.multi-sensor.multi-platform.NE_ATL.1-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEALEVEL.10-days.L3.SLA.multi-sensor.multi-platform.N_INDIAN.1-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEALEVEL.10-days.L3.SLA.multi-sensor.multi-platform.SE_ASIA.1-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEALEVEL.10-days.L3.SLA.multi-sensor.multi-platform.S_AUSTRALIA.1-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEALEVEL.10-days.L3.SLA.multi-sensor.multi-platform.WAFRICA.1-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEALEVEL.mon.IND.MSL.multi-sensor.multi-platform.MERGED.2-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEALEVEL.mon.IND.MSLAMPH.multi-sensor.multi-platform.MERGED.2-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEALEVEL.mon.IND.MSLTR.multi-sensor.multi-platform.MERGED.1-1.MED_SEA": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEALEVEL.mon.IND.MSLTR.multi-sensor.multi-platform.MERGED.1-1.NE_ATL": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEALEVEL.mon.IND.MSLTR.multi-sensor.multi-platform.MERGED.1-1.N_INDIAN": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEALEVEL.mon.IND.MSLTR.multi-sensor.multi-platform.MERGED.1-1.SE_ASIA": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEALEVEL.mon.IND.MSLTR.multi-sensor.multi-platform.MERGED.1-1.S_AUSTRALIA": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEALEVEL.mon.IND.MSLTR.multi-sensor.multi-platform.MERGED.1-1.WAFRICA": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEALEVEL.mon.IND.MSLTR.multi-sensor.multi-platform.MERGED.2-0.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEALEVEL.mon.L4.MSLA.multi-sensor.multi-platform.MERGED.2-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEALEVEL.satellite-orbit-frequency.L1.UNSPECIFIED.AltiKa.SARAL.UNSPECIFIED.v2-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEALEVEL.satellite-orbit-frequency.L1.UNSPECIFIED.GFO-RA.GFO.UNSPECIFIED.v2-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEALEVEL.satellite-orbit-frequency.L1.UNSPECIFIED.Poseidon-2.Jason-1.UNSPECIFIED.v2-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEALEVEL.satellite-orbit-frequency.L1.UNSPECIFIED.Poseidon-3.Jason-2.UNSPECIFIED.v2-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEALEVEL.satellite-orbit-frequency.L1.UNSPECIFIED.RA-2.Envisat.UNSPECIFIED.v2-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEALEVEL.satellite-orbit-frequency.L1.UNSPECIFIED.RA.ERS-1.UNSPECIFIED.v2-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEALEVEL.satellite-orbit-frequency.L1.UNSPECIFIED.RA.ERS-2.UNSPECIFIED.v2-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEALEVEL.satellite-orbit-frequency.L1.UNSPECIFIED.SIRAL.CryoSat-2.UNSPECIFIED.v2-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEALEVEL.satellite-orbit-frequency.L1.UNSPECIFIED.SSALT.Topex-Poseidon.UNSPECIFIED.v2-0.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEALEVEL.unspecified.L3.SLA.multi-sensor.multi-platform.MED_SEA.1-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEASTATE.mon.L4.SWH.multi-sensor.multi-platform.MULTI_1M.1-1.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEASTATE.satellite-orbit-frequency.L2P.SWH.AltiKa.SARAL.Saral.1-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEASTATE.satellite-orbit-frequency.L2P.SWH.GFO-RA.GFO.GFO.1-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEASTATE.satellite-orbit-frequency.L2P.SWH.NRA.Topex-Poseidon.Topex-Poseidon.1-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEASTATE.satellite-orbit-frequency.L2P.SWH.NRA.Topex/Poseidon.Topex-Poseidon.1-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEASTATE.satellite-orbit-frequency.L2P.SWH.Poseidon-2.Jason-1.Jason-1.1-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEASTATE.satellite-orbit-frequency.L2P.SWH.Poseidon-3.Jason-2.Jason-2.1-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEASTATE.satellite-orbit-frequency.L2P.SWH.Poseidon-3B.Jason-3.Jason-3.1-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEASTATE.satellite-orbit-frequency.L2P.SWH.RA-2.Envisat.Envisat.1-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEASTATE.satellite-orbit-frequency.L2P.SWH.RA.ERS-1.ERS-1.1-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEASTATE.satellite-orbit-frequency.L2P.SWH.RA.ERS-2.ERS-2.1-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEASTATE.satellite-orbit-frequency.L2P.SWH.SIRAL.CryoSat-2.CryoSat-2.1-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEASTATE.satellite-orbit-frequency.L3.SWH.multi-sensor.multi-platform.MULTI_1D.1-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEASURFACESALINITY.15-days.L4.SSS.multi-sensor.multi-platform.MERGED_OI_Monthly_CENTRED_15Day_25km.2-31.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SEASURFACESALINITY.day.L4.SSS.multi-sensor.multi-platform.MERGED_OI_7DAY_RUNNINGMEAN_DAILY_25km.2-31.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SNOW.day.L3C.SWE.multi-sensor.multi-platform.MERGED.1-0.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.05-2.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.COMBINED.05-2.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SOILMOISTURE.day.L3S.SSMV.multi-sensor.multi-platform.PASSIVE.05-2.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.climatology.L4.SSTdepth.multi-sensor.multi-platform.OSTIA.2-1.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L3C.SSTskin.AATSR.Envisat.AATSR.2-1.day": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L3C.SSTskin.AATSR.Envisat.AATSR.2-1.night": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L3C.SSTskin.ATSR-2.ERS-2.ATSR2.2-1.day": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L3C.SSTskin.ATSR-2.ERS-2.ATSR2.2-1.night": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L3C.SSTskin.ATSR.ERS-1.ATSR1.2-1.day": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L3C.SSTskin.ATSR.ERS-1.ATSR1.2-1.night": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L3C.SSTskin.AVHRR-2.NOAA-11.AVHRR11_G.2-1.day": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L3C.SSTskin.AVHRR-2.NOAA-11.AVHRR11_G.2-1.night": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L3C.SSTskin.AVHRR-2.NOAA-12.AVHRR12_G.2-1.day": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L3C.SSTskin.AVHRR-2.NOAA-12.AVHRR12_G.2-1.night": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L3C.SSTskin.AVHRR-2.NOAA-14.AVHRR14_G.2-1.day": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L3C.SSTskin.AVHRR-2.NOAA-14.AVHRR14_G.2-1.night": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L3C.SSTskin.AVHRR-2.NOAA-7.AVHRR07_G.2-1.day": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L3C.SSTskin.AVHRR-2.NOAA-7.AVHRR07_G.2-1.night": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L3C.SSTskin.AVHRR-2.NOAA-9.AVHRR09_G.2-1.day": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L3C.SSTskin.AVHRR-2.NOAA-9.AVHRR09_G.2-1.night": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L3C.SSTskin.AVHRR-3.Metop-A.AVHRRMTA_G.2-1.day": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L3C.SSTskin.AVHRR-3.Metop-A.AVHRRMTA_G.2-1.night": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L3C.SSTskin.AVHRR-3.NOAA-15.AVHRR15_G.2-1.day": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L3C.SSTskin.AVHRR-3.NOAA-15.AVHRR15_G.2-1.night": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L3C.SSTskin.AVHRR-3.NOAA-16.AVHRR16_G.2-1.day": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L3C.SSTskin.AVHRR-3.NOAA-16.AVHRR16_G.2-1.night": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L3C.SSTskin.AVHRR-3.NOAA-17.AVHRR17_G.2-1.day": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L3C.SSTskin.AVHRR-3.NOAA-17.AVHRR17_G.2-1.night": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L3C.SSTskin.AVHRR-3.NOAA-18.AVHRR18_G.2-1.day": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L3C.SSTskin.AVHRR-3.NOAA-18.AVHRR18_G.2-1.night": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L3C.SSTskin.AVHRR-3.NOAA-19.AVHRR19_G.2-1.day": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L3C.SSTskin.AVHRR-3.NOAA-19.AVHRR19_G.2-1.night": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L4.SSTdepth.multi-sensor.multi-platform.OSTIA.1-1.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L4.SSTdepth.multi-sensor.multi-platform.OSTIA.2-1.anomaly": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L4.SSTdepth.multi-sensor.multi-platform.OSTIA.2-1.sst": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.day.L4.SSTskin.Unspecified.Unspecified.GMPE.2-0.r1": {
+    "verification_flags": [
+      "open",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.satellite-orbit-frequency.L2P.SSTskin.AATSR.Envisat.AATSR.2-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.satellite-orbit-frequency.L2P.SSTskin.ATSR-2.ERS-2.ATSR2.2-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.satellite-orbit-frequency.L2P.SSTskin.ATSR.ERS-1.ATSR1.2-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.satellite-orbit-frequency.L2P.SSTskin.AVHRR-2.NOAA-11.AVHRR11_G.2-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.satellite-orbit-frequency.L2P.SSTskin.AVHRR-2.NOAA-12.AVHRR12_G.2-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.satellite-orbit-frequency.L2P.SSTskin.AVHRR-2.NOAA-14.AVHRR14_G.2-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.satellite-orbit-frequency.L2P.SSTskin.AVHRR-2.NOAA-7.AVHRR07_G.2-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.satellite-orbit-frequency.L2P.SSTskin.AVHRR-2.NOAA-9.AVHRR09_G.2-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.satellite-orbit-frequency.L2P.SSTskin.AVHRR-3.Metop-A.AVHRRMTA_G.2-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.satellite-orbit-frequency.L2P.SSTskin.AVHRR-3.NOAA-15.AVHRR15_G.2-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.satellite-orbit-frequency.L2P.SSTskin.AVHRR-3.NOAA-16.AVHRR16_G.2-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.satellite-orbit-frequency.L2P.SSTskin.AVHRR-3.NOAA-17.AVHRR17_G.2-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.satellite-orbit-frequency.L2P.SSTskin.AVHRR-3.NOAA-18.AVHRR18_G.2-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.satellite-orbit-frequency.L2P.SSTskin.AVHRR-3.NOAA-19.AVHRR19_G.2-1.r1": {
+    "verification_flags": [],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.satellite-orbit-frequency.L3U.SSTskin.AATSR.Envisat.AATSR.2-1.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.satellite-orbit-frequency.L3U.SSTskin.ATSR-2.ERS-2.ATSR2.2-1.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.satellite-orbit-frequency.L3U.SSTskin.ATSR.ERS-1.ATSR1.2-1.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.satellite-orbit-frequency.L3U.SSTskin.AVHRR-2.NOAA-11.AVHRR11_G.2-1.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.satellite-orbit-frequency.L3U.SSTskin.AVHRR-2.NOAA-12.AVHRR12_G.2-1.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.satellite-orbit-frequency.L3U.SSTskin.AVHRR-2.NOAA-14.AVHRR14_G.2-1.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.satellite-orbit-frequency.L3U.SSTskin.AVHRR-2.NOAA-7.AVHRR07_G.2-1.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.satellite-orbit-frequency.L3U.SSTskin.AVHRR-2.NOAA-9.AVHRR09_G.2-1.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.satellite-orbit-frequency.L3U.SSTskin.AVHRR-3.Metop-A.AVHRRMTA_G.2-1.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.satellite-orbit-frequency.L3U.SSTskin.AVHRR-3.NOAA-15.AVHRR15_G.2-1.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.satellite-orbit-frequency.L3U.SSTskin.AVHRR-3.NOAA-16.AVHRR16_G.2-1.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.satellite-orbit-frequency.L3U.SSTskin.AVHRR-3.NOAA-17.AVHRR17_G.2-1.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.satellite-orbit-frequency.L3U.SSTskin.AVHRR-3.NOAA-18.AVHRR18_G.2-1.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  },
+  "esacci.SST.satellite-orbit-frequency.L3U.SSTskin.AVHRR-3.NOAA-19.AVHRR19_G.2-1.r1": {
+    "verification_flags": [
+      "open",
+      "cache",
+      "map"
+    ],
+    "type_specifier": "dataset"
+  }
+}

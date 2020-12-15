@@ -466,9 +466,15 @@ async def _fetch_data_source_list_json(base_url, query_args, monitor: Monitor = 
                     catalogue[fc_id]['odd_url'] = odd_url
             described_by = fc_props_links.get("describedby", None)
             if described_by:
-                metadata_url = described_by[0].get("href", None)
-                if metadata_url:
-                    catalogue[fc_id]['metadata_url'] = metadata_url
+                for entry in described_by:
+                    if entry.get('title', '') == 'ISO19115':
+                        metadata_url = entry.get("href", None)
+                        if metadata_url:
+                            catalogue[fc_id]['metadata_url'] = metadata_url
+                    elif entry.get('title', '') == 'Dataset Information':
+                        catalogue_url = entry.get("href", None)
+                        if catalogue_url:
+                            catalogue[fc_id]['catalogue_url'] = catalogue_url
         _LOG.info(f'Read meta info from {fc_id}')
     return catalogue
 
@@ -616,10 +622,10 @@ class EsaCciOdpDataStore(DataStore):
         self._metadata_store_path = meta_data_store_path
         self._drs_ids = drs_ids
         self._data_sources = []
-        self._success = []
+        self._dataset_states = {}
         loc = os.path.dirname(os.path.abspath(__file__))
-        with open(f'{loc}/data/DrsID_success_list.txt', 'r') as success_list:
-            self._success = success_list.read().split('\n')
+        with open(f'{loc}/data/dataset_states.json', 'r') as fp:
+            self._dataset_states = json.load(fp)
 
     @property
     def description(self) -> Optional[str]:
@@ -803,8 +809,11 @@ class EsaCciOdpDataStore(DataStore):
             self._adjust_json_dict(meta_info, drs_id)
             meta_info['cci_project'] = meta_info['ecv']
             meta_info['fid'] = datasource_id
-            openable = drs_id in self._success
-            data_source = EsaCciOdpDataSource(self, meta_info, datasource_id, drs_id, openable)
+            meta_info['uuid'] = datasource_id
+            verification_flags = self._dataset_states.get(drs_id, {}).get('verification_flags', [])
+            type_specifier = self._dataset_states.get(drs_id).get('type_specifier', None)
+            data_source = EsaCciOdpDataSource(self, meta_info, datasource_id, drs_id,
+                                              verification_flags, type_specifier)
             self._data_sources.append(data_source)
 
     def _adjust_json_dict(self, json_dict: dict, drs_id: str):
@@ -972,6 +981,7 @@ class EsaCciOdpDataStore(DataStore):
 
 
 INFO_FIELD_NAMES = sorted(["title",
+                           "uuid",
                            "abstract",
                            "licences",
                            "bbox_minx",
@@ -1001,7 +1011,8 @@ INFO_FIELD_NAMES = sorted(["title",
                            "product_versions",
                            "data_type",
                            "data_types",
-                           "cci_project"
+                           "cci_project",
+                           "catalogue_url"
                            ])
 
 
@@ -1011,7 +1022,8 @@ class EsaCciOdpDataSource(DataSource):
                  json_dict: dict,
                  raw_datasource_id: str,
                  datasource_id: str,
-                 openable: bool = True,
+                 verification_flags: List[str] = None,
+                 type_specifier = None,
                  schema: Schema = None):
         super(EsaCciOdpDataSource, self).__init__()
         self._raw_id = raw_datasource_id
@@ -1022,7 +1034,11 @@ class EsaCciOdpDataSource(DataSource):
         self._file_list = None
         self._meta_info = None
         self._temporal_coverage = None
-        self._cate_openable = openable
+        if verification_flags:
+            self._verification_flags = set(verification_flags)
+        else:
+            self._verification_flags = set()
+        self._type_specifier = type_specifier
 
     @property
     def id(self) -> str:
@@ -1046,8 +1062,12 @@ class EsaCciOdpDataSource(DataSource):
         return None
 
     @property
-    def cate_openable(self) -> bool:
-        return self._cate_openable
+    def verification_flags(self) -> AbstractSet[str]:
+        return self._verification_flags
+
+    @property
+    def type_specifier(self) -> str:
+        return self._type_specifier
 
     def temporal_coverage(self, monitor: Monitor = Monitor.NONE) -> Optional[TimeRange]:
         if not self._temporal_coverage:
