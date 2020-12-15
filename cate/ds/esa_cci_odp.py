@@ -471,7 +471,7 @@ async def _fetch_data_source_list_json(base_url, query_args, monitor: Monitor = 
                         metadata_url = entry.get("href", None)
                         if metadata_url:
                             catalogue[fc_id]['metadata_url'] = metadata_url
-                    if entry.get('title', '') == 'Dataset Information':
+                    elif entry.get('title', '') == 'Dataset Information':
                         catalogue_url = entry.get("href", None)
                         if catalogue_url:
                             catalogue[fc_id]['catalogue_url'] = catalogue_url
@@ -1035,9 +1035,9 @@ class EsaCciOdpDataSource(DataSource):
         self._meta_info = None
         self._temporal_coverage = None
         if verification_flags:
-            self._verification_flags = verification_flags
+            self._verification_flags = set(verification_flags)
         else:
-            self._verification_flags = []
+            self._verification_flags = set()
         self._type_specifier = type_specifier
 
     @property
@@ -1062,7 +1062,7 @@ class EsaCciOdpDataSource(DataSource):
         return None
 
     @property
-    def verification_flags(self) -> List[str]:
+    def verification_flags(self) -> AbstractSet[str]:
         return self._verification_flags
 
     @property

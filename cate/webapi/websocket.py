@@ -161,7 +161,7 @@ class WebSocketService:
         return [dict(id=data_source.id,
                      title=data_source.title,
                      metaInfo=data_source.meta_info,
-                     verificationFlags=data_source.flags,
+                     verificationFlags=list(data_source.flags),
                      typeSpecifier=data_source.type_specifier) for data_source in data_sources]
 
     def get_data_source_temporal_coverage(self, data_store_id: str, data_source_id: str, monitor: Monitor) \
