@@ -622,10 +622,10 @@ class EsaCciOdpDataStore(DataStore):
         self._metadata_store_path = meta_data_store_path
         self._drs_ids = drs_ids
         self._data_sources = []
-        self._success = []
+        self._dataset_states = {}
         loc = os.path.dirname(os.path.abspath(__file__))
-        with open(f'{loc}/data/DrsID_success_list.txt', 'r') as success_list:
-            self._success = success_list.read().split('\n')
+        with open(f'{loc}/data/dataset_states.json', 'r') as fp:
+            self._dataset_states = json.load(fp)
 
     @property
     def description(self) -> Optional[str]:
@@ -810,8 +810,10 @@ class EsaCciOdpDataStore(DataStore):
             meta_info['cci_project'] = meta_info['ecv']
             meta_info['fid'] = datasource_id
             meta_info['uuid'] = datasource_id
-            openable = drs_id in self._success
-            data_source = EsaCciOdpDataSource(self, meta_info, datasource_id, drs_id, openable)
+            verification_flags = self._dataset_states.get(drs_id, {}).get('verification_flags', [])
+            type_specifier = self._dataset_states.get(drs_id).get('type_specifier', None)
+            data_source = EsaCciOdpDataSource(self, meta_info, datasource_id, drs_id,
+                                              verification_flags, type_specifier)
             self._data_sources.append(data_source)
 
     def _adjust_json_dict(self, json_dict: dict, drs_id: str):
@@ -1060,8 +1062,12 @@ class EsaCciOdpDataSource(DataSource):
         return None
 
     @property
-    def cate_openable(self) -> bool:
-        return self._cate_openable
+    def verification_flags(self) -> List[str]:
+        return self._verification_flags
+
+    @property
+    def type_specifier(self) -> str:
+        return self._type_specifier
 
     def temporal_coverage(self, monitor: Monitor = Monitor.NONE) -> Optional[TimeRange]:
         if not self._temporal_coverage:
