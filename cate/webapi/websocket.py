@@ -34,7 +34,7 @@ from cate.core.ds import DATA_STORE_REGISTRY
 from cate.core.op import OP_REGISTRY
 from cate.core.workspace import OpKwArgs, Workspace
 from cate.core.wsmanag import WorkspaceManager
-from cate.util.misc import cwd, filter_fileset
+from cate.util.misc import cwd
 from cate.util.monitor import Monitor
 from cate.util.sround import sround_range
 
@@ -158,11 +158,19 @@ class WebSocketService:
             data_sources = [data_source_dict[ds_id] for ds_id in data_source_ids]
 
         data_sources = sorted(data_sources, key=lambda ds: ds.title or ds.id)
-        return [dict(id=data_source.id,
-                     title=data_source.title,
-                     metaInfo=data_source.meta_info,
-                     verificationFlags=list(data_source.verification_flags),
-                     typeSpecifier=data_source.type_specifier) for data_source in data_sources]
+
+        serialized_data_sources = []
+        for data_source in data_sources:
+            verification_flags = list(data_source.verification_flags) \
+                if data_source.verification_flags is not None else None
+            type_specifier = data_source.type_specifier \
+                if data_source.type_specifier is not None else None
+            serialized_data_sources.append(dict(id=data_source.id,
+                                                title=data_source.title,
+                                                metaInfo=data_source.meta_info,
+                                                verificationFlags=verification_flags,
+                                                typeSpecifier=type_specifier))
+        return serialized_data_sources
 
     def get_data_source_temporal_coverage(self, data_store_id: str, data_source_id: str, monitor: Monitor) \
             -> Dict[str, Any]:
