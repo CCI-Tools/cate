@@ -1,4 +1,6 @@
-## Version 2.1.5 (in development)
+## Version 2.1.5 
+
+* Now including ODP dataset verification information in data sources for use by Cate App. 
 
 ## Version 2.1.4
 * Only show data sources of the ODP Data Store that can be opened in cate.
