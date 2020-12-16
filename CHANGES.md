@@ -1,4 +1,4 @@
-## Version 2.1.5 
+## Version 2.1.5 (in development)
 
 * Now including ODP dataset verification information in data sources for use by Cate App. 
 
