@@ -1,6 +1,6 @@
 {
   "data_id": "esacci.OC.mon.L3S.IOP.multi-sensor.multi-platform.MERGED.4-2.geographic",
-  "type_id": "dataset",
+  "type_specifier": "dataset",
   "bbox": [
     -180.0,
     -90.0,

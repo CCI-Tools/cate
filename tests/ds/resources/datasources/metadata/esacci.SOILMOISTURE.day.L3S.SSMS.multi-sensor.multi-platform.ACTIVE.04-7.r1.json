@@ -1,6 +1,6 @@
 {
   "data_id": "esacci.SOILMOISTURE.day.L3S.SSMS.multi-sensor.multi-platform.ACTIVE.04-7.r1",
-  "type_id": "dataset",
+  "type_specifier": "dataset",
   "bbox": [
     -180.0,
     -90.0,

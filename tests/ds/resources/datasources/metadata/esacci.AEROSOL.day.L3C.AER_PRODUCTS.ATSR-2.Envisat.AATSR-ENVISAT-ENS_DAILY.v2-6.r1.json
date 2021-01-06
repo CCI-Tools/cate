@@ -1,6 +1,6 @@
 {
   "data_id": "esacci.AEROSOL.day.L3C.AER_PRODUCTS.ATSR-2.Envisat.AATSR-ENVISAT-ENS_DAILY.v2-6.r1",
-  "type_id": "dataset",
+  "type_specifier": "dataset",
   "bbox": [
     -180.0,
     -90.0,

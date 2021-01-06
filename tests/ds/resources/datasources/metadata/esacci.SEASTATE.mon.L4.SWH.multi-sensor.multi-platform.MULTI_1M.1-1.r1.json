@@ -1,6 +1,6 @@
 {
   "data_id": "esacci.SEASTATE.mon.L4.SWH.multi-sensor.multi-platform.MULTI_1M.1-1.r1",
-  "type_id": "dataset",
+  "type_specifier": "dataset",
   "bbox": [
     -180.0,
     -80.0,

@@ -1,6 +1,6 @@
 {
   "data_id": "esacci.SST.day.L3C.SSTskin.AVHRR-2.NOAA-12.AVHRR12_G.2-1.night",
-  "type_id": "dataset",
+  "type_specifier": "dataset",
   "bbox": [
     -180.0,
     -90.0,

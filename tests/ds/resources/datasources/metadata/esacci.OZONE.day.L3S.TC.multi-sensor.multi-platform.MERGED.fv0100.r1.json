@@ -1,6 +1,6 @@
 {
   "data_id": "esacci.OZONE.day.L3S.TC.multi-sensor.multi-platform.MERGED.fv0100.r1",
-  "type_id": "dataset",
+  "type_specifier": "dataset",
   "bbox": [
     -180.0,
     -90.0,
