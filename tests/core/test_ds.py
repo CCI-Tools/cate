@@ -77,15 +77,15 @@ class DataStoreTest(TestCase):
     def test_describe_data(self):
         aerosol_descriptor = self.TEST_DATA_STORE.describe_data('aerosol')
         self.assertEqual('aerosol', aerosol_descriptor.data_id)
-        self.assertEqual('dataset', aerosol_descriptor.type_id)
+        self.assertEqual('dataset', aerosol_descriptor.type_specifier)
 
         ozone_descriptor = self.TEST_DATA_STORE.describe_data('ozone')
         self.assertEqual('ozone', ozone_descriptor.data_id)
-        self.assertEqual('dataset', ozone_descriptor.type_id)
+        self.assertEqual('dataset', ozone_descriptor.type_specifier)
 
         sst_descriptor = self.TEST_DATA_STORE_SST.describe_data('sst')
         self.assertEqual('sst', sst_descriptor.data_id)
-        self.assertEqual('dataset', sst_descriptor.type_id)
+        self.assertEqual('dataset', sst_descriptor.type_specifier)
 
     def test_open_data(self):
         aerosol_data = self.TEST_DATA_STORE.open_data('aerosol')
@@ -160,7 +160,6 @@ class IOTest(TestCase):
     def test_get_metadata_from_descriptor(self):
         descriptor = xcube_store.DatasetDescriptor(
             data_id='xyz',
-            type_id='abc',
             crs='EPSG:9346',
             bbox=(10., 20., 30., 40.),
             spatial_res=20.,
@@ -225,7 +224,7 @@ class IOTest(TestCase):
         descriptor_metadata = get_metadata_from_descriptor(descriptor)
         expected_metadata = dict(
             data_id='xyz',
-            type_id='abc',
+            type_specifier='dataset',
             crs='EPSG:9346',
             bbox=(10., 20., 30., 40.),
             spatial_res=20.,
