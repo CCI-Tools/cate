@@ -667,6 +667,13 @@ class _GlobalEventLoopPolicy(asyncio.DefaultEventLoopPolicy):
 
     def __init__(self, global_loop):
         super().__init__()
+
+        # we are patching run_until_complete here. As the global loop is always running
+        # (and across multiple threads), we call run_coroutine_threadsafe instead
+        def run_until_complete(future):
+            return asyncio.run_coroutine_threadsafe(future, global_loop).result()
+        global_loop.run_until_complete = run_until_complete
+
         self._global_loop = global_loop
 
     def get_event_loop(self):
