@@ -1146,8 +1146,6 @@ class DataSourceCommand(SubCommandCommand):
                                       "The comparison is case insensitive.")
         list_parser.add_argument('--coverage', '-c', action='store_true',
                                  help="Also display temporal coverage")
-        # list_parser.add_argument('--update', '-u', action='store_true',
-        #                          help='Display data store updates')
         # Improvement (marcoz, 20160905): implement "cate ds list --var"
         # list_parser.add_argument('--var', '-v', metavar='VAR',
         #                          help="List only data sources with a variable named NAME or "
