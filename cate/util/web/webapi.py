@@ -23,13 +23,13 @@ import argparse
 import asyncio
 import logging
 import os.path
+import requests
 import signal
 import subprocess
 import sys
 import threading
 import time
 import traceback
-import urllib.request
 from datetime import datetime
 from typing import List, Callable, Optional, Tuple
 
@@ -327,9 +327,9 @@ class WebAPI:
 
         # noinspection PyBroadException
         try:
-            with urllib.request.urlopen(f'http://{join_address_and_port(address, port)}/exit',
-                                        timeout=timeout * 0.3) as response:
-                response.read()
+            with requests.request('GET', f'http://{join_address_and_port(address, port)}/exit',
+                                  timeout=timeout * 0.3) as response:
+                response.text
         except Exception:
             # Either process does not exist, or timeout, or some other error
             pass
@@ -449,7 +449,7 @@ class WebAPI:
                 raise ValueError('WebAPI service terminated with exit code %d' % exit_code)
             # noinspection PyBroadException
             try:
-                urllib.request.urlopen(webapi_url, timeout=2)
+                requests.request('GET', webapi_url, timeout=2)
                 # Success!
                 return
             except Exception:

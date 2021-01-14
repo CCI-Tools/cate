@@ -21,6 +21,7 @@
 
 
 import json
+import requests
 import urllib.parse
 import urllib.request
 from typing import List, Tuple, Optional, Any, Union
@@ -66,9 +67,8 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         return rpc_response.get('response')
 
     def _fetch_json(self, url, data=None, timeout: float = None):
-        with urllib.request.urlopen(url, data=data, timeout=timeout or self.rpc_timeout) as response:
-            json_text = response.read()
-        json_response = json.loads(json_text.decode('utf-8'))
+        with requests.post(url, data=data, timeout=timeout or self.rpc_timeout) as response:
+            json_response = response.json()
         status = json_response.get('status')
         if status == 'error':
             WebAPIWorkspaceManager._raise_error(json_response.get('error'))

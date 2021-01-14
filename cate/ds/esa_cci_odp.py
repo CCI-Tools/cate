@@ -47,6 +47,7 @@ import logging
 import os
 import random
 import re
+import requests
 import socket
 import time
 import urllib.parse
@@ -61,6 +62,7 @@ from urllib.error import URLError, HTTPError
 import pandas as pd
 import xarray as xr
 
+from cate.core.common import default_user_agent
 from cate.conf import get_config_value, get_data_stores_path
 from cate.conf.defaults import NETCDF_COMPRESSION_LEVEL
 from cate.core.ds import DATA_STORE_REGISTRY, NetworkError, DataStore, DataSource, Schema, open_xarray_dataset, \
@@ -154,7 +156,7 @@ def find_datetime_format(filename: str) -> Tuple[Optional[str], int, int]:
 
 async def _extract_metadata_from_odd_url(session=None, odd_url: str = None) -> dict:
     if session is None:
-        session = aiohttp.ClientSession()
+        session = aiohttp.ClientSession(headers={'User-Agent': default_user_agent()})
     if not odd_url:
         return {}
     resp = await get_response(session, odd_url)
@@ -196,7 +198,7 @@ def _get_from_param_elem(param_elem: etree.Element) -> Optional[Union[str, List[
 
 async def _extract_metadata_from_descxml_url(session=None, descxml_url: str = None) -> dict:
     if session is None:
-        session = aiohttp.ClientSession()
+        session = aiohttp.ClientSession(headers={'User-Agent': default_user_agent()})
     if not descxml_url:
         return {}
     resp = await get_response(session, descxml_url)
@@ -338,7 +340,7 @@ async def _fetch_opensearch_feature_list(base_url, query_args, monitor: Monitor 
     maximum_records = 1000
     full_feature_list = []
     with monitor.starting("Loading", 10):
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(headers={'User-Agent': default_user_agent()}) as session:
             while True:
                 monitor.progress(work=1)
                 paging_query_args = dict(query_args or {})
@@ -530,7 +532,7 @@ def _retrieve_infos_from_dds(dds_lines: List) -> tuple:
 
 async def _fetch_meta_info(dataset_id: str, odd_url: str, metadata_url: str, variables: List, read_dimensions: bool) \
         -> Dict:
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(headers={'User-Agent': default_user_agent()}) as session:
         meta_info_dict = {}
         if odd_url:
             meta_info_dict = await _extract_metadata_from_odd_url(session, odd_url)
@@ -772,7 +774,8 @@ class EsaCciOdpDataStore(DataStore):
         if self._catalogue is None:
             await self._load_index()
         if not self._drs_ids:
-            async with aiohttp.ClientSession() as session:
+            async with aiohttp.ClientSession(headers={'User-Agent': default_user_agent()}) \
+                    as session:
                 self._drs_ids = await self._fetch_dataset_names(session)
         if self._catalogue:
             self._data_sources = []
@@ -1368,11 +1371,6 @@ class EsaCciOdpDataSource(DataSource):
                     dataset_file = os.path.join(local_path, filename)
                     child_monitor = monitor.child(work=1.0)
 
-                    # noinspection PyUnusedLocal
-                    def reporthook(block_number, read_size, total_file_size):
-                        dl_stat.handle_chunk(read_size)
-                        child_monitor.progress(work=read_size, msg=str(dl_stat))
-
                     sub_monitor_msg = "file %d of %d" % (file_number, len(outdated_file_list))
                     with child_monitor.starting(sub_monitor_msg, file_size):
                         actual_url = url[_ODP_PROTOCOL_HTTP]
@@ -1384,19 +1382,9 @@ class EsaCciOdpDataSource(DataSource):
 
                     _LOG.info(f"Downloading {actual_url} to {dataset_file}")
                     try:
-                        urllib.request.urlretrieve(actual_url, filename=dataset_file, reporthook=reporthook)
-                    except HTTPError as e:
-                        try:
-                            actual_url = e.headers['Location']
-                            urllib.request.urlretrieve(actual_url, filename=dataset_file, reporthook=reporthook)
-                            # the following presumption has been made in order to save runtime: if a HTTP Error 308
-                            # occurs, it's assumed to be due to protocol change and that for all downloads within this
-                            # download que the redirect will be true.
-                            url_scheme = urllib.parse.urlparse(actual_url).scheme
-                        except HTTPError as e:
-                            raise self._cannot_access_error(time_range, region, var_names,
-                                                            verb="synchronize", cause=e) from e
-                    except (URLError, socket.timeout) as e:
+                        resp = requests.request('GET', actual_url, allow_redirects=True)
+                        open(dataset_file, 'wb').write(resp.content)
+                    except requests.RequestException as e:
                         raise self._cannot_access_error(time_range, region, var_names,
                                                         verb="synchronize", cause=e,
                                                         error_cls=NetworkError) from e
@@ -1404,7 +1392,8 @@ class EsaCciOdpDataSource(DataSource):
                         raise self._cannot_access_error(time_range, region, var_names,
                                                         verb="synchronize", cause=e) from e
                     file_number += 1
-                    local_ds.add_dataset(os.path.join(local_ds.id, filename), (coverage_from, coverage_to))
+                    local_ds.add_dataset(os.path.join(local_ds.id, filename),
+                                         (coverage_from, coverage_to))
                     if do_update_of_verified_time_coverage_start_once:
                         verified_time_coverage_start = coverage_from
                         do_update_of_verified_time_coverage_start_once = False
@@ -1434,7 +1423,10 @@ class EsaCciOdpDataSource(DataSource):
         if not local_store:
             raise ValueError('Cannot initialize `local` DataStore')
 
-        uuid = LocalDataStore.generate_uuid(ref_id=self.id, time_range=time_range, region=region, var_names=var_names)
+        uuid = LocalDataStore.generate_uuid(ref_id=self.id,
+                                            time_range=time_range,
+                                            region=region,
+                                            var_names=var_names)
 
         if not ds_id or len(ds_id) == 0:
             ds_id = "local.{}.{}".format(self.id, uuid)
