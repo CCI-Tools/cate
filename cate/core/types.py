@@ -157,6 +157,10 @@ class Like(Generic[T], metaclass=ABCMeta):
 VarNames = List[str]
 
 
+class Password(str):
+    pass
+
+
 class Arbitrary(Like[Any]):
     """
     Represents an arbitrary Python value.

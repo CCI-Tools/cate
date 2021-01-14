@@ -38,7 +38,7 @@ from cate.core.ds import get_spatial_ext_chunk_sizes
 from cate.core.objectio import OBJECT_IO_REGISTRY, ObjectIO
 from cate.core.op import OP_REGISTRY, op_input, op
 from cate.core.types import VarNamesLike, TimeRangeLike, PolygonLike, DictLike, FileLike, GeoDataFrame, DataFrameLike, \
-    ValidationError
+    ValidationError, Password
 from cate.ops.normalize import adjust_temporal_attrs
 from cate.ops.normalize import normalize as normalize_op
 from cate.util.monitor import Monitor
@@ -512,8 +512,8 @@ def write_geo_data_frame(gdf: gpd.GeoDataFrame,
 @op_input('drop_variables', data_type=VarNamesLike)
 def read_zarr(path: str,
               key: str = None,
-              secret: str = None,
-              token: str = None,
+              secret: Password = None,
+              token: Password = None,
               drop_variables: VarNamesLike.TYPE = None,
               decode_cf: bool = True,
               decode_times: bool = True,
