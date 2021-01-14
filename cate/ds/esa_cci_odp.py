@@ -1271,8 +1271,8 @@ class EsaCciOdpDataSource(DataSource):
                                      if var_name not in var_names]
                                 )
                             if region:
-                                remote_dataset = normalize_impl(remote_dataset)
                                 remote_dataset = subset_spatial_impl(remote_dataset, region)
+                                remote_dataset = normalize_impl(remote_dataset)
                                 remote_dataset = adjust_spatial_attrs_impl(remote_dataset, allow_point=False)
                                 if do_update_of_region_meta_info_once:
                                     local_ds.meta_info['bbox_minx'] = remote_dataset.attrs['geospatial_lon_min']
@@ -1298,6 +1298,7 @@ class EsaCciOdpDataSource(DataSource):
                                     # Probably related to https://github.com/pydata/xarray/issues/2560.
                                     # And probably fixes Cate issues #823, #822, #818, #816, #783.
                                     remote_dataset.to_netcdf(local_filepath, format=format, engine=engine)
+                                    to_netcdf_attempts=2 # RR upon success, make sure to break out of the while loop (don't save the same stuff twice)
                                 except AttributeError as e:
                                     if to_netcdf_attempts == 1:
                                         format = 'NETCDF3_64BIT'

@@ -784,10 +784,12 @@ def open_xarray_dataset(paths,
     if var_names:
         ds = ds.drop_vars([var_name for var_name in ds.data_vars.keys() if var_name not in var_names])
 
-    ds = normalize_impl(ds)
-
     if region:
         ds = subset_spatial_impl(ds, region)
+    
+
+    ds = normalize_impl(ds)
+
 
     return ds
 
