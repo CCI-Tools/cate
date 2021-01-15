@@ -1,6 +1,7 @@
 ## Version 2.1.5 (in development)
 
 * Now including ODP dataset verification information in data sources for use by Cate App. 
+* Ensure Cate User Agent is set in every http request.
 
 ## Version 2.1.4
 * Only show data sources of the ODP Data Store that can be opened in cate.
