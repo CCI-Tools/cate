@@ -510,6 +510,8 @@ def write_geo_data_frame(gdf: gpd.GeoDataFrame,
           file_filters=[dict(name='Zarr', extensions=['zarr'])],
           file_props=['openDirectory'])
 @op_input('drop_variables', data_type=VarNamesLike)
+@op_input('secret', data_type=str, password=True)
+@op_input('token', data_type=str, password=True)
 def read_zarr(path: str,
               key: str = None,
               secret: Password = None,
