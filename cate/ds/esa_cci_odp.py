@@ -145,6 +145,10 @@ def set_default_data_store():
     DATA_STORE_REGISTRY.add_data_store(EsaCciOdpDataStore())
 
 
+def _create_session() -> aiohttp.ClientSession:
+    return aiohttp.ClientSession(headers={'User-Agent': default_user_agent()})
+
+
 def find_datetime_format(filename: str) -> Tuple[Optional[str], int, int]:
     for regex, time_format in _RE_TO_DATETIME_FORMATS:
         searcher = regex.search(filename)
@@ -156,7 +160,7 @@ def find_datetime_format(filename: str) -> Tuple[Optional[str], int, int]:
 
 async def _extract_metadata_from_odd_url(session=None, odd_url: str = None) -> dict:
     if session is None:
-        session = aiohttp.ClientSession(headers={'User-Agent': default_user_agent()})
+        session = _create_session()
     if not odd_url:
         return {}
     resp = await get_response(session, odd_url)
@@ -198,7 +202,7 @@ def _get_from_param_elem(param_elem: etree.Element) -> Optional[Union[str, List[
 
 async def _extract_metadata_from_descxml_url(session=None, descxml_url: str = None) -> dict:
     if session is None:
-        session = aiohttp.ClientSession(headers={'User-Agent': default_user_agent()})
+        session = _create_session()
     if not descxml_url:
         return {}
     resp = await get_response(session, descxml_url)
@@ -340,7 +344,7 @@ async def _fetch_opensearch_feature_list(base_url, query_args, monitor: Monitor 
     maximum_records = 1000
     full_feature_list = []
     with monitor.starting("Loading", 10):
-        async with aiohttp.ClientSession(headers={'User-Agent': default_user_agent()}) as session:
+        async with _create_session() as session:
             while True:
                 monitor.progress(work=1)
                 paging_query_args = dict(query_args or {})
@@ -532,7 +536,7 @@ def _retrieve_infos_from_dds(dds_lines: List) -> tuple:
 
 async def _fetch_meta_info(dataset_id: str, odd_url: str, metadata_url: str, variables: List, read_dimensions: bool) \
         -> Dict:
-    async with aiohttp.ClientSession(headers={'User-Agent': default_user_agent()}) as session:
+    async with _create_session() as session:
         meta_info_dict = {}
         if odd_url:
             meta_info_dict = await _extract_metadata_from_odd_url(session, odd_url)
@@ -774,8 +778,7 @@ class EsaCciOdpDataStore(DataStore):
         if self._catalogue is None:
             await self._load_index()
         if not self._drs_ids:
-            async with aiohttp.ClientSession(headers={'User-Agent': default_user_agent()}) \
-                    as session:
+            async with _create_session() as session:
                 self._drs_ids = await self._fetch_dataset_names(session)
         if self._catalogue:
             self._data_sources = []
