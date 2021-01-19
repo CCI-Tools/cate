@@ -91,11 +91,14 @@ from typing import Sequence, Optional, Union, Any, Dict, Set, List, Tuple
 import xarray as xr
 import xcube.core.store as xcube_store
 import xcube.util.extension as xcube_extension
+from xcube.util.progress import ProgressObserver
+from xcube.util.progress import ProgressState
 
 from cate.conf import get_data_stores_path
 from .cdm import get_lon_dim_name, get_lat_dim_name
 from .opimpl import normalize_missing_time, normalize_coord_vars, normalize_impl, subset_spatial_impl
 from .types import PolygonLike, TimeRangeLike, VarNamesLike, ValidationError
+from ..util.monitor import ChildMonitor
 from ..util.monitor import Monitor
 
 _TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%S"
@@ -531,6 +534,27 @@ class XcubeDataStore(DataStore):
                                 data_id=data_id)
 
 
+class XcubeProgressObserver(ProgressObserver):
+
+    def __init__(self, monitor: Monitor):
+        self._monitor = monitor
+        self._latest_completed_work = 0.0
+
+    def on_begin(self, state_stack: Sequence[ProgressState]):
+        if len(state_stack) == 1:
+            self._monitor.start(state_stack[0].label, state_stack[0].total_work)
+
+    def on_update(self, state_stack: Sequence[ProgressState]):
+        if state_stack[0].completed_work > self._latest_completed_work:
+            self._monitor.progress(state_stack[0].completed_work - self._latest_completed_work,
+                                   state_stack[-1].label)
+            self._latest_completed_work = state_stack[0].completed_work
+
+    def on_end(self, state_stack: Sequence[ProgressState]):
+        if len(state_stack) == 1:
+            self._monitor.done()
+
+
 class DataStoreRegistry:
     """
     Registry of :py:class:`DataStore` objects.
@@ -724,11 +748,20 @@ def open_dataset(dataset_id: str,
     if region:
         args['bbox'] = list(PolygonLike.convert(region).bounds)
 
+    total_amount_of_work = 2 if force_local else 1
+    monitor.start('Open dataset', total_amount_of_work)
+    observer = XcubeProgressObserver(ChildMonitor(monitor, 1))
+    observer.activate()
     dataset = data_store.open_data(data_id=dataset_id,
                                    **args)
+    observer.deactivate()
     if force_local:
+        observer2 = XcubeProgressObserver(ChildMonitor(monitor, 1))
+        observer2.activate()
         dataset, dataset_id = make_local(data=dataset,
                                          local_name=local_ds_id)
+        observer2.deactivate()
+    monitor.done()
     return dataset, dataset_id
 
 
