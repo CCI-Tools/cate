@@ -1298,6 +1298,7 @@ class EsaCciOdpDataSource(DataSource):
                                     # Probably related to https://github.com/pydata/xarray/issues/2560.
                                     # And probably fixes Cate issues #823, #822, #818, #816, #783.
                                     remote_dataset.to_netcdf(local_filepath, format=format, engine=engine)
+                                    break
                                 except AttributeError as e:
                                     if to_netcdf_attempts == 1:
                                         format = 'NETCDF3_64BIT'
