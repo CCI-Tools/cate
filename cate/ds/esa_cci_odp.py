@@ -82,8 +82,8 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
 _OPENSEARCH_CEDA_URL = "https://archive.opensearch.ceda.ac.uk/opensearch/request"
 _OPENSEARCH_CEDA_ODD_URL = 'https://archive.opensearch.ceda.ac.uk/opensearch/description.xml?parentIdentifier=cci'
 # switch to these to use test server
-# _OPENSEARCH_CEDA_URL = "https://opensearch-test.ceda.ac.uk/opensearch/request"
-# _OPENSEARCH_CEDA_ODD_URL = 'https://opensearch-test.ceda.ac.uk/opensearch/description.xml?parentIdentifier=cci'
+# _OPENSEARCH_CEDA_URL = "http://opensearch-test.ceda.ac.uk/opensearch/request"
+# _OPENSEARCH_CEDA_ODD_URL = 'http://opensearch-test.ceda.ac.uk/opensearch/description.xml?parentIdentifier=cci'
 
 ODD_NS = {'os': 'http://a9.com/-/spec/opensearch/1.1/',
           'param': 'http://a9.com/-/spec/opensearch/extensions/parameters/1.0/'}
@@ -469,6 +469,7 @@ async def _fetch_data_source_list_json(base_url, query_args, max_wanted_results=
         if not fc_id:
             continue
         catalogue[fc_id] = {}
+        catalogue[fc_id]['uuid'] = fc.get("id", "").split("=")[-1]
         catalogue[fc_id]['title'] = fc_props.get("title", "")
         variables = _get_variables_from_feature(fc)
         catalogue[fc_id]['variables'] = variables
@@ -855,7 +856,7 @@ class EsaCciOdpDataStore(DataStore):
             drs_meta_info['cci_project'] = drs_meta_info['ecv']
             drs_meta_info['fid'] = datasource_id
             verification_flags = self._dataset_states.get(drs_id, {}).get('verification_flags', [])
-            type_specifier = self._dataset_states.get(drs_id).get('type_specifier', None)
+            type_specifier = self._dataset_states.get(drs_id, {}).get('type_specifier', None)
             data_source = EsaCciOdpDataSource(self, drs_meta_info, drs_id,
                                               verification_flags, type_specifier)
             self._data_sources.append(data_source)
