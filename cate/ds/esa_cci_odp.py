@@ -1229,15 +1229,16 @@ class EsaCciOdpDataSource(DataSource):
         selected_file_list = self._find_files(time_range)
         if not selected_file_list:
             raise self._empty_error(time_range)
-        if region or var_names:
-            self._update_ds_using_opendap(local_path, local_ds, selected_file_list, time_range, var_names, region,
-                                          monitor)
+        if var_names:
+            self._update_ds_using_opendap(local_path, local_ds, selected_file_list, time_range,
+                                          region, var_names, monitor)
         else:
-            self._update_ds_using_http(local_path, local_ds, selected_file_list, time_range, region, var_names, monitor)
+            self._update_ds_using_http(local_path, local_ds, selected_file_list, time_range,
+                                       region, var_names, monitor)
         local_ds.save(True)
 
-    def _update_ds_using_opendap(self, local_path, local_ds, selected_file_list, time_range, var_names, region,
-                                 monitor):
+    def _update_ds_using_opendap(self, local_path, local_ds, selected_file_list, time_range,
+                                 region, var_names, monitor):
         do_update_of_verified_time_coverage_start_once = True
         do_update_of_variables_meta_info_once = True
         do_update_of_region_meta_info_once = True
@@ -1346,7 +1347,8 @@ class EsaCciOdpDataSource(DataSource):
         local_ds.meta_info['temporal_coverage_start'] = TimeLike.format(verified_time_coverage_start)
         local_ds.meta_info['temporal_coverage_end'] = TimeLike.format(verified_time_coverage_end)
 
-    def _update_ds_using_http(self, local_path, local_ds, selected_file_list, time_range, region, var_names, monitor):
+    def _update_ds_using_http(self, local_path, local_ds, selected_file_list, time_range, region,
+                              var_names, monitor):
         do_update_of_verified_time_coverage_start_once = True
         verified_time_coverage_start = None
         verified_time_coverage_end = None
