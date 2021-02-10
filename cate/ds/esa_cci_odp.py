@@ -811,7 +811,7 @@ class EsaCciOdpDataStore(DataStore):
             meta_info['fid'] = datasource_id
             meta_info['uuid'] = datasource_id
             verification_flags = self._dataset_states.get(drs_id, {}).get('verification_flags', [])
-            type_specifier = self._dataset_states.get(drs_id).get('type_specifier', None)
+            type_specifier = self._dataset_states.get(drs_id, None).get('type_specifier', None)
             data_source = EsaCciOdpDataSource(self, meta_info, datasource_id, drs_id,
                                               verification_flags, type_specifier)
             self._data_sources.append(data_source)
