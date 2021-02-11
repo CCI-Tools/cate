@@ -1,7 +1,5 @@
 <img alt="Cate: ESA CCI Toolbox" align="right" src="https://raw.githubusercontent.com/CCI-Tools/cate/master/doc/source/_static/logo/cci-toolbox-logo-latex.jpg" />
 
-
-[![Build Status](https://travis-ci.org/CCI-Tools/cate.svg?branch=master)](https://travis-ci.org/CCI-Tools/cate)
 [![Build status](https://ci.appveyor.com/api/projects/status/leugvo8fq7nx6kym/branch/master?svg=true)](https://ci.appveyor.com/project/ccitools/cate-core)
 [![codecov.io](https://codecov.io/github/CCI-Tools/cate/coverage.svg?branch=master)](https://codecov.io/github/CCI-Tools/cate?branch=master)
 [![Documentation Status](https://readthedocs.org/projects/cate/badge/?version=latest)](http://cate.readthedocs.io/en/latest/?badge=latest)
