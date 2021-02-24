@@ -534,25 +534,26 @@ def is_instance_of(value, data_type) -> bool:
     :return: True, if so.
     """
     typing_name = repr(data_type)
-    if typing_name.startswith(_TYPING_PREFIX):
-        typing_name = typing_name[len(_TYPING_PREFIX):]
-        bracket_pos = typing_name.find('[', 1)
-        if bracket_pos != -1:
-            typing_name = typing_name[0:bracket_pos]
-        if typing_name == 'Union':
-            union_args = data_type.__args__ if hasattr(data_type, '__args__') else None
-            if union_args is not None:
-                for union_arg in union_args:
-                    if is_instance_of(value, union_arg):
-                        return True
-            return False
-        elif typing_name == 'Callable':
-            # Don't go into details of return value and parameters types
-            return callable(value)
-        else:
-            typing_origin = data_type.__origin__ if hasattr(data_type, '__origin__') else None
-            if typing_origin is not None:
-                return is_instance_of(value, typing_origin)
-            return False
+    if not typing_name.startswith(_TYPING_PREFIX):
+        return isinstance(value, data_type)
 
-    return isinstance(value, data_type)
+    typing_name = typing_name[len(_TYPING_PREFIX):]
+    bracket_pos = typing_name.find('[', 1)
+    if bracket_pos != -1:
+        typing_name = typing_name[0:bracket_pos]
+    if typing_name == 'Union':
+        union_args = data_type.__args__ if hasattr(data_type, '__args__') else None
+        if union_args is not None:
+            for union_arg in union_args:
+                if is_instance_of(value, union_arg):
+                    return True
+        return False
+    elif typing_name == 'Callable':
+        # Don't go into details of return value and parameters types
+        return callable(value)
+    else:
+        typing_origin = data_type.__origin__ if hasattr(data_type, '__origin__') else None
+        if typing_origin is not None:
+            return is_instance_of(value, typing_origin)
+        return False
+
