@@ -49,6 +49,7 @@ import os
 import random
 import re
 import requests
+import requests_file
 import socket
 import time
 import urllib.parse
@@ -1416,6 +1417,9 @@ class EsaCciOdpDataSource(DataSource):
                 dl_stat = _DownloadStatistics(bytes_to_download)
                 file_number = 1
                 url_scheme = None
+                session = requests.Session()
+                session.mount('file://', requests_file.FileAdapter())
+                session.mount('file:/', requests_file.FileAdapter())
                 for filename, coverage_from, coverage_to, file_size, url in outdated_file_list:
                     dataset_file = os.path.join(local_path, filename)
                     child_monitor = monitor.child(work=1.0)
@@ -1431,7 +1435,7 @@ class EsaCciOdpDataSource(DataSource):
 
                     _LOG.info(f"Downloading {actual_url} to {dataset_file}")
                     try:
-                        resp = requests.request('GET', actual_url, allow_redirects=True)
+                        resp = session.get(actual_url, allow_redirects=True)
                         open(dataset_file, 'wb').write(resp.content)
                     except requests.RequestException as e:
                         raise self._cannot_access_error(time_range, region, var_names,
