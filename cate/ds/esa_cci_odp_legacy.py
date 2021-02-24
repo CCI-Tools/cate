@@ -42,6 +42,7 @@ import logging
 import os
 import re
 import requests
+import requests_file
 import socket
 import urllib.parse
 import urllib.request
@@ -1015,7 +1016,9 @@ class EsaCciOdpLegacyDataSource(DataSource):
                     with monitor.starting('Sync ' + self.id, len(outdated_file_list)):
                         bytes_to_download = sum([file_rec[3] for file_rec in outdated_file_list])
                         dl_stat = _DownloadStatistics(bytes_to_download)
-
+                        session = requests.Session()
+                        session.mount('file://', requests_file.FileAdapter())
+                        session.mount('file:/', requests_file.FileAdapter())
                         file_number = 1
 
                         for filename, coverage_from, coverage_to, file_size, url in outdated_file_list:
@@ -1027,7 +1030,7 @@ class EsaCciOdpLegacyDataSource(DataSource):
                             with child_monitor.starting(sub_monitor_msg, file_size):
                                 actual_url = url[protocol]
                                 _LOG.info(f"Downloading {actual_url} to {dataset_file}")
-                                resp = requests.request('GET', actual_url)
+                                resp = session.get(actual_url, allow_redirects=True)
                                 open(dataset_file, 'wb').write(resp.content)
                             file_number += 1
                             local_ds.add_dataset(os.path.join(local_id, filename), (coverage_from, coverage_to))

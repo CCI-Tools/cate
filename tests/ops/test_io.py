@@ -181,10 +181,11 @@ class TestIO(TestCase):
         lat = [51, 51.2]
         lon = [10.2, 11.4]
         ds = xr.Dataset(
-            data_vars=dict(delta=xr.DataArray(np.linspace(-12, 13, 3 * 2 * 2, dtype=np.int16).reshape((3, 2, 2)),
-                                              dims=['time', 'lat', 'lon']),
-                           mean=xr.DataArray(np.linspace(2, 13, 3 * 2 * 2, dtype=np.uint16).reshape((3, 2, 2)),
-                                             dims=['time', 'lat', 'lon'])),
+            data_vars=dict(
+                delta=xr.DataArray(np.linspace(-12, 13, 3 * 2 * 2,).astype(int).reshape((3, 2, 2)),
+                                   dims=['time', 'lat', 'lon']),
+                mean=xr.DataArray(np.linspace(2, 13, 3 * 2 * 2).astype(int).reshape((3, 2, 2)),
+                                  dims=['time', 'lat', 'lon'])),
             coords=dict(time=time, lat=lat, lon=lon))
 
         file = io.StringIO()
