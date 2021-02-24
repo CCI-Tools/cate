@@ -42,6 +42,7 @@ import contextlib
 import aiofiles
 import aiohttp
 import asyncio
+import copy
 import json
 import logging
 import os
@@ -82,6 +83,9 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
 
 _OPENSEARCH_CEDA_URL = "https://archive.opensearch.ceda.ac.uk/opensearch/request"
 _OPENSEARCH_CEDA_ODD_URL = 'https://archive.opensearch.ceda.ac.uk/opensearch/description.xml?parentIdentifier=cci'
+# switch to these to use test server
+# _OPENSEARCH_CEDA_URL = "http://opensearch-test.ceda.ac.uk/opensearch/request"
+# _OPENSEARCH_CEDA_ODD_URL = 'http://opensearch-test.ceda.ac.uk/opensearch/description.xml?parentIdentifier=cci'
 
 ODD_NS = {'os': 'http://a9.com/-/spec/opensearch/1.1/',
           'param': 'http://a9.com/-/spec/opensearch/extensions/parameters/1.0/'}
@@ -300,8 +304,9 @@ async def get_response(session: aiohttp.ClientSession, url: str) -> Optional[aio
         if resp.status == 200:
             return resp
         elif 500 <= resp.status < 600:
-            # Retry (immediately) on 5xx errors
-            continue
+            error_message = f'Error {resp.status}: Cannot access url.'
+            warnings.warn(error_message)
+            return None
         elif resp.status == 429:
             # Retry after 'Retry-After' with exponential backoff
             retry_min = int(response.headers.get('Retry-After', '100'))
@@ -322,7 +327,9 @@ async def get_response(session: aiohttp.ClientSession, url: str) -> Optional[aio
 async def _fetch_feature_at(session, base_url, query_args, index) -> Optional[Dict]:
     paging_query_args = dict(query_args or {})
     maximum_records = 1
-    paging_query_args.update(startPage=index, maximumRecords=maximum_records, httpAccept='application/geo+json',
+    paging_query_args.update(startPage=index,
+                             maximumRecords=maximum_records,
+                             httpAccept='application/geo+json',
                              fileFormat='.nc')
     url = base_url + '?' + urllib.parse.urlencode(paging_query_args)
     resp = await get_response(session, url)
@@ -335,19 +342,21 @@ async def _fetch_feature_at(session, base_url, query_args, index) -> Optional[Di
     return None
 
 
-async def _fetch_opensearch_feature_list(base_url, query_args, monitor: Monitor = Monitor.NONE) -> List:
+async def _fetch_opensearch_feature_list(base_url, query_args, max_wanted_results=100000,
+                                         monitor: Monitor = Monitor.NONE) -> List:
     """
     Return JSON value read from Opensearch web service.
     :return:
     """
     start_page = 1
-    maximum_records = 1000
+    records_per_page = 1000
     full_feature_list = []
     with monitor.starting("Loading", 10):
         async with _create_session() as session:
-            while True:
+            while len(full_feature_list) < max_wanted_results:
                 monitor.progress(work=1)
                 paging_query_args = dict(query_args or {})
+                maximum_records = min(records_per_page, max_wanted_results-len(full_feature_list))
                 paging_query_args.update(startPage=start_page, maximumRecords=maximum_records,
                                          httpAccept='application/geo+json')
                 url = base_url + '?' + urllib.parse.urlencode(paging_query_args)
@@ -362,6 +371,8 @@ async def _fetch_opensearch_feature_list(base_url, query_args, monitor: Monitor 
                             break
                     except json.decoder.JSONDecodeError:
                         print(json_text)
+                else:
+                    break
                 start_page += 1
     return full_feature_list
 
@@ -451,8 +462,12 @@ async def _load_or_fetch_json(fetch_json_function,
     return json_obj
 
 
-async def _fetch_data_source_list_json(base_url, query_args, monitor: Monitor = Monitor.NONE) -> Sequence:
-    feature_collection_list = await _fetch_opensearch_feature_list(base_url, query_args, monitor=monitor)
+async def _fetch_data_source_list_json(base_url, query_args, max_wanted_results=100000,
+                                       monitor: Monitor = Monitor.NONE) -> Sequence:
+    feature_collection_list = await _fetch_opensearch_feature_list(base_url,
+                                                                   query_args,
+                                                                   max_wanted_results,
+                                                                   monitor=monitor)
     catalogue = {}
     for fc in feature_collection_list:
         fc_props = fc.get("properties", {})
@@ -460,6 +475,7 @@ async def _fetch_data_source_list_json(base_url, query_args, monitor: Monitor = 
         if not fc_id:
             continue
         catalogue[fc_id] = {}
+        catalogue[fc_id]['uuid'] = fc.get("id", "").split("=")[-1]
         catalogue[fc_id]['title'] = fc_props.get("title", "")
         variables = _get_variables_from_feature(fc)
         catalogue[fc_id]['variables'] = variables
@@ -543,27 +559,52 @@ async def _fetch_meta_info(dataset_id: str, odd_url: str, metadata_url: str, var
         if metadata_url:
             desc_metadata = await _extract_metadata_from_descxml_url(session, metadata_url)
             for item in desc_metadata:
-                if not item in meta_info_dict:
+                if item not in meta_info_dict:
                     meta_info_dict[item] = desc_metadata[item]
         meta_info_dict['dimensions'] = {}
         meta_info_dict['variable_infos'] = {}
         if read_dimensions and len(variables) > 0:
-            feature = await _fetch_feature_at(session, _OPENSEARCH_CEDA_URL, dict(parentIdentifier=dataset_id), 1)
+            feature = await _fetch_feature_at(session,
+                                              _OPENSEARCH_CEDA_URL,
+                                              dict(parentIdentifier=dataset_id),
+                                              1)
             if feature is None:
                 _LOG.info(f'Could not derive info about dimensions for {dataset_id}')
             else:
-                feature_dimensions, feature_variable_infos = await _get_infos_from_feature(session, feature, dataset_id)
+                feature_dimensions, feature_variable_infos = \
+                    await _get_infos_from_feature(session, feature, dataset_id)
                 meta_info_dict['dimensions'] = feature_dimensions
                 meta_info_dict['variable_infos'] = feature_variable_infos
-        _harmonize_info_field_names(meta_info_dict, 'file_format', 'file_formats')
-        _harmonize_info_field_names(meta_info_dict, 'platform_id', 'platform_ids')
-        _harmonize_info_field_names(meta_info_dict, 'sensor_id', 'sensor_ids')
-        _harmonize_info_field_names(meta_info_dict, 'processing_level', 'processing_levels')
-        _harmonize_info_field_names(meta_info_dict, 'time_frequency', 'time_frequencies')
-        return meta_info_dict
+    await _set_drs_metadata(dataset_id, meta_info_dict)
+    _harmonize_info_field_names(meta_info_dict, 'file_format', 'file_formats')
+    _harmonize_info_field_names(meta_info_dict, 'platform_id', 'platform_ids')
+    _harmonize_info_field_names(meta_info_dict, 'sensor_id', 'sensor_ids')
+    _harmonize_info_field_names(meta_info_dict, 'processing_level', 'processing_levels')
+    _harmonize_info_field_names(meta_info_dict, 'time_frequency', 'time_frequencies')
+    return meta_info_dict
 
 
-async def _fetch_file_list_json(dataset_id: str, drs_id: str, monitor: Monitor = Monitor.NONE) -> Sequence:
+async def _set_drs_metadata(datasource_id, metainfo_dict):
+    data_source_list = await _fetch_data_source_list_json(_OPENSEARCH_CEDA_URL,
+                                                          {'parentIdentifier': datasource_id},
+                                                          max_wanted_results=20)
+    for data_source_key, data_source_value in data_source_list.items():
+        drs_id = data_source_value.get('title', 'All Files')
+        variables = data_source_value.get('variables', None)
+        uuid = data_source_value.get('uuid', None)
+        if drs_id != 'All Files':
+            if variables:
+                if 'variables' not in metainfo_dict:
+                    metainfo_dict['variables'] = {}
+                metainfo_dict['variables'][drs_id] = variables
+                if uuid:
+                    if 'uuids' not in metainfo_dict:
+                        metainfo_dict['uuids'] = {}
+                    metainfo_dict['uuids'][drs_id] = uuid
+
+
+async def _fetch_file_list_json(dataset_id: str, drs_id: str, monitor: Monitor = Monitor.NONE) \
+        -> Sequence:
     feature_list = await _fetch_opensearch_feature_list(_OPENSEARCH_CEDA_URL,
                                                         dict(parentIdentifier=dataset_id,
                                                              drsId=drs_id,
@@ -573,7 +614,8 @@ async def _fetch_file_list_json(dataset_id: str, drs_id: str, monitor: Monitor =
     for feature in feature_list:
         feature_info = _extract_feature_info(feature)
         if feature_info[0] in file_list:
-            raise ValueError('filename {} already seen in dataset {}'.format(feature_info[0], dataset_id))
+            raise ValueError('filename {} already seen in dataset {}'.
+                             format(feature_info[0], dataset_id))
         file_list.append(feature_info)
     max_time = datetime.strftime(datetime.max, _TIMESTAMP_FORMAT)
 
@@ -810,15 +852,18 @@ class EsaCciOdpDataStore(DataStore):
                 continue
             if self.is_dataset_dropped(drs_id, datasource_id):
                 continue
-            meta_info = meta_info.copy()
-            meta_info.update(json_dict)
-            self._adjust_json_dict(meta_info, drs_id)
-            meta_info['cci_project'] = meta_info['ecv']
-            meta_info['fid'] = datasource_id
-            meta_info['uuid'] = datasource_id
+            drs_meta_info = copy.deepcopy(meta_info)
+            drs_variables = drs_meta_info.get('variables', {}).get(drs_id, None)
+            drs_meta_info.update(json_dict)
+            if drs_variables:
+                drs_meta_info['variables'] = drs_variables
+            drs_meta_info['uuid'] = drs_meta_info.get('uuids', {}).get(drs_id, datasource_id)
+            self._adjust_json_dict(drs_meta_info, drs_id)
+            drs_meta_info['cci_project'] = drs_meta_info['ecv']
+            drs_meta_info['fid'] = datasource_id
             verification_flags = self._dataset_states.get(drs_id, {}).get('verification_flags', [])
             type_specifier = self._dataset_states.get(drs_id, {}).get('type_specifier', None)
-            data_source = EsaCciOdpDataSource(self, meta_info, datasource_id, drs_id,
+            data_source = EsaCciOdpDataSource(self, drs_meta_info, drs_id,
                                               verification_flags, type_specifier)
             self._data_sources.append(data_source)
 
@@ -1026,13 +1071,11 @@ class EsaCciOdpDataSource(DataSource):
     def __init__(self,
                  data_store: EsaCciOdpDataStore,
                  json_dict: dict,
-                 raw_datasource_id: str,
                  datasource_id: str,
                  verification_flags: List[str] = None,
                  type_specifier = None,
                  schema: Schema = None):
         super(EsaCciOdpDataSource, self).__init__()
-        self._raw_id = raw_datasource_id
         self._datasource_id = datasource_id
         self._data_store = data_store
         self._json_dict = json_dict
@@ -1160,10 +1203,10 @@ class EsaCciOdpDataSource(DataSource):
         asyncio.run(self._init_file_list(monitor))
 
     def local_dataset_dir(self):
-        return os.path.join(get_data_store_path(), self._raw_id, self._datasource_id)
+        return os.path.join(get_data_store_path(), self._json_dict['fid'], self._datasource_id)
 
     def local_metadata_dataset_dir(self):
-        return os.path.join(get_metadata_store_path(), self._raw_id, self._datasource_id)
+        return os.path.join(get_metadata_store_path(), self._json_dict['fid'], self._datasource_id)
 
     def _find_files(self, time_range):
         requested_start_date, requested_end_date = time_range if time_range else (None, None)
@@ -1478,7 +1521,7 @@ class EsaCciOdpDataSource(DataSource):
         if self._file_list:
             return
         file_list = await _load_or_fetch_json(_fetch_file_list_json,
-                                              fetch_json_args=[self._raw_id, self._datasource_id],
+                                              fetch_json_args=[self._json_dict['uuid'], self._datasource_id],
                                               fetch_json_kwargs=dict(monitor=monitor),
                                               cache_used=self._data_store.index_cache_used,
                                               cache_dir=self.local_metadata_dataset_dir(),
