@@ -38,7 +38,7 @@ Cate comprises four major software interfaces:
    :width: 1024px
    :align: center
 
-   The Cate App (desktop or web browser) of the CCI Toolbox
+   Cate App (desktop or web browser) - the GUI for the CCI Toolbox
 
 
 3. The Cate **Command-Line Interface** (CLI) from a local Cate installation can be used to access and process data
@@ -215,4 +215,3 @@ Both provide additional workspace-related commands.
    support other formats such as ESRI Shapefiles and GeoTIFF.
 .. [2] Currently, only NetCDF and OPeNDAP sources can be represented by ``xarray.Dataset`` objects.
    In future releases, we will support other generic formats such as GeoTIFF or HDF.
-
