@@ -693,6 +693,16 @@ class UnsupportedOperandTypeTest(unittest.TestCase):
         self.assertIsNotNone(ds)
 
 
+@unittest.skip(reason='Used for debugging to fix Cate issue #956 - this test fails, but due to new problem')
+class TasVarnameForTimeTest(unittest.TestCase):
+    def test_normalization_of_time(self):
+        data_store = EsaCciOdpDataStore()
+        cci_dataset_collection = 'esacci.ICESHEETS.yr.Unspecified.GMB.GRACE-instrument.GRACE.UNSPECIFIED.1-2.greenland_gmb_mass_trends'
+        data_source = data_store.query(cci_dataset_collection)[0]
+        ds = data_source.open_dataset(time_range=['2005-07-02', '2005-07-02'], var_names=['GMB_trend'])
+        self.assertIsNotNone(ds)
+
+
 @unittest.skip(reason='Used for debugging to fix Cate issue #961')
 class FailingSaveToDiskTest(unittest.TestCase):
     def test_failing_save_to_disk_issue(self):

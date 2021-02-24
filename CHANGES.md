@@ -1,8 +1,18 @@
-## Version 2.1.4 (in development)
+## Version 2.1.5 (in development)
 * When caching a dataset to disk, cate now checks first if the needed attributes for geospatial information
   are in the metadata of the remote dataset. If not, the information is retrieved from the data directly (#961). 
   This is relevant for esacci.SST.day.L4.SSTskin.Unspecified.Unspecified.GMPE.2-0.r1
-   
+* Now including ODP dataset verification information in data sources for use by Cate App.
+* Operation `read_zarr()` now uses the new `password` attribute its `secret`and `token` parameters.
+* Now including ODP dataset verification information in data sources for use by Cate App. 
+* No longer using Travis CI.
+
+## Version 2.1.4
+* Only show data sources of the ODP Data Store that can be opened in cate.
+  When using `cate ds list` from the command line, there is a new option `-a` to also include the other data sets.
+* Included normalization of a dataset's time coordinate variable in case it is called 't' instead of 'time' (#956). 
+  This is the case for all datasets with IDs `esacci.ICESHEETS.yr.Unspecified.GMB.GRACE-instrument.GRACE.UNSPECIFIED.1-*.greenland_gmb_mass_trends`.
+  
 ## Version 2.1.3
 
 * Changed CCI ODP url from test service to production service (archive.opensearch.ceda.ac.uk) (#951)
@@ -16,7 +26,7 @@
   from S3-compatible object store when using the `read_zarr()` operation. (#940)
 * Fixed issue of harmonization of info field names of metadata (#949)
 * Fixed problem with unsupported time format for permafrost datasets below. They have a time_coverage_start and 
-time_coverage_end with a datetime format of 15 characters (#944):
+  time_coverage_end with a datetime format of 15 characters (#944):
     * esacci.PERMAFROST.yr.L4.ALT.multi-sensor.multi-platform.MODIS.01-0.r1
     * esacci.PERMAFROST.yr.L4.GTD.multi-sensor.multi-platform.MODIS.01-0.r1
     * esacci.PERMAFROST.yr.L4.PFR.multi-sensor.multi-platform.MODIS.01-0.r1   

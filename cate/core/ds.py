@@ -85,7 +85,7 @@ import logging
 import re
 from abc import ABCMeta, abstractmethod
 from enum import Enum
-from typing import Sequence, Optional, Union, Any, Dict, Set, List
+from typing import Sequence, Optional, Union, Any, Dict, Set, List, AbstractSet
 
 import xarray as xr
 
@@ -150,6 +150,24 @@ class DataSource(metaclass=ABCMeta):
         Currently unused in cate.
         """
         return None
+
+    @property
+    def spatial_coverage(self) -> Optional[PolygonLike]:
+        """
+        The spatial coverage as a bounding box: A tuple of four float values in the order
+        [min_lon, min_lat, max_lon, max_lat].
+
+        :return: A tuple float values or ``None`` if the spatial coverage is unknown.
+        """
+        return None
+
+    @property
+    def verification_flags(self) -> Optional[AbstractSet[str]]:
+        return None
+
+    @property
+    def type_specifier(self) -> str:
+        return 'dataset'
 
     # TODO (forman): issue #399 - make this a property or call it "get_temporal_coverage(...)"
     def temporal_coverage(self, monitor: Monitor = Monitor.NONE) -> Optional[TimeRange]:

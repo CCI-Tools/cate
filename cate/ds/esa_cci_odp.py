@@ -55,7 +55,7 @@ import warnings
 from collections import OrderedDict
 from datetime import datetime, timedelta
 import lxml.etree as etree
-from typing import Sequence, Tuple, Optional, Any, Dict, List, Union
+from typing import Sequence, Tuple, Optional, Any, Dict, List, Union, AbstractSet
 from urllib.error import URLError, HTTPError
 
 import pandas as pd
@@ -69,7 +69,6 @@ from cate.core.opimpl import subset_spatial_impl, normalize_impl, adjust_spatial
 from cate.core.types import PolygonLike, TimeLike, TimeRange, TimeRangeLike, VarNamesLike
 from cate.ds.local import add_to_data_store_registry, LocalDataSource, LocalDataStore
 from cate.util.monitor import Cancellation, Monitor
-from cate.util.time import get_timestamp_from_string
 
 ESA_CCI_ODP_DATA_STORE_ID = 'esa_cci_odp_os'
 
@@ -467,9 +466,15 @@ async def _fetch_data_source_list_json(base_url, query_args, monitor: Monitor = 
                     catalogue[fc_id]['odd_url'] = odd_url
             described_by = fc_props_links.get("describedby", None)
             if described_by:
-                metadata_url = described_by[0].get("href", None)
-                if metadata_url:
-                    catalogue[fc_id]['metadata_url'] = metadata_url
+                for entry in described_by:
+                    if entry.get('title', '') == 'ISO19115':
+                        metadata_url = entry.get("href", None)
+                        if metadata_url:
+                            catalogue[fc_id]['metadata_url'] = metadata_url
+                    elif entry.get('title', '') == 'Dataset Information':
+                        catalogue_url = entry.get("href", None)
+                        if catalogue_url:
+                            catalogue[fc_id]['catalogue_url'] = catalogue_url
         _LOG.info(f'Read meta info from {fc_id}')
     return catalogue
 
@@ -617,6 +622,10 @@ class EsaCciOdpDataStore(DataStore):
         self._metadata_store_path = meta_data_store_path
         self._drs_ids = drs_ids
         self._data_sources = []
+        self._dataset_states = {}
+        loc = os.path.dirname(os.path.abspath(__file__))
+        with open(f'{loc}/data/dataset_states.json', 'r') as fp:
+            self._dataset_states = json.load(fp)
 
     @property
     def description(self) -> Optional[str]:
@@ -800,7 +809,11 @@ class EsaCciOdpDataStore(DataStore):
             self._adjust_json_dict(meta_info, drs_id)
             meta_info['cci_project'] = meta_info['ecv']
             meta_info['fid'] = datasource_id
-            data_source = EsaCciOdpDataSource(self, meta_info, datasource_id, drs_id)
+            meta_info['uuid'] = datasource_id
+            verification_flags = self._dataset_states.get(drs_id, {}).get('verification_flags', [])
+            type_specifier = self._dataset_states.get(drs_id, {}).get('type_specifier', None)
+            data_source = EsaCciOdpDataSource(self, meta_info, datasource_id, drs_id,
+                                              verification_flags, type_specifier)
             self._data_sources.append(data_source)
 
     def _adjust_json_dict(self, json_dict: dict, drs_id: str):
@@ -968,6 +981,7 @@ class EsaCciOdpDataStore(DataStore):
 
 
 INFO_FIELD_NAMES = sorted(["title",
+                           "uuid",
                            "abstract",
                            "licences",
                            "bbox_minx",
@@ -997,7 +1011,8 @@ INFO_FIELD_NAMES = sorted(["title",
                            "product_versions",
                            "data_type",
                            "data_types",
-                           "cci_project"
+                           "cci_project",
+                           "catalogue_url"
                            ])
 
 
@@ -1007,6 +1022,8 @@ class EsaCciOdpDataSource(DataSource):
                  json_dict: dict,
                  raw_datasource_id: str,
                  datasource_id: str,
+                 verification_flags: List[str] = None,
+                 type_specifier = None,
                  schema: Schema = None):
         super(EsaCciOdpDataSource, self).__init__()
         self._raw_id = raw_datasource_id
@@ -1017,6 +1034,11 @@ class EsaCciOdpDataSource(DataSource):
         self._file_list = None
         self._meta_info = None
         self._temporal_coverage = None
+        if verification_flags:
+            self._verification_flags = set(verification_flags)
+        else:
+            self._verification_flags = set()
+        self._type_specifier = type_specifier
 
     @property
     def id(self) -> str:
@@ -1039,6 +1061,14 @@ class EsaCciOdpDataSource(DataSource):
             ])
         return None
 
+    @property
+    def verification_flags(self) -> AbstractSet[str]:
+        return self._verification_flags
+
+    @property
+    def type_specifier(self) -> str:
+        return self._type_specifier
+
     def temporal_coverage(self, monitor: Monitor = Monitor.NONE) -> Optional[TimeRange]:
         if not self._temporal_coverage:
             temp_coverage_start = self._json_dict.get('temporal_coverage_start', None)
@@ -1054,14 +1084,24 @@ class EsaCciOdpDataSource(DataSource):
     @property
     def variables_info(self):
         variables = []
-        coordinate_variable_names = ['lat', 'lon', 'time', 'lat_bnds', 'lon_bnds', 'time_bnds', 'crs']
+        non_data_variable_names =  ['period', 'hist1d_cla_vis006_bin_centre', 'lon_bnds', 'air_pressure',
+                                    'field_name_length', 'lon', 'view', 'hist2d_cot_bin_centre',
+                                    'hist1d_cer_bin_border', 'altitude', 'vegetation_class',
+                                    'hist1d_cla_vis006_bin_border', 'time_bnds', 'hist1d_ctp_bin_border',
+                                    'hist1d_cot_bin_centre', 'hist1d_cot_bin_border', 'hist1d_cla_vis008_bin_centre',
+                                    'lat_bnds', 'hist1d_cwp_bin_border', 'layers', 'hist1d_cer_bin_centre',
+                                    'aerosol_type', 'hist1d_ctt_bin_border', 'hist1d_ctp_bin_centre', 'fieldsp1',
+                                    'time', 'hist_phase', 'hist1d_cwp_bin_centre', 'hist2d_ctp_bin_border', 'lat',
+                                    'fields', 'hist2d_cot_bin_border', 'hist2d_ctp_bin_centre',
+                                    'hist1d_ctt_bin_centre', 'hist1d_cla_vis008_bin_border', 'crs', 'field_name',
+                                    'vegetation_class_name']
         for variable in self._json_dict['variables']:
             if 'variable_infos' in self._meta_info and variable['name'] in self._meta_info['variable_infos'] and \
                     len(self._meta_info['variable_infos'][variable['name']]['dimensions']) == 0:
                 continue
             if 'dimensions' in self._meta_info and variable['name'] in self._meta_info['dimensions']:
                 continue
-            if variable['name'] not in coordinate_variable_names:
+            if variable['name'] not in non_data_variable_names:
                 variables.append(variable)
         return variables
 
@@ -1189,15 +1229,16 @@ class EsaCciOdpDataSource(DataSource):
         selected_file_list = self._find_files(time_range)
         if not selected_file_list:
             raise self._empty_error(time_range)
-        if region or var_names:
-            self._update_ds_using_opendap(local_path, local_ds, selected_file_list, time_range, var_names, region,
-                                          monitor)
+        if var_names:
+            self._update_ds_using_opendap(local_path, local_ds, selected_file_list, time_range,
+                                          region, var_names, monitor)
         else:
-            self._update_ds_using_http(local_path, local_ds, selected_file_list, time_range, region, var_names, monitor)
+            self._update_ds_using_http(local_path, local_ds, selected_file_list, time_range,
+                                       region, var_names, monitor)
         local_ds.save(True)
 
-    def _update_ds_using_opendap(self, local_path, local_ds, selected_file_list, time_range, var_names, region,
-                                 monitor):
+    def _update_ds_using_opendap(self, local_path, local_ds, selected_file_list, time_range,
+                                 region, var_names, monitor):
         do_update_of_verified_time_coverage_start_once = True
         do_update_of_variables_meta_info_once = True
         do_update_of_region_meta_info_once = True
@@ -1258,6 +1299,7 @@ class EsaCciOdpDataSource(DataSource):
                                     # Probably related to https://github.com/pydata/xarray/issues/2560.
                                     # And probably fixes Cate issues #823, #822, #818, #816, #783.
                                     remote_dataset.to_netcdf(local_filepath, format=format, engine=engine)
+                                    break
                                 except AttributeError as e:
                                     if to_netcdf_attempts == 1:
                                         format = 'NETCDF3_64BIT'
@@ -1305,7 +1347,8 @@ class EsaCciOdpDataSource(DataSource):
         local_ds.meta_info['temporal_coverage_start'] = TimeLike.format(verified_time_coverage_start)
         local_ds.meta_info['temporal_coverage_end'] = TimeLike.format(verified_time_coverage_end)
 
-    def _update_ds_using_http(self, local_path, local_ds, selected_file_list, time_range, region, var_names, monitor):
+    def _update_ds_using_http(self, local_path, local_ds, selected_file_list, time_range, region,
+                              var_names, monitor):
         do_update_of_verified_time_coverage_start_once = True
         verified_time_coverage_start = None
         verified_time_coverage_end = None

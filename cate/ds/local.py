@@ -582,9 +582,9 @@ class LocalDataStore(DataStore):
 
         The text may use Markdown formatting.
         """
-        return ("The file data store represents "
-                "all the data sources in the file system made known to Cate. "
-                "It contains any downloaded remote data sources or manually added files.")
+        return ("This data store represents "
+                "all the data sources in the file system made available to Cate. "
+                "It contains any cached remote data sources or manually added files.")
 
     @property
     def notices(self) -> Optional[List[DataStoreNotice]]:
