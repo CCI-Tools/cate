@@ -1,5 +1,5 @@
 ## Version 2.1.4 (in development)
-* When saving a dataset to disk, cate now checks first if the needed keys for geospatial information
+* When caching a dataset to disk, cate now checks first if the needed attributes for geospatial information
   are in the metadata of the remote dataset. If not, the information is retrieved from the data directly (#961). 
   This is relevant for esacci.SST.day.L4.SSTskin.Unspecified.Unspecified.GMPE.2-0.r1
    
