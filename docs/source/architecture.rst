@@ -616,7 +616,7 @@ helm charts at: https://zero-to-jupyterhub.readthedocs.io/en/latest/ and overidi
 Cate App
 ----------
 
-The Cate App is Progressive Web App (PWA) that acts as a user's web frontend to the Cate SaaS.
+Cate App is a Single Page Application (SPA) that acts as a user's frontend to the Cate cloud service..
 This is also deployed on the Kubernetes cluster and is, thereby, load balanced by a so-called Ingress component
 (default is a NGINX server) of Kubernetes. In fact, all the requests to CaaS are load balanced by Ingress.
 Upon authentication, Cate App makes request to CateHub to start Cate WebAPI service and from there on communicates to the
@@ -675,6 +675,5 @@ which consecutively visualises the results.
 
 If the users logs out, or after a configurable time of idleness, the Cate Web API instances are shut down
 to free allocated cloud resources.
-
 
 
