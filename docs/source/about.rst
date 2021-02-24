@@ -26,7 +26,7 @@ Cate comprises four major software interfaces:
    into the system. In the future, this will be the recommended way to use Cate for most users.
 
 .. warning::
-   The Cate SaaS is still in development. A demo can be accessed at: https://cate.climate.esa.int .
+   The Cate cloud service is still in development. A demo can be accessed at: https://cate.climate.esa.int .
    Currently, users will need to apply for access.
 
 
