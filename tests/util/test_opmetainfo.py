@@ -1,8 +1,10 @@
 import json
 from collections import OrderedDict
+from typing import Union, Sequence, List, Tuple, Dict, Mapping, Callable
 from unittest import TestCase
 
 from cate.util.opmetainf import OpMetaInfo
+from cate.util.opmetainf import is_instance_of
 from cate.util.misc import object_to_qualified_name
 from cate.util.monitor import Monitor
 
@@ -182,3 +184,56 @@ class OpMetaInfoTest(TestCase):
         self.assertEqual(op_meta_info.inputs['y'], OrderedDict([('data_type', int)]))
         self.assertEqual(len(op_meta_info.outputs), 1)
         self.assertEqual(op_meta_info.outputs[RETURN], OrderedDict([('data_type', float)]))
+
+
+class IsInstanceOfTest(TestCase):
+    def test_non_typing(self):
+        self.assertTrue(is_instance_of("A", str))
+        self.assertTrue(is_instance_of(543, int))
+        self.assertTrue(is_instance_of(5.43, float))
+        self.assertTrue(is_instance_of(["a", "b"], list))
+        self.assertTrue(is_instance_of(("a", "b"), tuple))
+        self.assertTrue(is_instance_of({"a": "b"}, dict))
+
+    def test_typing_callable(self):
+        self.assertTrue(is_instance_of(lambda a: a + "b", Callable[[str], str]))
+        self.assertTrue(is_instance_of(lambda a: a + "b", Callable))
+
+        self.assertFalse(is_instance_of(432, Callable))
+
+    def test_typing_aliases(self):
+        self.assertTrue(is_instance_of(["a", "b"], List))
+        self.assertTrue(is_instance_of(["a", "b"], List[str]))
+        self.assertTrue(is_instance_of(("a", "b"), Tuple))
+        self.assertTrue(is_instance_of(("a", "b"), Tuple[str]))
+        self.assertTrue(is_instance_of("a", Sequence[str]))
+        self.assertTrue(is_instance_of(["a", "b"], Sequence))
+        self.assertTrue(is_instance_of(["a", "b"], Sequence[str]))
+        self.assertTrue(is_instance_of(("a", "b"), Sequence[str]))
+        self.assertTrue(is_instance_of({"a": "b"}, Dict))
+        self.assertTrue(is_instance_of({"a": "b"}, Dict[str, str]))
+        self.assertTrue(is_instance_of({"a": "b"}, Mapping))
+        self.assertTrue(is_instance_of({"a": "b"}, Mapping[str, str]))
+
+        self.assertFalse(is_instance_of(432, Sequence[str]))
+        self.assertFalse(is_instance_of("a", Mapping[str, str]))
+
+    def test_typing_union(self):
+        self.assertTrue(is_instance_of("a", Union[str, bool]))
+        self.assertTrue(is_instance_of(True, Union[str, bool]))
+
+        self.assertFalse(is_instance_of(743, Union[str, bool]))
+
+        self.assertTrue(is_instance_of("a", Union[str, Union[bool, int]]))
+        self.assertTrue(is_instance_of(True, Union[str, Union[bool, int]]))
+        self.assertTrue(is_instance_of(743, Union[str, Union[bool, int]]))
+
+        self.assertFalse(is_instance_of(3.6, Union[str, Union[bool, int]]))
+
+        self.assertTrue(is_instance_of("a", Union[str, Union[bool, int]]))
+        self.assertTrue(is_instance_of(True, Union[str, Union[bool, int]]))
+        self.assertTrue(is_instance_of(743, Union[str, Union[bool, int]]))
+
+        self.assertTrue(is_instance_of({"a": "b"}, Union[Mapping[str, str], str]))
+        self.assertTrue(is_instance_of("a:b", Union[Mapping[str, str], str]))
+

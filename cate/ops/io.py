@@ -25,7 +25,7 @@ import os.path
 import urllib.parse
 import urllib.request
 from abc import ABCMeta
-from typing import List, Optional, Union
+from typing import List, Optional
 
 import fiona
 import geopandas as gpd
@@ -33,7 +33,6 @@ import pandas as pd
 import pandas.api.types
 import s3fs
 import xarray as xr
-from typing.io import IO
 
 from cate.core.ds import get_spatial_ext_chunk_sizes
 from cate.core.objectio import OBJECT_IO_REGISTRY, ObjectIO
@@ -148,9 +147,14 @@ def write_object(obj, file: str, format: str = None):
 
 
 @op(tags=['input'], res_pattern='txt_{index}')
-@op_input('file', file_open_mode='r', file_filters=[dict(name='Plain Text', extensions=['txt']), _ALL_FILE_FILTER])
+@op_input('file',
+          data_type=FileLike,
+          file_open_mode='r',
+          file_filters=[dict(name='Plain Text', extensions=['txt']),
+                        _ALL_FILE_FILTER])
 @op_input('encoding')
-def read_text(file: str, encoding: str = None) -> str:
+def read_text(file: FileLike.TYPE,
+              encoding: str = None) -> str:
     """
     Read a string object from a text file.
 
@@ -168,9 +172,15 @@ def read_text(file: str, encoding: str = None) -> str:
 
 @op(tags=['output'], no_cache=True)
 @op_input('obj')
-@op_input('file', file_open_mode='w', file_filters=[dict(name='Plain Text', extensions=['txt']), _ALL_FILE_FILTER])
+@op_input('file',
+          data_type=FileLike,
+          file_open_mode='w',
+          file_filters=[dict(name='Plain Text', extensions=['txt']),
+                        _ALL_FILE_FILTER])
 @op_input('encoding')
-def write_text(obj: object, file: str, encoding: str = None):
+def write_text(obj: object,
+               file: FileLike.TYPE,
+               encoding: str = None):
     """
     Write an object as string to a text file.
 
@@ -188,9 +198,14 @@ def write_text(obj: object, file: str, encoding: str = None):
 
 # noinspection PyTypeChecker
 @op(tags=['input'])
-@op_input('file', file_open_mode='r', file_filters=[dict(name='JSON', extensions=['json']), _ALL_FILE_FILTER])
+@op_input('file',
+          data_type=FileLike,
+          file_open_mode='r',
+          file_filters=[dict(name='JSON', extensions=['json']),
+                        _ALL_FILE_FILTER])
 @op_input('encoding')
-def read_json(file: Union[str, FileLike], encoding: str = None) -> object:
+def read_json(file: FileLike.TYPE,
+              encoding: str = None) -> object:
     """
     Read a data object from a JSON text file.
 
@@ -207,10 +222,17 @@ def read_json(file: Union[str, FileLike], encoding: str = None) -> object:
 
 @op(tags=['output'], no_cache=True)
 @op_input('obj')
-@op_input('file', file_open_mode='w', file_filters=[dict(name='JSON', extensions=['json']), _ALL_FILE_FILTER])
+@op_input('file',
+          data_type=FileLike,
+          file_open_mode='w',
+          file_filters=[dict(name='JSON', extensions=['json']),
+                        _ALL_FILE_FILTER])
 @op_input('encoding')
 @op_input('indent')
-def write_json(obj: object, file: Union[str, IO[str]], encoding: str = None, indent: str = None):
+def write_json(obj: object,
+               file: FileLike.TYPE,
+               encoding: str = None,
+               indent: str = None):
     """
     Write a data object to a JSON text file. Note that the data object must be JSON-serializable.
 
@@ -230,7 +252,8 @@ def write_json(obj: object, file: Union[str, IO[str]], encoding: str = None, ind
 @op_input('file',
           data_type=FileLike,
           file_open_mode='r',
-          file_filters=[dict(name='CSV', extensions=['csv', 'txt']), _ALL_FILE_FILTER])
+          file_filters=[dict(name='CSV', extensions=['csv', 'txt']),
+                        _ALL_FILE_FILTER])
 @op_input('delimiter', nullable=True)
 @op_input('delim_whitespace', nullable=True)
 @op_input('quotechar', nullable=True)
@@ -316,7 +339,8 @@ def read_csv(file: FileLike.TYPE,
 @op_input('file',
           data_type=FileLike,
           file_open_mode='w',
-          file_filters=[dict(name='CSV', extensions=['csv', 'txt']), _ALL_FILE_FILTER])
+          file_filters=[dict(name='CSV', extensions=['csv', 'txt']),
+                        _ALL_FILE_FILTER])
 @op_input('columns', value_set_source='obj', data_type=VarNamesLike)
 @op_input('na_rep')
 @op_input('delimiter', nullable=True)

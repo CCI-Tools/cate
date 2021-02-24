@@ -5,7 +5,8 @@
   are in the metadata of the remote dataset. If not, the information is retrieved from the data directly (#961). 
   This is relevant for esacci.SST.day.L4.SSTskin.Unspecified.Unspecified.GMPE.2-0.r1
 * Now including ODP dataset verification information in data sources for use by Cate App.
-* Operation `read_zarr()` now uses the new `password` attribute its `secret`and `token` parameters.
+* Operation `read_zarr()` now uses the new `password` attribute for its `key`. `secret`,
+  and `token` parameters.
 * Now including ODP dataset verification information in data sources for use by Cate App. 
 * No longer using Travis CI.
 

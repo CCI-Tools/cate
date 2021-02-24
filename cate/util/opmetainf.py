@@ -29,6 +29,11 @@ from .misc import object_to_qualified_name, qualified_name_to_object
 
 Props = Dict[str, Any]
 
+_SPHINX_PARAM_DIRECTIVE_PATTERN = re.compile(":param (?P<name>[^:]+): (?P<desc>[^:]+)")
+_SPHINX_RETURN_DIRECTIVE_PATTERN = re.compile(":returns?: (?P<desc>[^:]+)")
+
+_TYPING_PREFIX = 'typing.'
+
 
 class OpMetaInfo:
     """
@@ -322,7 +327,8 @@ class OpMetaInfo:
         # Ensure all input values are valid w.r.t. input properties
         for name, value in input_values.items():
             if name not in inputs:
-                raise validation_exception_class("'%s' is not an input of operation '%s'." % (name, self.qualified_name))
+                raise validation_exception_class(
+                    "'%s' is not an input of operation '%s'." % (name, self.qualified_name))
             if except_types and type(value) in except_types:
                 continue
             input_properties = inputs[name]
@@ -365,7 +371,8 @@ class OpMetaInfo:
         outputs = self.outputs
         for name, value in output_values.items():
             if name not in outputs:
-                raise validation_exception_class("'%s' is not an output of operation '%s'." % (name, self.qualified_name))
+                raise validation_exception_class(
+                    "'%s' is not an output of operation '%s'." % (name, self.qualified_name))
             output_properties = outputs[name]
             if value is not None:
                 data_type = output_properties.get('data_type', None)
@@ -388,7 +395,7 @@ class OpMetaInfo:
                 "%s '%s' for operation '%s': %s" % (port_type, port_name, op_name, str(e)))
         if not can_convert and value is not None:
             is_float_type = data_type is float and (isinstance(value, float) or isinstance(value, int))
-            if not is_float_type and not isinstance(value, data_type):
+            if not is_float_type and not is_instance_of(value, data_type):
                 raise validation_exception_class(
                     "%s '%s' for operation '%s' must be of type '%s', but got type '%s'." % (
                         port_type, port_name, op_name, data_type.__name__, type(value).__name__))
@@ -494,5 +501,27 @@ class OpMetaInfo:
         return input_names
 
 
-_SPHINX_PARAM_DIRECTIVE_PATTERN = re.compile(":param (?P<name>[^:]+): (?P<desc>[^:]+)")
-_SPHINX_RETURN_DIRECTIVE_PATTERN = re.compile(":returns?: (?P<desc>[^:]+)")
+def is_instance_of(value, data_type) -> bool:
+    typing_name = repr(data_type)
+    if typing_name.startswith(_TYPING_PREFIX):
+        typing_name = typing_name[len(_TYPING_PREFIX):]
+        bracket_pos = typing_name.find('[', 1)
+        if bracket_pos != -1:
+            typing_name = typing_name[0:bracket_pos]
+        if typing_name == 'Union':
+            union_args = data_type.__args__ if hasattr(data_type, '__args__') else None
+            if union_args is not None:
+                for union_arg in union_args:
+                    if is_instance_of(value, union_arg):
+                        return True
+            return False
+        elif typing_name == 'Callable':
+            # Don't go into details of return value and parameters types
+            return callable(value)
+        else:
+            typing_origin = data_type.__origin__ if hasattr(data_type, '__origin__') else None
+            if typing_origin is not None:
+                return is_instance_of(value, typing_origin)
+            return False
+
+    return isinstance(value, data_type)
