@@ -1,7 +1,10 @@
 ## Version 2.1.5 (in development)
 
+* Ensure `User-Agent` header is set in every HTTP request made to CCI ODP web APIs.
+* Now including ODP dataset verification information in data sources for use by Cate App.
+* Operation `read_zarr()` now uses the new `password` attribute its `secret`and `token` parameters.
 * Now including ODP dataset verification information in data sources for use by Cate App. 
-* Ensure `User-Agent` header is set in every HTTP request made to CCI ODP web APIs. 
+* No longer using Travis CI.
 
 ## Version 2.1.4
 * Only show data sources of the ODP Data Store that can be opened in cate.

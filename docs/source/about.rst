@@ -26,19 +26,19 @@ Cate comprises four major software interfaces:
    into the system. In the future, this will be the recommended way to use Cate for most users.
 
 .. warning::
-   The Cate SaaS is still in development. A demo can be accessed at: https://cate-webui.192.171.139.57.xip.io/.
+   The Cate cloud service is still in development. A demo can be accessed at: https://cate.climate.esa.int .
    Currently, users will need to apply for access.
 
 
-2. **Cate Desktop** is a cross-platform desktop application for users who wish to use Cate predominantly with their
-   local data sources. The application can also connect to the remote Cate services of Cate SaaS.
+2. **Cate App** is a cross-platform web-application which may be used as a desktop app for users who wish to use Cate
+   predominantly with their local data sources. The application can also connect to the remote Cate services of Cate SaaS.
 
 
-.. figure:: _static/figures/about-gui.png
+.. figure:: _static/figures/about-ui.png
    :width: 1024px
    :align: center
 
-   The GUI ( desktop or web browser) of the CCI Toolbox
+   Cate App (desktop or web browser) - the GUI for the CCI Toolbox
 
 
 3. The Cate **Command-Line Interface** (CLI) from a local Cate installation can be used to access and process data
@@ -215,4 +215,3 @@ Both provide additional workspace-related commands.
    support other formats such as ESRI Shapefiles and GeoTIFF.
 .. [2] Currently, only NetCDF and OPeNDAP sources can be represented by ``xarray.Dataset`` objects.
    In future releases, we will support other generic formats such as GeoTIFF or HDF.
-

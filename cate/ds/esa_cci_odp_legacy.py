@@ -882,7 +882,7 @@ class EsaCciOdpLegacyDataSource(DataSource):
         if compression_enabled:
             encoding_update.update({'zlib': True, 'complevel': compression_level})
 
-        if region or var_names:
+        if var_names:
             protocol = _ODP_PROTOCOL_OPENDAP
         else:
             protocol = _ODP_PROTOCOL_HTTP

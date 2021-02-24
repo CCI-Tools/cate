@@ -25,7 +25,7 @@ import os.path
 import urllib.parse
 import urllib.request
 from abc import ABCMeta
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import fiona
 import geopandas as gpd
@@ -33,6 +33,7 @@ import pandas as pd
 import pandas.api.types
 import s3fs
 import xarray as xr
+from typing.io import IO
 
 from cate.core.ds import get_spatial_ext_chunk_sizes
 from cate.core.objectio import OBJECT_IO_REGISTRY, ObjectIO
@@ -185,10 +186,11 @@ def write_text(obj: object, file: str, encoding: str = None):
         file.write(str(obj))
 
 
+# noinspection PyTypeChecker
 @op(tags=['input'])
 @op_input('file', file_open_mode='r', file_filters=[dict(name='JSON', extensions=['json']), _ALL_FILE_FILTER])
 @op_input('encoding')
-def read_json(file: str, encoding: str = None) -> object:
+def read_json(file: Union[str, FileLike], encoding: str = None) -> object:
     """
     Read a data object from a JSON text file.
 
@@ -208,7 +210,7 @@ def read_json(file: str, encoding: str = None) -> object:
 @op_input('file', file_open_mode='w', file_filters=[dict(name='JSON', extensions=['json']), _ALL_FILE_FILTER])
 @op_input('encoding')
 @op_input('indent')
-def write_json(obj: object, file: str, encoding: str = None, indent: str = None):
+def write_json(obj: object, file: Union[str, IO[str]], encoding: str = None, indent: str = None):
     """
     Write a data object to a JSON text file. Note that the data object must be JSON-serializable.
 
@@ -510,6 +512,8 @@ def write_geo_data_frame(gdf: gpd.GeoDataFrame,
           file_filters=[dict(name='Zarr', extensions=['zarr'])],
           file_props=['openDirectory'])
 @op_input('drop_variables', data_type=VarNamesLike)
+@op_input('secret', data_type=str, password=True)
+@op_input('token', data_type=str, password=True)
 def read_zarr(path: str,
               key: str = None,
               secret: str = None,
