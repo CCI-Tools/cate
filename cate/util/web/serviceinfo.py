@@ -23,8 +23,8 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 import json
 import os
+import requests
 import socket
-import urllib.request
 from typing import Optional, Union
 
 
@@ -78,11 +78,10 @@ def is_service_running(port: int, address: str, timeout: float = 10.0) -> bool:
     url = f'http://{join_address_and_port(address, port)}/'
     # noinspection PyBroadException
     try:
-        with urllib.request.urlopen(url, timeout=timeout) as response:
-            json_text = response.read()
+        with requests.request('GET', url, timeout=timeout) as response:
+            json_response = response.json()
     except Exception:
         return False
-    json_response = json.loads(json_text.decode('utf-8'))
     return json_response.get('status') == 'ok'
 
 

@@ -41,8 +41,8 @@ import json
 import logging
 import os
 import re
+import requests
 import socket
-import ssl
 import urllib.parse
 import urllib.request
 from collections import OrderedDict
@@ -178,10 +178,8 @@ def _fetch_solr_json(base_url, query_args, offset=0, limit=3500, timeout=10, mon
             error_message = f"Failed accessing CCI ODP service {base_url}"
             try:
                 # noinspection PyProtectedMember
-                context = ssl._create_unverified_context()
-                with urllib.request.urlopen(url, timeout=timeout, context=context) as response:
-                    json_text = response.read()
-                    json_dict = json.loads(json_text.decode('utf-8'))
+                with requests.request('GET', url, timeout=timeout) as response:
+                    json_dict = response.json()
                     if num_found is -1:
                         num_found = json_dict.get('response', {}).get('numFound', 0)
                     if not combined_json_dict:
@@ -193,10 +191,8 @@ def _fetch_solr_json(base_url, query_args, offset=0, limit=3500, timeout=10, mon
                         combined_json_dict.get('response', {}).get('docs', []).extend(docs)
                         if num_found < offset + limit:
                             break
-            except urllib.error.HTTPError as e:
+            except requests.RequestException as e:
                 raise DataAccessError(f"{error_message}: {e}") from e
-            except (urllib.error.URLError, socket.timeout) as e:
-                raise NetworkError(f"{error_message}: {e}") from e
             except OSError as e:
                 raise DataAccessError(f"{error_message}: {e}") from e
             offset += limit
@@ -1027,15 +1023,12 @@ class EsaCciOdpLegacyDataSource(DataSource):
                             child_monitor = monitor.child(work=1.0)
 
                             # noinspection PyUnusedLocal
-                            def reporthook(block_number, read_size, total_file_size):
-                                dl_stat.handle_chunk(read_size)
-                                child_monitor.progress(work=read_size, msg=str(dl_stat))
-
                             sub_monitor_msg = "file %d of %d" % (file_number, len(outdated_file_list))
                             with child_monitor.starting(sub_monitor_msg, file_size):
                                 actual_url = url[protocol]
                                 _LOG.info(f"Downloading {actual_url} to {dataset_file}")
-                                urllib.request.urlretrieve(actual_url, filename=dataset_file, reporthook=reporthook)
+                                resp = requests.request('GET', actual_url)
+                                open(dataset_file, 'wb').write(resp.content)
                             file_number += 1
                             local_ds.add_dataset(os.path.join(local_id, filename), (coverage_from, coverage_to))
 
