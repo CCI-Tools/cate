@@ -64,6 +64,8 @@ class ValidationError(ValueError):
     """
     Special ``ValueError`` used to signal failed validation of user-provided values.
     """
+
+    # noinspection PyArgumentList
     def __init__(self, *args, hint=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.hint = hint

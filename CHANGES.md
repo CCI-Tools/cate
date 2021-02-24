@@ -1,5 +1,7 @@
 ## Version 2.1.5 (in development)
 
+* Now including ODP dataset verification information in data sources for use by Cate App.
+* Operation `read_zarr()` now uses the new `password` attribute its `secret`and `token` parameters.
 * Now including ODP dataset verification information in data sources for use by Cate App. 
 * No longer using Travis CI.
 
