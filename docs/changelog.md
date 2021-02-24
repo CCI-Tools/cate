@@ -1,5 +1,5 @@
 ## Version 2.1.0 (in development)
-* Adjusted docs to suite Cate as PWA 
+* Changed documentation so it reflects _Cate App_ being the GUI replacement for _Cate Desktop_.
 
 ## 0.7 to 0.8
 
