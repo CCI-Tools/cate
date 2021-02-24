@@ -25,7 +25,7 @@ class WorkspaceManagerTestMixin:
 
     def del_workspace_dir(self, ws_name: str):
         ws_dir = os.path.join(self._root_path, ws_name)
-        if os.path.isdir(ws_dir):
+        if os.path.exists(ws_dir) and os.path.isdir(ws_dir):
             shutil.rmtree(ws_dir)
 
     def test_new_workspace(self):
