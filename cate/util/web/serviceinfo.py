@@ -27,6 +27,8 @@ import requests
 import socket
 from typing import Optional, Union
 
+from cate.core.common import default_user_agent
+
 
 def read_service_info(service_info_file: str) -> Union[dict, None]:
     """
@@ -78,7 +80,10 @@ def is_service_running(port: int, address: str, timeout: float = 10.0) -> bool:
     url = f'http://{join_address_and_port(address, port)}/'
     # noinspection PyBroadException
     try:
-        with requests.request('GET', url, timeout=timeout) as response:
+        with requests.request('GET',
+                              url,
+                              timeout=timeout,
+                              headers={'User-Agent': default_user_agent()}) as response:
             json_response = response.json()
     except Exception:
         return False

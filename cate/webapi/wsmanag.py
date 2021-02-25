@@ -28,7 +28,10 @@ from typing import List, Tuple, Optional, Any, Union
 
 from tornado import gen, ioloop, websocket
 
-from cate.conf.defaults import WEBAPI_WORKSPACE_TIMEOUT, WEBAPI_RESOURCE_TIMEOUT, WEBAPI_PLOT_TIMEOUT
+from cate.core.common import default_user_agent
+from cate.conf.defaults import WEBAPI_WORKSPACE_TIMEOUT
+from cate.conf.defaults import WEBAPI_RESOURCE_TIMEOUT
+from cate.conf.defaults import WEBAPI_PLOT_TIMEOUT
 from cate.core.workspace import Workspace, OpKwArgs
 from cate.core.wsmanag import WorkspaceManager
 from cate.util.misc import encode_url_path
@@ -67,7 +70,10 @@ class WebAPIWorkspaceManager(WorkspaceManager):
         return rpc_response.get('response')
 
     def _fetch_json(self, url, data=None, timeout: float = None):
-        with requests.post(url, data=data, timeout=timeout or self.rpc_timeout) as response:
+        with requests.post(url,
+                           data=data,
+                           timeout=timeout or self.rpc_timeout,
+                           headers={'User-Agent': default_user_agent()}) as response:
             json_response = response.json()
         status = json_response.get('status')
         if status == 'error':

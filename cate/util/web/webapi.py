@@ -39,6 +39,7 @@ from tornado.ioloop import IOLoop
 from tornado.log import enable_pretty_logging
 from tornado.web import RequestHandler, Application
 
+from cate.core.common import default_user_agent
 from .common import exception_to_json
 from .serviceinfo import read_service_info, write_service_info, \
     find_free_port, is_service_compatible, is_service_running, join_address_and_port
@@ -328,7 +329,8 @@ class WebAPI:
         # noinspection PyBroadException
         try:
             with requests.request('GET', f'http://{join_address_and_port(address, port)}/exit',
-                                  timeout=timeout * 0.3) as response:
+                                  timeout=timeout * 0.3,
+                                  headers={'User-Agent': default_user_agent()}) as response:
                 response.text
         except Exception:
             # Either process does not exist, or timeout, or some other error
@@ -449,7 +451,10 @@ class WebAPI:
                 raise ValueError('WebAPI service terminated with exit code %d' % exit_code)
             # noinspection PyBroadException
             try:
-                requests.request('GET', webapi_url, timeout=2)
+                requests.request('GET',
+                                 webapi_url,
+                                 timeout=2,
+                                 headers={'User-Agent': default_user_agent()})
                 # Success!
                 return
             except Exception:

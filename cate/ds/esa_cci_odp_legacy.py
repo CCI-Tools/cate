@@ -1030,7 +1030,9 @@ class EsaCciOdpLegacyDataSource(DataSource):
                             with child_monitor.starting(sub_monitor_msg, file_size):
                                 actual_url = url[protocol]
                                 _LOG.info(f"Downloading {actual_url} to {dataset_file}")
-                                resp = session.get(actual_url, allow_redirects=True)
+                                resp = session.get(actual_url,
+                                                   allow_redirects=True,
+                                                   headers=session.headers)
                                 open(dataset_file, 'wb').write(resp.content)
                             file_number += 1
                             local_ds.add_dataset(os.path.join(local_id, filename), (coverage_from, coverage_to))

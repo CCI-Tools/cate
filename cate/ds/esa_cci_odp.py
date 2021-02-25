@@ -1435,7 +1435,9 @@ class EsaCciOdpDataSource(DataSource):
 
                     _LOG.info(f"Downloading {actual_url} to {dataset_file}")
                     try:
-                        resp = session.get(actual_url, allow_redirects=True)
+                        resp = session.get(actual_url,
+                                           allow_redirects=True,
+                                           headers=session.headers)
                         open(dataset_file, 'wb').write(resp.content)
                     except requests.RequestException as e:
                         raise self._cannot_access_error(time_range, region, var_names,
