@@ -131,13 +131,6 @@ def _lta_monthly(ds: xr.Dataset, monitor: Monitor):
     retset.time.attrs = ds.time.attrs
     retset.time.attrs['climatology'] = 'climatology_bounds'
 
-    for var in retset.data_vars:
-        try:
-            retset[var].attrs['cell_methods'] = \
-                retset[var].attrs['cell_methods'] + ' time: mean over years'
-        except KeyError:
-            retset[var].attrs['cell_methods'] = 'time: mean over years'
-
     return retset
 
 
@@ -160,17 +153,7 @@ def _lta_daily(ds: xr.Dataset):
     :param ds: Dataset to aggregate
     :return: Aggregated dataset
     """
-
-    retset = ds.groupby('time.dayofyear', squeeze=False).mean('time')
-
-    for var in retset.data_vars:
-        try:
-            retset[var].attrs['cell_methods'] = \
-                retset[var].attrs['cell_methods'] + ' time: mean over years'
-        except KeyError:
-            retset[var].attrs['cell_methods'] = 'time: mean over years'
-
-    return retset
+    return ds.groupby('time.dayofyear', squeeze=False).mean('time')
 
 
 def _lta_general(ds: xr.Dataset, monitor: Monitor):
@@ -285,132 +268,73 @@ def _mean(ds: xr.Dataset, monitor: Monitor, step: float):
     :param monitor: Monitor to update
     :param step: Work step
     """
-    retset = ds.mean(dim='time', keep_attrs=True)
+    dataset = ds.mean(dim='time', keep_attrs=True)
     monitor.progress(work=step)
-    return retset
+    return dataset
 
 
-@op(tags=['aggregate', 'temporal'], version='1.5')
+# noinspection PyIncorrectDocstring
+@op(tags=['aggregate', 'temporal'], version='2.0')
 @op_input('ds', data_type=DatasetLike)
 @op_input('method', value_set=['mean', 'max', 'median', 'prod', 'sum', 'std',
                                'var', 'argmax', 'argmin', 'first', 'last'])
-@op_input('output_resolution', value_set=['month', 'season'])
 @op_return(add_history=True)
 def temporal_aggregation(ds: DatasetLike.TYPE,
                          method: str = 'mean',
-                         output_resolution: str = 'month',
-                         custom_resolution: str = None,
+                         period: str = 'MS',
                          monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
     Perform aggregation of dataset according to the given
-    method and output resolution.
+    aggregation *method* and time period *period*.
 
     Note that the operation does not perform weighting. Depending on the
     combination of input and output resolutions, as well as aggregation
     method, the resulting dataset might yield unexpected results.
 
-    Resolution 'month' will result in a monthly dataset with each month
-    denoted by its first date. Resolution 'season' will result in a dataset
-    aggregated to DJF, MAM, JJA, SON seasons, each denoted by the first
-    date of the season.
-
-    The operation also works with custom resolution strings, see:
+    The possible values if *period* are the offset-aliases
+    supported by the Pandas package:
     http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases
-    If ``custom_resolution`` is provided, it will override ``output_resolution``.
 
-    Some examples:
-      'QS-JUN' produces an output dataset on a quarterly resolution where the
-      year ends in 1st of June and each quarter is denoted by its first date
-      '8MS' produces an output dataset on an eight-month resolution where each
+    Some examples for *period* values:
+
+    * 'QS-DEC' will result in a dataset aggregated to DJF, MAM, JJA, SON
+      seasons, each denoted by the first date of the season.
+    * 'QS-JUN' produces an output dataset on a quarterly resolution where the
+      year ends in 1st of June and each quarter is denoted by its first date.
+    * '8MS' produces an output dataset on an eight-month resolution where each
       period is denoted by the first date. Note that such periods will not be
       consistent over years.
-      '8D' produces a dataset on an eight day resolution
+    * '8D' produces a dataset on an eight day resolution.
 
     :param ds: Dataset to aggregate
     :param method: Aggregation method
-    :param output_resolution: Desired temporal resolution of the output dataset
-    :param custom_resolution: Custom temporal resolution, overrides output_resolution
+    :param period: Aggregation time period
     :return: Aggregated dataset
     """
     ds = DatasetLike.convert(ds)
-    # Check if time dtype is what we want
-    if 'datetime64[ns]' != ds.time.dtype:
-        raise ValidationError('Temporal aggregation operation expects a dataset with the'
-                              ' time coordinate of type datetime64[ns], but received'
-                              ' {}. Running the normalize operation on this'
-                              ' dataset may help'.format(ds.time.dtype))
 
-    # Try to figure out the input frequency
-    try:
-        in_freq = ds.attrs['time_coverage_resolution']
-    except KeyError:
-        raise ValidationError('Could not determine temporal resolution of input dataset.'
-                              ' Running the adjust_temporal_attrs operation beforehand may'
-                              ' help.')
+    if "time" not in ds.coords:
+        raise ValidationError('Temporal aggregation operation expects a dataset with a'
+                              ' "time" coordinate variable.'
+                              ' Running the normalize operation on this'
+                              ' dataset may help')
 
-    if custom_resolution:
-        freq = custom_resolution
-    else:
-        frequencies = {'month': 'MS', 'season': 'QS-DEC'}
-        freq = frequencies[output_resolution]
-
-    _validate_freq(in_freq, freq)
-
-    with monitor.observing("resample dataset"):
-        try:
-            retset = getattr(resampler, method)(ds.resample(time=freq, keep_attrs=True))
-        except AttributeError:
-            raise ValidationError(f'Provided aggregation method {method} is not valid.')
-
-    for var in retset.data_vars:
-        try:
-            retset[var].attrs['cell_methods'] = \
-                retset[var].attrs['cell_methods'] + \
-                ' time: {} within years'.format(method)
-        except KeyError:
-            retset[var].attrs['cell_methods'] = 'time: {} within years'.format(method)
-
-    return adjust_temporal_attrs(retset)
-
-
-def _validate_freq(in_res: str, out_res: str) -> None:
-    """
-    Validate the aggregation step
-
-    See also: `ISO 8601 Durations <https://en.wikipedia.org/wiki/ISO_8601#Durations>`_
-    """
     # Validate output frequency as a valid offset string
     try:
-        dates = pd.date_range('2000-01-01', periods=5, freq=out_res)
+        pd.date_range('2000-01-01', periods=2, freq=period)
     except ValueError:
-        raise ValidationError('Invalid custom resolution: {}.'
-                              ' Please check operation documentation.'.format(out_res))
-
-    # Assuming simple ISO_8601 periods: PXXD/M
-    try:
-        count = int(in_res[1:-1])
-    except ValueError:
-        raise ValidationError('Could not interpret time coverage resolution of'
-                              ' the given dataset: {}'.format(in_res))
-
-    if in_res == 'P1M' and out_res == 'MS':
-        raise ValidationError('Input dataset is already at the requested output resolution.'
-                              ' Execution stopped.')
+        raise ValidationError(f'Invalid freq value "{period}".'
+                              ' Please check operation documentation.')
 
     try:
-        in_delta = pd.Timedelta(count, unit=in_res[-1])
-    except ValueError as e:
-        raise ValidationError(str(e)) from e
-    out_delta = dates[1] - dates[0]
+        agg_function = getattr(resampler, method)
+    except AttributeError:
+        raise ValidationError(f'Provided aggregation method {method} is not valid.')
 
-    if out_delta < in_delta:
-        raise ValidationError('Requested output resolution is smaller than dataset resolution.'
-                              ' This operation only performs aggregation to larger resolutions.')
-    elif out_delta == in_delta:
-        raise ValidationError('Input dataset is already at the requested output resolution.'
-                              'Execution stopped.')
+    with monitor.observing("Resample dataset"):
+        dataset = agg_function(ds.resample(keep_attrs=True, time=period))
 
-    return
+    return adjust_temporal_attrs(dataset)
 
 
 @op(tags=['aggregate'], version='1.0')

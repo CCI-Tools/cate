@@ -1,9 +1,12 @@
 ## Version 2.1.5 (in development)
 
+* The parameters of operation `temporal_aggregation` have been changed. Both parameters
+  `output_resolution` and `custom_resolution` have been replaced by a single parameter 
+  `period` whose value is a Pandas offset-alias / time frequency value.
 * Ensure `User-Agent` header is set in every HTTP request made to CCI ODP web APIs.
 * When caching a dataset to disk, cate now checks first if the needed attributes for geospatial information
   are in the metadata of the remote dataset. If not, the information is retrieved from the data directly (#961). 
-  This is relevant for esacci.SST.day.L4.SSTskin.Unspecified.Unspecified.GMPE.2-0.r1
+  This is relevant for dataset "esacci.SST.day.L4.SSTskin.Unspecified.Unspecified.GMPE.2-0.r1".
 * Now including ODP dataset verification information in data sources for use by Cate App.
 * Operation `read_zarr()` now uses the new `password` attribute for its `key`. `secret`,
   and `token` parameters.
