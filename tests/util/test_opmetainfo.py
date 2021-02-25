@@ -1,8 +1,9 @@
 import json
 from collections import OrderedDict
-from typing import Union, Sequence, List, Tuple, Dict, Mapping, Callable
+from typing import Union, Sequence, List, Tuple, Dict, Mapping, Callable, Any
 from unittest import TestCase
 
+from cate.core.types import DictLike
 from cate.util.opmetainf import OpMetaInfo
 from cate.util.opmetainf import is_instance_of
 from cate.util.misc import object_to_qualified_name
@@ -187,13 +188,19 @@ class OpMetaInfoTest(TestCase):
 
 
 class IsInstanceOfTest(TestCase):
-    def test_non_typing(self):
+    def test_normal_types(self):
         self.assertTrue(is_instance_of("A", str))
         self.assertTrue(is_instance_of(543, int))
         self.assertTrue(is_instance_of(5.43, float))
         self.assertTrue(is_instance_of(["a", "b"], list))
         self.assertTrue(is_instance_of(("a", "b"), tuple))
         self.assertTrue(is_instance_of({"a": "b"}, dict))
+
+    def test_like(self):
+        self.assertTrue(is_instance_of("A=3", DictLike))
+        self.assertTrue(is_instance_of({"A": 3}, DictLike))
+
+        self.assertFalse(is_instance_of(["A", 3], DictLike))
 
     def test_typing_callable(self):
         self.assertTrue(is_instance_of(lambda a: a + "b", Callable[[str], str]))
@@ -217,6 +224,12 @@ class IsInstanceOfTest(TestCase):
 
         self.assertFalse(is_instance_of(432, Sequence[str]))
         self.assertFalse(is_instance_of("a", Mapping[str, str]))
+
+    def test_typing_any(self):
+        self.assertTrue(is_instance_of("a", Any))
+        self.assertTrue(is_instance_of(True, Any))
+        self.assertTrue(is_instance_of(743, Any))
+        self.assertTrue(is_instance_of({"a": "b"}, Any))
 
     def test_typing_union(self):
         self.assertTrue(is_instance_of("a", Union[str, bool]))
