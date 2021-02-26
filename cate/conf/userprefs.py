@@ -89,8 +89,8 @@ def _write_user_prefs_file(user_prefs_file: str, user_prefs: dict):
 def _read_user_prefs(user_prefs_file: str) -> dict:
     user_prefs = dict()
     if user_prefs_file and os.path.isfile(user_prefs_file):
-        with open(user_prefs_file, 'r') as pfile:
-            user_prefs = json.load(pfile)
+        with open(user_prefs_file, 'r') as fp:
+            user_prefs = json.load(fp)
 
     return user_prefs
 
@@ -99,12 +99,10 @@ def set_user_prefs(prefs: dict, user_prefs_file: str = None):
     if not user_prefs_file:
         user_prefs_file = os.path.join(DEFAULT_DATA_PATH, USER_PREFERENCES_FILE)
 
-    if not os.path.isfile(user_prefs_file):
-        _write_user_prefs_file(user_prefs_file, _DEFAULT_USER_PREFS)
-    else:
-        _prefs = get_user_prefs(user_prefs_file)
-        _prefs.update(prefs)
-        _write_user_prefs_file(user_prefs_file, _prefs)
+    if os.path.isfile(user_prefs_file):
+        prefs = get_user_prefs(user_prefs_file).update(prefs)
+
+    _write_user_prefs_file(user_prefs_file, prefs)
 
 
 def get_user_prefs(user_prefs_file: str = None) -> dict:

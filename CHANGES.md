@@ -1,5 +1,7 @@
 ## Version 2.1.5 (in development)
 
+* Fixed problem that prevented storing user preferences from Cate App if the
+  preferences file did not yet exist.
 * The parameters of operation `temporal_aggregation` have been changed. Both parameters
   `output_resolution` and `custom_resolution` have been replaced by a single parameter 
   `period` whose value is a Pandas offset-alias / time frequency value.
