@@ -92,10 +92,13 @@ def _read_user_prefs(user_prefs_file: str) -> dict:
         with open(user_prefs_file, 'r') as fp:
             user_prefs = json.load(fp)
 
-    return user_prefs
+    return user_prefs or {}
 
 
 def set_user_prefs(prefs: dict, user_prefs_file: str = None):
+    if not isinstance(prefs, dict):
+        return
+
     if not user_prefs_file:
         user_prefs_file = os.path.join(DEFAULT_DATA_PATH, USER_PREFERENCES_FILE)
 
