@@ -30,10 +30,10 @@ from jdcal import jd2gcal
 from matplotlib import path
 from shapely.geometry import box, LineString, Polygon
 
+from cate.util.time import get_timestamps_from_string, get_timestamp_from_string
 from .types import PolygonLike, ValidationError
 from ..util.misc import to_list
 from ..util.monitor import Monitor
-from cate.util.time import get_timestamps_from_string, get_timestamp_from_string
 
 __author__ = "Janis Gailis (S[&]T Norway)" \
              "Norman Fomferra (Brockmann Consult GmbH)"
@@ -93,17 +93,19 @@ def _normalize_zonal_lat_lon(ds: xr.Dataset) -> xr.Dataset:
     if 'latitude_centers' not in ds.coords or 'lon' in ds.coords:
         return ds
 
-    ds_zonal = ds.copy()
-    resolution = (ds.latitude_centers.values[1] - ds.latitude_centers.values[0])
-    ds_zonal = ds_zonal.assign_coords(lon=[i + (resolution / 2) for i in np.arange(-180.0, 180.0, resolution)])
+    latitude_centers = ds.latitude_centers
+    lat = xr.DataArray(latitude_centers.values, dims='lat', attrs=latitude_centers.attrs)
+    ds_zonal = ds.drop_vars('latitude_centers')
 
-    for var in ds_zonal.data_vars:
-        if sorted([dim for dim in ds_zonal[var].dims]) == sorted([coord for coord in ds.coords]):
-            ds_zonal[var] = xr.concat([ds_zonal[var] for _ in ds_zonal.lon], 'lon')
-            ds_zonal[var]['lon'] = ds_zonal.lon
-    ds_zonal = ds_zonal.assign_coords(lat=ds.latitude_centers.values)
+    resolution = (latitude_centers.values[1] - latitude_centers.values[0])
+    lon = xr.DataArray([i + (resolution / 2) for i in np.arange(-180.0, 180.0, resolution)], dims='lon')
+
     ds_zonal = ds_zonal.rename_dims({'latitude_centers': 'lat'})
-    ds_zonal = ds_zonal.drop('latitude_centers')
+    ds_zonal = ds_zonal.assign_coords(lat=lat, lon=lon)
+
+    for var_name, var in ds_zonal.data_vars.items():
+        if 'lat' in var.dims:
+            ds_zonal[var_name] = xr.concat([var for _ in ds_zonal.lon], 'lon')
     ds_zonal = ds_zonal.transpose(..., 'lat', 'lon')
 
     has_lon_bnds = 'lon_bnds' in ds_zonal.coords or 'lon_bnds' in ds_zonal
