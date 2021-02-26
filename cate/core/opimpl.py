@@ -77,6 +77,15 @@ def _normalize_zonal_lat_lon(ds: xr.Dataset) -> xr.Dataset:
     """
     In case that the dataset only contains lat_centers and is a zonal mean dataset,
     the longitude dimension created and filled with the variable value of certain latitude.
+
+    This case is concerning the following cci odp datasets:
+        esacci.OZONE.mon.L3.LP.OSIRIS.ODIN.OSIRIS_ODIN.v0001.r1
+        esacci.OZONE.mon.L3.LP.GOMOS.Envisat.GOMOS_ENVISAT.v0001.r1
+        esacci.OZONE.mon.L3.LP.SMR.ODIN.MZM.v0001.r1
+        esacci.OZONE.mon.L3.LP.SCIAMACHY.Envisat.SCIAMACHY_ENVISAT.v0001.r1
+        esacci.OZONE.mon.L3.LP.SMR.ODIN.SMR_ODIN.v0001.r1
+        esacci.OZONE.mon.L3.LP.MIPAS.Envisat.MIPAS_ENVISAT.v0001.r1
+
     :param ds: some xarray dataset
     :return: a normalized xarray dataset
     """
