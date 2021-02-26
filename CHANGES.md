@@ -1,4 +1,4 @@
-## Version 2.1.5 (in development)
+## Version 2.1.5
 
 * Fixed problem that prevented storing user preferences from Cate App if the
   preferences file did not yet exist.
