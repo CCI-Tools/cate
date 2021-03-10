@@ -81,20 +81,15 @@ Components
 import datetime
 import glob
 import itertools
-import json
 import logging
-import os
 import re
-from abc import ABCMeta, abstractmethod
 from typing import Sequence, Optional, Union, Any, Dict, Set, List, Tuple
 
 import xarray as xr
 import xcube.core.store as xcube_store
-import xcube.util.extension as xcube_extension
 from xcube.util.progress import ProgressObserver
 from xcube.util.progress import ProgressState
 
-from cate.conf import get_data_stores_path
 from .cdm import get_lon_dim_name, get_lat_dim_name
 from .opimpl import normalize_missing_time, normalize_coord_vars, normalize_impl, subset_spatial_impl
 from .types import PolygonLike, TimeRangeLike, VarNamesLike, ValidationError
@@ -117,6 +112,8 @@ URL_REGEX = re.compile(
     r'(?:/?|[/?]\S+)$', re.IGNORECASE)
 
 _LOG = logging.getLogger('cate')
+
+DATA_STORE_POOL = xcube_store.DataStorePool()
 
 
 class DataAccessWarning(UserWarning):
@@ -192,348 +189,6 @@ class DataStoreNotice:
         return dict(self._dict)
 
 
-class DataStore(metaclass=ABCMeta):
-    """
-    Represents a data store of data sources.
-
-    :param ds_id: Unique data store identifier.
-    :param title: A human-readable tile.
-    """
-
-    def __init__(self, ds_id: str, title: str = None, is_local: bool = False):
-        self._id = ds_id
-        self._title = title or ds_id
-        self._is_local = is_local
-
-    @property
-    def id(self) -> str:
-        """
-        Return the unique identifier for this data store.
-        """
-        return self._id
-
-    @property
-    def title(self) -> str:
-        """
-        Return a human-readable tile for this data store.
-        """
-        return self._title
-
-    @property
-    def description(self) -> Optional[str]:
-        """
-        Return an optional, human-readable description for this data store as plain text.
-
-        The text may use Markdown formatting.
-        """
-        return None
-
-    @property
-    def notices(self) -> List[DataStoreNotice]:
-        """
-        Return an optional list of notices for this data store that can be used to inform users about the
-        conventions, standards, and data extent used in this data store or upcoming service outages.
-        """
-        return []
-
-    @property
-    def is_local(self) -> bool:
-        """
-        Whether this is a remote data source not requiring any internet connection when its ``query()`` method
-        is called or the ``open_dataset()`` and ``make_local()`` methods on one of its data sources.
-        """
-        return self._is_local
-
-    @abstractmethod
-    def get_data_ids(self) -> Sequence[Tuple[str, Optional[str]]]:
-        """
-        Get a sequence of the data resource identifiers provided by this data store.
-
-        The returned sequence items are 2-tuples of the form (*data_id*, *title*), where *data_id*
-        is the actual data identifier and *title* is an optional, human-readable title for the data.
-
-        :return: A sequence of the identifiers and titles of data resources provided by this data store.
-        :raise DataStoreError: If an error occurs.
-        """
-
-    def has_data(self, data_id: str) -> bool:
-        data_ids = [did[0] for did in self.get_data_ids()]
-        return data_id in data_ids
-
-    @abstractmethod
-    def describe_data(self, data_id: str) -> xcube_store.DataDescriptor:
-        """
-        Get the descriptor for the data resource given by *data_id*.
-
-        Raises a DataStoreError if *data_id* does not exist in this store.
-
-        :return a data-type specific data descriptor
-        :raise DataStoreError: If an error occurs.
-        """
-
-    @abstractmethod
-    def open_data(self,
-                  data_id: str,
-                  **open_params) -> Any:
-        """
-        Open the data given by the data resource identifier *data_id* using the supplied *open_params*.
-
-        The data type of the return value depends on the data opener used to open the data resource.
-
-        *open_params* must comply with the schema of the opener's parameters.
-
-        Raises if *data_id* does not exist in this store.
-
-        :param data_id: The data identifier that is known to exist in this data store.
-        :param open_params: Opener-specific parameters.
-        :return: An in-memory representation of the data resources identified by *data_id* and *open_params*.
-        :raise DataStoreError: If an error occurs.
-        """
-
-    @abstractmethod
-    def write_data(self,
-                   data: Any,
-                   data_id: str = None) -> str:
-        """
-        Write a data in-memory instance using the supplied *data_id*.
-
-        If data identifier *data_id* is not given, a writer-specific default will be generated, used, and returned.
-
-        Raises a DataStoreError if *data_id* does not exist in this store or if this store does not support writing.
-
-        :param data: The data in-memory instance to be written.
-        :param data_id: An optional data identifier that is known to be unique in this data store.
-        :return: The data identifier used to write the data.
-        :raise DataStoreError: If an error occurs.
-        """
-
-    def invalidate(self):
-        """
-        Datastore might use a cached list of available dataset which can change in time.
-        Resources managed by a datastore are external so we have to consider that they can
-        be updated by other process.
-        This method ask to invalidate the internal structure and synchronize it with the
-        current status
-        :return:
-        """
-        pass
-
-    def get_updates(self, reset=False) -> Dict:
-        """
-        Ask the datastore to retrieve the differences found between a previous
-        dataStore status and the current one,
-        The implementation return a dictionary with the new ['new'] and removed ['del'] dataset.
-        it also return the reference time to the datastore status taken as previous.
-        Reset flag is used to clean up the support files, freeze and diff.
-        :param: reset=False. Set this flag to true to clean up all the support files forcing a
-                synchronization with the remote catalog
-        :return: A dictionary with keys { 'generated', 'source_ref_time', 'new', 'del' }.
-                 genetated: generation time, when the check has been executed
-                 source_ref_time: when the local copy of the remoted dataset hes been made.
-                                  It is also used by the system to refresh the current images when
-                                  is older then 1 day.
-                 new: a list of new dataset entry
-                 del: a list of removed datset
-        """
-        generated = datetime.datetime.now()
-        report = {"generated": str(generated),
-                  "source_ref_time": str(generated),
-                  "new": list(),
-                  "del": list()}
-        return report
-
-    def _repr_html_(self):
-        """Provide an HTML representation of this object for IPython."""
-        rows = []
-        row_count = 0
-        for data_id in self.get_data_ids():
-            row_count += 1
-            # noinspection PyProtectedMember
-            rows.append('<tr><td><strong>%s</strong></td><td>%s</td></tr>' % (row_count, data_id[0]))
-        return '<p>Contents of %s</p><table>%s</table>' % (self.id, '\n'.join(rows))
-
-
-class XcubeDataStore(DataStore):
-
-    def __init__(self,
-                 store_config: dict,
-                 ds_id: str,
-                 index_cache_used: bool = True,
-                 index_cache_expiration_days: float = 1.0,
-                 meta_data_store_path: str = None):
-
-        store_id = store_config.get('store_id', '')
-
-        def predicate(extension: xcube_extension.Extension):
-            return store_id == extension.name
-
-        extensions = xcube_store.find_data_store_extensions(predicate=predicate)
-        if not extensions:
-            raise ValueError(f'Could not find data store {store_id}')
-
-        store_extension = extensions[0]
-
-        notices = store_extension.metadata.get('notices', [])
-        self._data_store_notices = []
-        for notice in notices:
-            self._data_store_notices.append(DataStoreNotice(notice[0], notice[1], notice[2], notice[3], notice[4]))
-        self._description = store_extension.metadata.get('description', ''),
-        super().__init__(ds_id,
-                         store_extension.metadata.get('title', ''),
-                         store_extension.metadata.get('is_local', False)
-                         )
-        self._store_config = store_config
-        self._store = None
-        self._index_cache_used = index_cache_used
-        self._index_cache_expiration_days = index_cache_expiration_days
-        if meta_data_store_path:
-            self._metadata_store_path = meta_data_store_path
-        else:
-            self._metadata_store_path = os.environ.get('CATE_ESA_CCI_ODP_DATA_STORE_PATH',
-                                                       os.path.join(get_data_stores_path(), self.id))
-
-    # noinspection PyTypeChecker
-    @property
-    def description(self) -> Optional[str]:
-        return self._description
-
-    @property
-    def notices(self) -> List[DataStoreNotice]:
-        return self._data_store_notices
-
-    def _get_store(self):
-        if not self._store:
-            store_params = self._store_config.get('store_params', {})
-            self._store = xcube_store.new_data_store(
-                data_store_id=self._store_config.get('store_id', ''),
-                extension_registry=None,
-                **store_params
-            )
-        return self._store
-
-    @staticmethod
-    def _load_or_fetch_json(fetch_json_function,
-                            fetch_json_args: list = None,
-                            fetch_json_kwargs: dict = None,
-                            cache_used: bool = False,
-                            cache_dir: str = None,
-                            cache_json_filename: str = None,
-                            cache_timestamp_filename: str = None,
-                            cache_expiration_days: float = 1.0) -> Union[Sequence, Dict]:
-        """
-        Return (JSON) value of fetch_json_function or return value of a cached JSON file.
-        """
-        json_obj = None
-        cache_json_file = None
-
-        if cache_used:
-            if cache_dir is None:
-                raise ValueError('if cache_used argument is True, cache_dir argument must not be None')
-            if cache_json_filename is None:
-                raise ValueError('if cache_used argument is True, cache_json_filename argument must not be None')
-            if cache_timestamp_filename is None:
-                raise ValueError('if cache_used argument is True, cache_timestamp_filename argument must not be None')
-            if cache_expiration_days is None:
-                raise ValueError('if cache_used argument is True, cache_expiration_days argument must not be None')
-
-            cache_json_file = os.path.join(cache_dir, cache_json_filename)
-            cache_timestamp_file = os.path.join(cache_dir, cache_timestamp_filename)
-
-            timestamp = datetime.datetime(year=2000, month=1, day=1)
-            if os.path.exists(cache_timestamp_file):
-                with open(cache_timestamp_file) as fp:
-                    timestamp_text = fp.read()
-                    timestamp = datetime.datetime.strptime(timestamp_text, _TIMESTAMP_FORMAT)
-
-            time_diff = datetime.datetime.now() - timestamp
-            time_diff_days = time_diff.days + time_diff.seconds / 3600. / 24.
-            if time_diff_days < cache_expiration_days:
-                if os.path.exists(cache_json_file):
-                    with open(cache_json_file) as fp:
-                        json_text = fp.read()
-                        json_obj = json.loads(json_text)
-
-        if json_obj is None:
-            # noinspection PyArgumentList
-            try:
-                # noinspection PyArgumentList
-                json_obj = fetch_json_function(*(fetch_json_args or []), **(fetch_json_kwargs or {}))
-                if cache_used and len(json_obj) > 0:
-                    os.makedirs(cache_dir, exist_ok=True)
-                    # noinspection PyUnboundLocalVariable
-                    with open(cache_json_file, "w") as fp:
-                        fp.write(json.dumps(json_obj, indent='  '))
-                    # noinspection PyUnboundLocalVariable
-                    with open(cache_timestamp_file, "w") as fp:
-                        fp.write(datetime.datetime.utcnow().strftime(_TIMESTAMP_FORMAT))
-            except Exception as e:
-                if cache_json_file and os.path.exists(cache_json_file):
-                    with open(cache_json_file) as fp:
-                        json_text = fp.read()
-                        json_obj = json.loads(json_text)
-                else:
-                    raise e
-
-        return json_obj
-
-    def get_data_ids(self) -> Sequence[Tuple[str, Optional[str]]]:
-        return self._load_or_fetch_json(self._get_data_ids,
-                                        cache_used=self._index_cache_used,
-                                        cache_dir=self._metadata_store_path,
-                                        cache_json_filename='data-ids.json',
-                                        cache_timestamp_filename='data-ids-timestamp.txt',
-                                        cache_expiration_days=self._index_cache_expiration_days
-                                        )
-
-    def _get_data_ids(self) -> List[Tuple[str, Optional[str]]]:
-        store = self._get_store()
-        return list(store.get_data_ids())
-
-    # TODO xcube integ.: make this generic, e.g. class method DataDescriptor.from_dict()
-    def describe_data(self, data_id: str) -> xcube_store.DataDescriptor:
-        descriptor_dict = self._load_or_fetch_json(self._describe_data,
-                                                   fetch_json_args=[data_id],
-                                                   cache_used=self._index_cache_used,
-                                                   cache_dir=self._metadata_store_path,
-                                                   cache_json_filename=f'{data_id}.json',
-                                                   cache_timestamp_filename=f'{data_id}-timestamp.txt',
-                                                   cache_expiration_days=self._index_cache_expiration_days)
-        type_specifier = descriptor_dict.get('type_specifier')
-        if type_specifier is not None:
-            if xcube_store.TYPE_SPECIFIER_MULTILEVEL_DATASET.is_satisfied_by(type_specifier):
-                return xcube_store.MultiLevelDatasetDescriptor.from_dict(descriptor_dict)
-            if xcube_store.TYPE_SPECIFIER_DATASET.is_satisfied_by(type_specifier):
-                return xcube_store.DatasetDescriptor.from_dict(descriptor_dict)
-            if xcube_store.TYPE_SPECIFIER_GEODATAFRAME.is_satisfied_by(type_specifier):
-                return xcube_store.GeoDataFrameDescriptor.from_dict(descriptor_dict)
-        return xcube_store.DataDescriptor.from_dict(descriptor_dict)
-
-    def _describe_data(self, data_id: str) -> Dict:
-        store = self._get_store()
-        return store.describe_data(data_id).to_dict()
-
-    def has_data(self, data_id: str) -> bool:
-        data_ids = [did[0] for did in self.get_data_ids()]
-        return data_id in data_ids
-
-    def open_data(self, data_id: str, **open_params):
-        store = self._get_store()
-        #todo exchange this code when we have decided how to deal with type specifiers
-        if 'dataset[cube]' in store.get_type_specifiers_for_data(data_id):
-            cube_opener_id = store.get_data_opener_ids(data_id=data_id,
-                                                       type_specifier='dataset[cube]')[0]
-            if cube_opener_id:
-                return store.open_data(data_id, opener_id=cube_opener_id, **open_params)
-        return store.open_data(data_id, **open_params)
-
-    def write_data(self, data: Any, data_id: str = None) -> str:
-        store = self._get_store()
-        if not isinstance(store, xcube_store.MutableDataStore):
-            raise xcube_store.DataStoreError(f'Store {self.id} is not mutable. No data can be written to this store.')
-        return store.write_data(data=data,
-                                data_id=data_id)
-
-
 class XcubeProgressObserver(ProgressObserver):
 
     def __init__(self, monitor: Monitor):
@@ -554,47 +209,6 @@ class XcubeProgressObserver(ProgressObserver):
         if len(state_stack) == 1:
             self._monitor.done()
 
-
-class DataStoreRegistry:
-    """
-    Registry of :py:class:`DataStore` objects.
-    """
-
-    def __init__(self):
-        self._data_stores = dict()
-
-    def get_data_store(self, ds_id: str) -> Optional[DataStore]:
-        return self._data_stores.get(ds_id)
-
-    def get_data_stores(self) -> Sequence[DataStore]:
-        return list(self._data_stores.values())
-
-    def add_data_store(self, data_store: DataStore):
-        self._data_stores[data_store.id] = data_store
-
-    def remove_data_store(self, ds_id: str):
-        del self._data_stores[ds_id]
-
-    def __len__(self):
-        return len(self._data_stores)
-
-    def __str__(self):
-        return self.__repr__()
-
-    def __repr__(self):
-        import pprint
-        return pprint.pformat(self._data_stores)
-
-    def _repr_html_(self):
-        rows = []
-        for ds_id, data_store in self._data_stores.items():
-            rows.append('<tr><td>%s</td><td>%s</td></tr>' % (ds_id, repr(data_store)))
-        return '<table>%s</table>' % '\n'.join(rows)
-
-
-#: The data data store registry of type :py:class:`DataStoreRegistry`.
-#: Use it add new data stores to Cate.
-DATA_STORE_REGISTRY = DataStoreRegistry()
 
 INFO_FIELD_NAMES = sorted(["title",
                            "abstract",
@@ -637,7 +251,7 @@ def get_metadata_from_descriptor(descriptor: xcube_store.DataDescriptor) -> Dict
         metadata['crs'] = descriptor.crs
     if descriptor.bbox:
         metadata['bbox'] = descriptor.bbox
-    if descriptor.spatial_res:
+    if hasattr(descriptor, 'spatial_res'):
         metadata['spatial_res'] = descriptor.spatial_res
     if descriptor.time_range:
         metadata['time_range'] = descriptor.time_range
@@ -678,7 +292,10 @@ def get_info_string_from_data_descriptor(descriptor: xcube_store.DataDescriptor)
     return '\n'.join(info_lines)
 
 
-def find_data_store(ds_id: str, data_stores: Union[DataStore, Sequence[DataStore]] = None) -> Optional[DataStore]:
+def find_data_store(ds_id: str,
+                    data_stores: Union[xcube_store.DataStore,
+                                       Sequence[xcube_store.DataStore]] = None) \
+        -> Optional[xcube_store.DataStore]:
     """
     Find the data store that includes the given *ds_id*.
     This will raise an exception if the *ds_id* is given in more than one data store.
@@ -689,7 +306,8 @@ def find_data_store(ds_id: str, data_stores: Union[DataStore, Sequence[DataStore
     """
     results = []
     if data_stores is None:
-        data_store_list = DATA_STORE_REGISTRY.get_data_stores()
+        data_store_list = [DATA_STORE_POOL.get_store(store_instance_id)
+                           for store_instance_id in DATA_STORE_POOL.store_instance_ids]
     else:
         data_store_list = data_stores
     for data_store in data_store_list:
@@ -768,7 +386,7 @@ def open_dataset(dataset_id: str,
 def make_local(data: Any,
                local_name: Optional[str] = None
                ) -> Optional[Tuple[xr.Dataset, str]]:
-    local_store = DATA_STORE_REGISTRY.get_data_store('local')
+    local_store = DATA_STORE_POOL.get_store('@local')
     if not local_store:
         raise ValueError('Cannot initialize `local` DataStore')
 
