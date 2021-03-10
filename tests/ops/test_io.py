@@ -3,16 +3,26 @@ Test the IO operations
 """
 import os
 import shutil
-
-import shapely.wkt
+import subprocess
+import sys
+import time
 import unittest
+import urllib.error
+import urllib.request
 from io import StringIO
 from unittest import TestCase
 
 import geopandas as gpd
-
+import moto.server
+import s3fs
+import shapely.wkt
+import xarray as xr
 from cate.core.types import ValidationError
-from cate.ops.io import open_dataset, save_dataset, read_csv, read_geo_data_frame, write_csv, write_geo_data_frame
+from cate.ops.io import open_dataset, save_dataset, read_zarr, read_csv, read_geo_data_frame, write_csv, \
+    write_geo_data_frame
+
+_TEST_DS = xr.Dataset(data_vars=dict(SST=xr.DataArray([[[276, 277, 278], [279, 275, 277]]],
+                                                      dims=dict(time=1, lat=2, lon=3))))
 
 
 class TestIO(TestCase):
@@ -84,6 +94,15 @@ class TestIO(TestCase):
 
         self.assertIsInstance(df, gpd.GeoDataFrame)
         self.assertIn('geometry', df)
+
+    def test_read_zarr(self):
+        _TEST_DS.to_zarr('test.zarr')
+        try:
+            ds = read_zarr('test.zarr')
+            self.assertIsInstance(ds, xr.Dataset)
+            self.assertIn('SST', ds)
+        finally:
+            shutil.rmtree('test.zarr')
 
     def test_read_geo_data_frame(self):
         file = os.path.join(os.path.dirname(__file__), '..', '..', 'cate', 'ds', 'data', 'countries',
@@ -162,10 +181,11 @@ class TestIO(TestCase):
         lat = [51, 51.2]
         lon = [10.2, 11.4]
         ds = xr.Dataset(
-            data_vars=dict(delta=xr.DataArray(np.linspace(-12, 13, 3 * 2 * 2, dtype=np.int16).reshape((3, 2, 2)),
-                                              dims=['time', 'lat', 'lon']),
-                           mean=xr.DataArray(np.linspace(2, 13, 3 * 2 * 2, dtype=np.uint16).reshape((3, 2, 2)),
-                                             dims=['time', 'lat', 'lon'])),
+            data_vars=dict(
+                delta=xr.DataArray(np.linspace(-12, 13, 3 * 2 * 2,).astype(int).reshape((3, 2, 2)),
+                                   dims=['time', 'lat', 'lon']),
+                mean=xr.DataArray(np.linspace(2, 13, 3 * 2 * 2).astype(int).reshape((3, 2, 2)),
+                                  dims=['time', 'lat', 'lon'])),
             coords=dict(time=time, lat=lat, lon=lon))
 
         file = io.StringIO()
@@ -247,3 +267,55 @@ class TestIO(TestCase):
                                  '0,1,51.0,10.2,-1,0.8\n'
                                  '1,2,51.1,11.4,0,0.5\n'
                                  '2,3,51.2,11.8,-1,0.3\n')
+
+
+ENDPOINT_PORT = 3000
+ENDPOINT_URL = f'http://127.0.0.1:{ENDPOINT_PORT}'
+
+MOTOSERVER_PATH = moto.server.__file__
+MOTOSERVER_ARGS = [sys.executable, MOTOSERVER_PATH, 's3', f'-p{ENDPOINT_PORT}']
+
+
+class S3IOTest(TestCase):
+    moto_server = None
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.moto_server = subprocess.Popen(MOTOSERVER_ARGS)
+        t0 = time.perf_counter()
+        for i in range(60):
+            try:
+                with urllib.request.urlopen(ENDPOINT_URL, timeout=1):
+                    print(f'moto_server started after {round(1000 * (time.perf_counter() - t0))} ms')
+                    break
+            except urllib.error.URLError:
+                pass
+        s3_fs = s3fs.S3FileSystem(key='humpty', secret='dumpty', client_kwargs=dict(endpoint_url=ENDPOINT_URL))
+        if s3_fs.exists('eurodatacube/test.zarr'):
+            s3_fs.rm('eurodatacube/test.zarr', recursive=True)
+        store = s3fs.S3Map('eurodatacube/test.zarr', s3_fs, create=True)
+        _TEST_DS.to_zarr(store)
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.moto_server.kill()
+
+    @moto.mock_s3
+    def test_read_zarr(self):
+        ds = read_zarr('http://127.0.0.1:3000/eurodatacube/test.zarr', key='humpty', secret='dumpty')
+        self.assertIsInstance(ds, xr.Dataset)
+        self.assertIn('SST', ds)
+
+    @moto.mock_s3
+    def test_read_zarr_normalize(self):
+        ds = read_zarr('http://127.0.0.1:3000/eurodatacube/test.zarr', key='humpty', secret='dumpty',
+                       normalize=True)
+        self.assertIsInstance(ds, xr.Dataset)
+        self.assertIn('SST', ds)
+
+    @moto.mock_s3
+    def test_read_zarr_drop_vars(self):
+        ds = read_zarr('http://127.0.0.1:3000/eurodatacube/test.zarr', key='humpty', secret='dumpty',
+                       drop_variables=['SST'])
+        self.assertIsInstance(ds, xr.Dataset)
+        self.assertNotIn('SST', ds)

@@ -1,4 +1,3 @@
-import glob
 import json
 import os
 import os.path
@@ -339,6 +338,7 @@ class OperationCommandTest(CliTestCase):
 
 
 class DataSourceCommandTest(CliTestCase):
+    @unittest.skip(reason="This needs internet access and should be mocked")
     def test_ds_info(self):
         self.assert_main(['ds', 'info',
                           'esacci.AEROSOL.day.L3C.AER_PRODUCTS.ATSR-2.Envisat.AATSR-ENVISAT-ENS_DAILY.v2-6.r1'],
@@ -355,12 +355,14 @@ class DataSourceCommandTest(CliTestCase):
                          expected_status=1,
                          expected_stderr=["No data store found that contains the ID 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'"])
 
+    @unittest.skip(reason="This needs internet access and should be mocked")
     def test_ds_list(self):
         self.assert_main(['ds', 'list'],
                          expected_stdout=['6 data sources found'])
         self.assert_main(['ds', 'list', '--name', 'OZONE'],
                          expected_stdout=['One data source found'])
 
+    @unittest.skip(reason="This needs internet access and should be mocked")
     def test_ds_coverage(self):
         self.assert_main(['ds', 'list', '--name', 'OZONE', '--coverage'],
                           expected_stdout="One data source found\n"

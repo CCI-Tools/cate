@@ -20,7 +20,6 @@
 # SOFTWARE.
 
 import pandas as pd
-import pandas._libs.tslibs as tslibs
 import re
 from typing import Optional
 from typing import Tuple
@@ -31,6 +30,7 @@ _RE_TO_DATETIME_FORMATS = patterns = [(re.compile(14 * '\\d'), '%Y%m%d%H%M%S'),
                                       (re.compile(6 * '\\d'), '%Y%m'),
                                       (re.compile(4 * '\\d'), '%Y')]
 
+
 def find_datetime_format(filename: str) -> Tuple[Optional[str], int, int]:
     for regex, time_format in _RE_TO_DATETIME_FORMATS:
         searcher = regex.search(filename)
@@ -39,14 +39,16 @@ def find_datetime_format(filename: str) -> Tuple[Optional[str], int, int]:
             return time_format, p1, p2
     return None, -1, -1
 
+
 def get_timestamp_from_string(string: str) -> pd.Timestamp:
     time_format, p1, p2 = find_datetime_format(string)
     if not time_format:
         return None
     try:
         return pd.to_datetime(string[p1:p2], format=time_format)
-    except tslibs.OutOfBoundsDatetime:
+    except ValueError:
         return None
+
 
 def get_timestamps_from_string(string: str) -> (pd.Timestamp, pd.Timestamp):
     first_time = None
@@ -59,6 +61,6 @@ def get_timestamps_from_string(string: str) -> (pd.Timestamp, pd.Timestamp):
         time_format, p1, p2 = find_datetime_format(string_rest)
         if time_format:
             second_time = pd.to_datetime(string_rest[p1:p2], format=time_format)
-    except tslibs.OutOfBoundsDatetime:
+    except ValueError:
         pass
     return first_time, second_time

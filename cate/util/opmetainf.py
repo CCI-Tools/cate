@@ -21,13 +21,20 @@
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
+import inspect
 import re
 from collections import OrderedDict
 from typing import Tuple, Dict, List, Any, Optional
 
 from .misc import object_to_qualified_name, qualified_name_to_object
+from ..core.types import Like
 
 Props = Dict[str, Any]
+
+_SPHINX_PARAM_DIRECTIVE_PATTERN = re.compile(":param (?P<name>[^:]+): (?P<desc>[^:]+)")
+_SPHINX_RETURN_DIRECTIVE_PATTERN = re.compile(":returns?: (?P<desc>[^:]+)")
+
+_TYPING_PREFIX = 'typing.'
 
 
 class OpMetaInfo:
@@ -120,16 +127,16 @@ class OpMetaInfo:
     @property
     def has_monitor(self) -> bool:
         """
-        :return: ``True`` if the operation supports a :py:class:`Monitor` value as additional keyword argument named
-                 ``monitor``.
+        :return: ``True`` if the operation supports a :py:class:`Monitor`
+            value as additional keyword argument named ``monitor``.
         """
         return self._has_monitor
 
     @property
     def has_named_outputs(self) -> bool:
         """
-        :return: ``True`` if the output value of the operation is expected be a dictionary-like mapping of output names
-                 to output values.
+        :return: ``True`` if the output value of the operation is
+            expected be a dictionary-like mapping of output names to output values.
         """
         return not (len(self._outputs) == 1 and self.RETURN_OUTPUT_NAME in self._outputs)
 
@@ -139,8 +146,9 @@ class OpMetaInfo:
 
     def to_json_dict(self, data_type_to_json=None) -> Dict[str, Any]:
         """
-        Return a JSON-serializable dictionary representation of this object. E.g. values of the `data_type``
-        property are converted from Python types to their string representation.
+        Return a JSON-serializable dictionary representation of this object.
+        E.g. values of the `data_type`` property are converted from Python types
+        to their string representation.
 
         :return: A JSON-serializable dictionary
         """
@@ -298,7 +306,10 @@ class OpMetaInfo:
             if name not in input_values and 'default_value' in properties:
                 input_values[name] = properties['default_value']
 
-    def validate_input_values(self, input_values: Dict, except_types=None, validation_exception_class=ValueError):
+    def validate_input_values(self,
+                              input_values: Dict,
+                              except_types=None,
+                              validation_exception_class=ValueError):
         """
         Validate given *input_values* against the operation's input properties.
 
@@ -322,7 +333,8 @@ class OpMetaInfo:
         # Ensure all input values are valid w.r.t. input properties
         for name, value in input_values.items():
             if name not in inputs:
-                raise validation_exception_class("'%s' is not an input of operation '%s'." % (name, self.qualified_name))
+                raise validation_exception_class(
+                    "'%s' is not an input of operation '%s'." % (name, self.qualified_name))
             if except_types and type(value) in except_types:
                 continue
             input_properties = inputs[name]
@@ -358,19 +370,26 @@ class OpMetaInfo:
         Validate given *output_values* against the operation's output properties.
 
         :param output_values: The dictionary of output values.
-        :param validation_exception_class: The exception class to be used to raise exceptions if
-               validation fails. Must derive from ``BaseException``. Defaults to ``ValueError``.
-        :raise validation_error_class: If *output_values* are invalid w.r.t. to the operation's output properties.
+        :param validation_exception_class: The exception class to be
+            used to raise exceptions if validation fails. Must derive from ``BaseException``.
+            Defaults to ``ValueError``.
+        :raise validation_error_class: If *output_values* are invalid
+            w.r.t. to the operation's output properties.
         """
         outputs = self.outputs
         for name, value in output_values.items():
             if name not in outputs:
-                raise validation_exception_class("'%s' is not an output of operation '%s'." % (name, self.qualified_name))
+                raise validation_exception_class("'%s' is not an output "
+                                                 "of operation '%s'." % (name, self.qualified_name))
             output_properties = outputs[name]
             if value is not None:
                 data_type = output_properties.get('data_type', None)
                 if data_type:
-                    self._validate_value_against_data_type(data_type, value, self.qualified_name, "Output", name,
+                    self._validate_value_against_data_type(data_type,
+                                                           value,
+                                                           self.qualified_name,
+                                                           "Output",
+                                                           name,
                                                            validation_exception_class)
 
     @classmethod
@@ -387,15 +406,22 @@ class OpMetaInfo:
             raise validation_exception_class(
                 "%s '%s' for operation '%s': %s" % (port_type, port_name, op_name, str(e)))
         if not can_convert and value is not None:
-            is_float_type = data_type is float and (isinstance(value, float) or isinstance(value, int))
-            if not is_float_type and not isinstance(value, data_type):
+            is_float_type = data_type is float \
+                            and (isinstance(value, float) or isinstance(value, int))
+            if not is_float_type and not is_instance_of(value, data_type):
                 raise validation_exception_class(
-                    "%s '%s' for operation '%s' must be of type '%s', but got type '%s'." % (
-                        port_type, port_name, op_name, data_type.__name__, type(value).__name__))
+                    "%s '%s' for operation '%s' must be of type '%s',"
+                    " but got type '%s'." % (
+                        port_type, port_name, op_name,
+                        data_type.__name__, type(value).__name__)
+                )
 
     @classmethod
     def _convert_value(cls, data_type: Any, value: Optional[Any]) -> Tuple[Any, bool]:
-        """Check if the given type has an "convert(value)" method, i.e. our XXXLike types, if so return its result."""
+        """
+        Check if the given type has an "convert(value)" method,
+        i.e. our XXXLike types, if so return its result.
+        """
         # noinspection PyBroadException
         try:
             return data_type.convert(value), True
@@ -417,7 +443,9 @@ class OpMetaInfo:
                 if in_description:
                     in_description = False
                 elif in_directive:
-                    cls._process_sphinx_directive_lines(directive_lines, param_descriptions, return_descriptions)
+                    cls._process_sphinx_directive_lines(directive_lines,
+                                                        param_descriptions,
+                                                        return_descriptions)
                 directive_lines = [line]
                 in_directive = True
             elif line:
@@ -432,14 +460,19 @@ class OpMetaInfo:
                 if in_description:
                     description_lines.append('')
                 elif in_directive:
-                    cls._process_sphinx_directive_lines(directive_lines, param_descriptions, return_descriptions)
+                    cls._process_sphinx_directive_lines(directive_lines,
+                                                        param_descriptions,
+                                                        return_descriptions)
                     directive_lines = []
                     in_directive = False
 
         if in_directive:
-            cls._process_sphinx_directive_lines(directive_lines, param_descriptions, return_descriptions)
+            cls._process_sphinx_directive_lines(directive_lines,
+                                                param_descriptions,
+                                                return_descriptions)
 
-        return ('\n'.join(description_lines).strip(' \n\t') if description_lines else None,
+        return ('\n'.join(description_lines).strip(' \n\t')
+                if description_lines else None,
                 param_descriptions,
                 return_descriptions.get('return', None))
 
@@ -483,9 +516,8 @@ class OpMetaInfo:
                 if input_names[position]:
                     raise ValueError("illegal input property, position={} used twice".format(position))
             else:
-                raise ValueError(
-                    "illegal input property, expected position={} to {}, but was {}".format(0, num_inputs - 1,
-                                                                                            position))
+                raise ValueError("illegal input property, expected position={} to {}, "
+                                 "but was {}".format(0, num_inputs - 1, position))
             input_names[position] = name
             index += 1
         for position in range(num_inputs):
@@ -494,5 +526,44 @@ class OpMetaInfo:
         return input_names
 
 
-_SPHINX_PARAM_DIRECTIVE_PATTERN = re.compile(":param (?P<name>[^:]+): (?P<desc>[^:]+)")
-_SPHINX_RETURN_DIRECTIVE_PATTERN = re.compile(":returns?: (?P<desc>[^:]+)")
+def is_instance_of(value, data_type) -> bool:
+    """
+    Tests whether the given *value* is an instance of the given *data_type*.
+    The latter may be a type from the Python `typing` module.
+
+    :param value: The value to test
+    :param data_type: The data type to test against
+    :return: True, if so.
+    """
+
+    if inspect.isclass(data_type) and issubclass(data_type, Like):
+        data_type = data_type.TYPE
+
+    typing_name = repr(data_type)
+    if not typing_name.startswith(_TYPING_PREFIX):
+        return isinstance(value, data_type)
+
+    typing_name = typing_name[len(_TYPING_PREFIX):]
+    bracket_pos = typing_name.find('[', 1)
+    if bracket_pos != -1:
+        typing_name = typing_name[0:bracket_pos]
+
+    if typing_name == 'Any':
+        return True
+
+    if typing_name == 'Union':
+        union_args = data_type.__args__ if hasattr(data_type, '__args__') else None
+        if union_args is not None:
+            for union_arg in union_args:
+                if is_instance_of(value, union_arg):
+                    return True
+        return False
+
+    if typing_name == 'Callable':
+        # Don't go into details of return value and parameters types
+        return callable(value)
+
+    typing_origin = data_type.__origin__ if hasattr(data_type, '__origin__') else None
+    if typing_origin is not None:
+        return is_instance_of(value, typing_origin)
+    return False

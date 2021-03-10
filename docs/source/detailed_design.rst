@@ -73,7 +73,7 @@ Module ``cate.cli.main``
 Module ``cate.webapi``
 ======================
 
-.. automodule:: cate.webapi.main
+.. automodule:: cate.webapi
     :members:
 
 Module ``cate.util``

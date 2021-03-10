@@ -1144,6 +1144,8 @@ class DataSourceCommand(SubCommandCommand):
                                  help="List only data sources named NAME or "
                                       "that have NAME in their name. "
                                       "The comparison is case insensitive.")
+        list_parser.add_argument('--all', '-a', action='store_false',
+                                 help="Show also data sources that can not be opened in Cate")
         list_parser.add_argument('--coverage', '-c', action='store_true',
                                  help="Also display temporal coverage")
         # Improvement (marcoz, 20160905): implement "cate ds list --var"

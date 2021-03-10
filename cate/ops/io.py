@@ -22,6 +22,8 @@
 import itertools
 import json
 import os.path
+import urllib.parse
+import urllib.request
 from abc import ABCMeta
 from typing import List, Optional
 
@@ -29,6 +31,7 @@ import fiona
 import geopandas as gpd
 import pandas as pd
 import pandas.api.types
+import s3fs
 import xarray as xr
 
 from cate.core.ds import get_spatial_ext_chunk_sizes
@@ -144,9 +147,14 @@ def write_object(obj, file: str, format: str = None):
 
 
 @op(tags=['input'], res_pattern='txt_{index}')
-@op_input('file', file_open_mode='r', file_filters=[dict(name='Plain Text', extensions=['txt']), _ALL_FILE_FILTER])
+@op_input('file',
+          data_type=FileLike,
+          file_open_mode='r',
+          file_filters=[dict(name='Plain Text', extensions=['txt']),
+                        _ALL_FILE_FILTER])
 @op_input('encoding')
-def read_text(file: str, encoding: str = None) -> str:
+def read_text(file: FileLike.TYPE,
+              encoding: str = None) -> str:
     """
     Read a string object from a text file.
 
@@ -164,9 +172,15 @@ def read_text(file: str, encoding: str = None) -> str:
 
 @op(tags=['output'], no_cache=True)
 @op_input('obj')
-@op_input('file', file_open_mode='w', file_filters=[dict(name='Plain Text', extensions=['txt']), _ALL_FILE_FILTER])
+@op_input('file',
+          data_type=FileLike,
+          file_open_mode='w',
+          file_filters=[dict(name='Plain Text', extensions=['txt']),
+                        _ALL_FILE_FILTER])
 @op_input('encoding')
-def write_text(obj: object, file: str, encoding: str = None):
+def write_text(obj: object,
+               file: FileLike.TYPE,
+               encoding: str = None):
     """
     Write an object as string to a text file.
 
@@ -182,10 +196,16 @@ def write_text(obj: object, file: str, encoding: str = None):
         file.write(str(obj))
 
 
+# noinspection PyTypeChecker
 @op(tags=['input'])
-@op_input('file', file_open_mode='r', file_filters=[dict(name='JSON', extensions=['json']), _ALL_FILE_FILTER])
+@op_input('file',
+          data_type=FileLike,
+          file_open_mode='r',
+          file_filters=[dict(name='JSON', extensions=['json']),
+                        _ALL_FILE_FILTER])
 @op_input('encoding')
-def read_json(file: str, encoding: str = None) -> object:
+def read_json(file: FileLike.TYPE,
+              encoding: str = None) -> object:
     """
     Read a data object from a JSON text file.
 
@@ -202,10 +222,17 @@ def read_json(file: str, encoding: str = None) -> object:
 
 @op(tags=['output'], no_cache=True)
 @op_input('obj')
-@op_input('file', file_open_mode='w', file_filters=[dict(name='JSON', extensions=['json']), _ALL_FILE_FILTER])
+@op_input('file',
+          data_type=FileLike,
+          file_open_mode='w',
+          file_filters=[dict(name='JSON', extensions=['json']),
+                        _ALL_FILE_FILTER])
 @op_input('encoding')
 @op_input('indent')
-def write_json(obj: object, file: str, encoding: str = None, indent: str = None):
+def write_json(obj: object,
+               file: FileLike.TYPE,
+               encoding: str = None,
+               indent: str = None):
     """
     Write a data object to a JSON text file. Note that the data object must be JSON-serializable.
 
@@ -225,7 +252,8 @@ def write_json(obj: object, file: str, encoding: str = None, indent: str = None)
 @op_input('file',
           data_type=FileLike,
           file_open_mode='r',
-          file_filters=[dict(name='CSV', extensions=['csv', 'txt']), _ALL_FILE_FILTER])
+          file_filters=[dict(name='CSV', extensions=['csv', 'txt']),
+                        _ALL_FILE_FILTER])
 @op_input('delimiter', nullable=True)
 @op_input('delim_whitespace', nullable=True)
 @op_input('quotechar', nullable=True)
@@ -311,7 +339,8 @@ def read_csv(file: FileLike.TYPE,
 @op_input('file',
           data_type=FileLike,
           file_open_mode='w',
-          file_filters=[dict(name='CSV', extensions=['csv', 'txt']), _ALL_FILE_FILTER])
+          file_filters=[dict(name='CSV', extensions=['csv', 'txt']),
+                        _ALL_FILE_FILTER])
 @op_input('columns', value_set_source='obj', data_type=VarNamesLike)
 @op_input('na_rep')
 @op_input('delimiter', nullable=True)
@@ -506,10 +535,13 @@ def write_geo_data_frame(gdf: gpd.GeoDataFrame,
           file_open_mode='r',
           file_filters=[dict(name='Zarr', extensions=['zarr'])],
           file_props=['openDirectory'])
-@op_input('file_system', value_set=['Local', 'S3', 'OBS'])
 @op_input('drop_variables', data_type=VarNamesLike)
+@op_input('secret', data_type=str, password=True)
+@op_input('token', data_type=str, password=True)
 def read_zarr(path: str,
-              file_system: str = 'Local',
+              key: str = None,
+              secret: str = None,
+              token: str = None,
               drop_variables: VarNamesLike.TYPE = None,
               decode_cf: bool = True,
               decode_times: bool = True,
@@ -519,9 +551,10 @@ def read_zarr(path: str,
 
     For the Zarr format, refer to http://zarr.readthedocs.io/en/stable/.
 
-    :param path: Zarr directory path, Zarr ZIP archive path, or object storage path or bucket name.
-    :param file_system: File system identifier, "Local" is your locally mounted file system,
-           for Amazon S3 use "S3", for general Object Storage use "OBS".
+    :param path: Zarr directory path, Zarr ZIP archive path, or (S3) object storage URL.
+    :param key: Optional (AWS) access key identifier. Valid only if *path* is a URL.
+    :param secret: Optional (AWS) secret access key. Valid only if *path* is a URL.
+    :param token: Optional (AWS) access token. Valid only if *path* is a URL.
     :param drop_variables: List of variables to be dropped.
     :param decode_cf: Whether to decode CF attributes and coordinate variables.
     :param decode_times: Whether to decode time information (convert time coordinates to ``datetime`` objects).
@@ -529,21 +562,27 @@ def read_zarr(path: str,
     """
     drop_variables = VarNamesLike.convert(drop_variables)
 
-    if file_system == 'Local':
-        ds = xr.open_zarr(path,
-                          drop_variables=drop_variables,
-                          decode_cf=decode_cf,
-                          decode_times=decode_times)
-    elif file_system == 'S3' or file_system == 'OBS':
-        import s3fs
-        store = s3fs.S3Map(path, s3=(s3fs.S3FileSystem(anon=True)))
-        ds = xr.open_zarr(store,
-                          drop_variables=drop_variables,
-                          decode_cf=decode_cf,
-                          decode_times=decode_times)
+    is_s3_url = path.startswith('s3://')
+    is_http_url = path.startswith('http://') or path.startswith('https://')
+    if is_s3_url or is_http_url:
+        root = path
+        client_kwargs = None
+        if is_http_url:
+            url = urllib.parse.urlparse(path)
+            root = url.path[1:] if url.path.startswith('/') else url.path
+            client_kwargs = dict(endpoint_url=f'{url.scheme}://{url.netloc}')
+        store = s3fs.S3Map(root, s3=s3fs.S3FileSystem(anon=not (key or secret or token),
+                                                      key=key,
+                                                      secret=secret,
+                                                      token=token,
+                                                      client_kwargs=client_kwargs))
     else:
-        raise ValidationError(f'Unknown file_system {file_system!r}')
+        store = path
 
+    ds = xr.open_zarr(store,
+                      drop_variables=drop_variables,
+                      decode_cf=decode_cf,
+                      decode_times=decode_times)
     if normalize:
         return adjust_temporal_attrs(normalize_op(ds))
     return ds

@@ -46,9 +46,29 @@ class WebSocketServiceTest(unittest.TestCase):
     @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
     def test_get_data_sources(self):
         data_stores = self.service.get_data_stores()
+        required_fields = [
+            ('id', str),
+        ]
+        optional_fields = [
+            ('title', str),
+            ('metaInfo', dict),
+            ("verificationFlags", list),
+            ("typeSpecifier", str)
+        ]
         for ds in data_stores:
+            self.assertIn('id', ds)
+            self.assertIsInstance(ds['id'], str)
+
             data_sources = self.service.get_data_sources(ds['id'], monitor=Monitor.NONE)
             self.assertIsInstance(data_sources, list)
+            for data_source in data_sources:
+                data_source = dict(data_source)
+                for k, t in required_fields:
+                    self.assertIn(k, data_source)
+                    self.assertIsInstance(data_source[k], t)
+                for k, t in optional_fields:
+                    if k in data_source and data_source[k] is not None:
+                        self.assertIsInstance(data_source[k], t)
 
     def test_get_operations(self):
         ops = self.service.get_operations()
@@ -115,7 +135,8 @@ class WebSocketServiceTest(unittest.TestCase):
         self.assertEqual(1, len(workspaces))
         self.assertEqual(1, len(workspaces[0]['workflow']['steps']))
 
-        values = self.service.extract_pixel_values(self.get_workspace_path(), 'ds', (10.22, 34.52), dict(time='2014-09-11'))
+        values = self.service.extract_pixel_values(self.get_workspace_path(), 'ds', (10.22, 34.52),
+                                                   dict(time='2014-09-11'))
 
         self.assertAlmostEqual(values['lat'], 34.5)
         self.assertAlmostEqual(values['lon'], 10.2)
@@ -168,7 +189,6 @@ class WebSocketServiceTest(unittest.TestCase):
         node = self.service.update_file_node(path)
         self._assert_dir_node_props(node, os.path.basename(path))
 
-
     def _assert_file_node_props(self, file_node: Dict, name: str):
         self._assert_file_node_props_base(file_node, name)
         self.assertIn('isDir', file_node)
@@ -205,7 +225,6 @@ class SandboxedWebSocketServiceTest(WebSocketServiceTest):
         self.assertEqual(os.path.sep + 'SandboxedWebSocketServiceTest', workspace_json['base_dir'])
 
     def test_update_file_node(self):
-
         path = ''
         node = self.service.update_file_node(path)
         self._assert_dir_node_props(node, '')

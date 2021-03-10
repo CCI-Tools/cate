@@ -26,7 +26,7 @@ from cate.version import __version__ as cate_version
 # http://blog.rtwilson.com/how-to-make-your-sphinx-documentation-compile-with-readthedocs-when-youre-using-numpy-and-scipy/
 import mock
 
-#MOCK_MODULES = ['geopandas', 'cartopy', 'cartopy.crs', 'fiona', 'numba', 'pandas',
+# MOCK_MODULES = ['geopandas', 'cartopy', 'cartopy.crs', 'fiona', 'numba', 'pandas',
 #                'matplotlib', 'matplotlib.animation', 'matplotlib.cm', 'matplotlib.figure', 'matplotlib.pyplot',
 #                'matplotlib.backends.backend_webagg_core',
 #                'pyproj', 'scipy', 'scipy.stats', 'scipy.special',
@@ -35,11 +35,29 @@ import mock
 #                'dask', 'dask.callbacks',
 #                'numpy', 'jdcal', 'dateutil', 'owslib', 'owslib.csw', 'owslib.namespaces', 'psutil']
 
-#for mod_name in MOCK_MODULES:
+# for mod_name in MOCK_MODULES:
 #    sys.modules[mod_name] = mock.Mock()
 
-autodoc_mock_imports = ["xarray", "pandas", "geopandas", "cartopy", "fiona", "numba", "shapely", "jdcal",
-                        "matplotlib", "tornado", "dateutil", "scipy", "owslib", "dask", "psutil" , "pyproj" ]
+autodoc_mock_imports = ['aiofiles',
+                        'aiohttp',
+                        'cartopy',
+                        'dask',
+                        'dateutil',
+                        'fiona',
+                        'geopandas',
+                        'jdcal',
+                        'lxml',
+                        'matplotlib',
+                        'numba',
+                        'owslib',
+                        'pandas',
+                        'psutil',
+                        'pyproj',
+                        's3fs',
+                        'scipy',
+                        'shapely',
+                        'tornado',
+                        'xarray']
 
 # -- General configuration ------------------------------------------------
 
@@ -254,6 +272,7 @@ html_static_path = ['_static']
 # Output file base name for HTML help builder.
 htmlhelp_basename = software_name + '-doc'
 
+
 # fix to prevent tables from horizontal scrolling. Taken from:
 # https://github.com/snide/sphinx_rtd_theme/issues/117#issuecomment-153083280
 
@@ -261,6 +280,7 @@ htmlhelp_basename = software_name + '-doc'
 def setup(app):
     # overrides for wide tables in RTD theme
     app.add_stylesheet('theme_overrides.css')
+
 
 # -- Options for LaTeX output ---------------------------------------------
 

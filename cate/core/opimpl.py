@@ -30,10 +30,10 @@ from jdcal import jd2gcal
 from matplotlib import path
 from shapely.geometry import box, LineString, Polygon
 
+from cate.util.time import get_timestamps_from_string, get_timestamp_from_string
 from .types import PolygonLike, ValidationError
 from ..util.misc import to_list
 from ..util.monitor import Monitor
-from cate.util.time import get_timestamps_from_string
 
 __author__ = "Janis Gailis (S[&]T Norway)" \
              "Norman Fomferra (Brockmann Consult GmbH)"
@@ -77,6 +77,15 @@ def _normalize_zonal_lat_lon(ds: xr.Dataset) -> xr.Dataset:
     """
     In case that the dataset only contains lat_centers and is a zonal mean dataset,
     the longitude dimension created and filled with the variable value of certain latitude.
+
+    This case is concerning the following cci odp datasets:
+        esacci.OZONE.mon.L3.LP.OSIRIS.ODIN.OSIRIS_ODIN.v0001.r1
+        esacci.OZONE.mon.L3.LP.GOMOS.Envisat.GOMOS_ENVISAT.v0001.r1
+        esacci.OZONE.mon.L3.LP.SMR.ODIN.MZM.v0001.r1
+        esacci.OZONE.mon.L3.LP.SCIAMACHY.Envisat.SCIAMACHY_ENVISAT.v0001.r1
+        esacci.OZONE.mon.L3.LP.SMR.ODIN.SMR_ODIN.v0001.r1
+        esacci.OZONE.mon.L3.LP.MIPAS.Envisat.MIPAS_ENVISAT.v0001.r1
+
     :param ds: some xarray dataset
     :return: a normalized xarray dataset
     """
@@ -84,17 +93,19 @@ def _normalize_zonal_lat_lon(ds: xr.Dataset) -> xr.Dataset:
     if 'latitude_centers' not in ds.coords or 'lon' in ds.coords:
         return ds
 
-    ds_zonal = ds.copy()
-    resolution = (ds.latitude_centers.values[1] - ds.latitude_centers.values[0])
-    ds_zonal = ds_zonal.assign_coords(lon=[i + (resolution / 2) for i in np.arange(-180.0, 180.0, resolution)])
+    latitude_centers = ds.latitude_centers
+    lat = xr.DataArray(latitude_centers.values, dims='lat', attrs=latitude_centers.attrs)
+    ds_zonal = ds.drop_vars('latitude_centers')
 
-    for var in ds_zonal.data_vars:
-        if sorted([dim for dim in ds_zonal[var].dims]) == sorted([coord for coord in ds.coords]):
-            ds_zonal[var] = xr.concat([ds_zonal[var] for _ in ds_zonal.lon], 'lon')
-            ds_zonal[var]['lon'] = ds_zonal.lon
-    ds_zonal = ds_zonal.assign_coords(lat=ds.latitude_centers.values)
+    resolution = (latitude_centers.values[1] - latitude_centers.values[0])
+    lon = xr.DataArray([i + (resolution / 2) for i in np.arange(-180.0, 180.0, resolution)], dims='lon')
+
     ds_zonal = ds_zonal.rename_dims({'latitude_centers': 'lat'})
-    ds_zonal = ds_zonal.drop('latitude_centers')
+    ds_zonal = ds_zonal.assign_coords(lat=lat, lon=lon)
+
+    for var_name, var in ds_zonal.data_vars.items():
+        if 'lat' in var.dims:
+            ds_zonal[var_name] = xr.concat([var for _ in ds_zonal.lon], 'lon')
     ds_zonal = ds_zonal.transpose(..., 'lat', 'lon')
 
     has_lon_bnds = 'lon_bnds' in ds_zonal.coords or 'lon_bnds' in ds_zonal
@@ -352,21 +363,15 @@ def normalize_coord_vars(ds: xr.Dataset) -> xr.Dataset:
 def _get_time_coverage_from_ds(ds: xr.Dataset) -> (pd.Timestamp, pd.Timestamp):
     time_coverage_start = ds.attrs.get('time_coverage_start')
     if time_coverage_start is not None:
-        # noinspection PyBroadException
-        try:
-            time_coverage_start = pd.to_datetime(time_coverage_start)
-        except BaseException:
-            pass
+        time_coverage_start = get_timestamp_from_string(time_coverage_start)
 
     time_coverage_end = ds.attrs.get('time_coverage_end')
     if time_coverage_end is not None:
-        # noinspection PyBroadException
-        try:
-            time_coverage_end = pd.to_datetime(time_coverage_end)
-        except BaseException:
-            pass
+        time_coverage_end = get_timestamp_from_string(time_coverage_end)
+
     if time_coverage_start or time_coverage_end:
         return time_coverage_start, time_coverage_end
+
     filename = ds.encoding.get('source', '').split('/')[-1]
     return get_timestamps_from_string(filename)
 
@@ -376,6 +381,8 @@ def normalize_missing_time(ds: xr.Dataset) -> xr.Dataset:
     Add a time coordinate variable and their associated bounds coordinate variables
     if either temporal CF attributes ``time_coverage_start`` and ``time_coverage_end``
     are given or time information can be extracted from the file name but the time dimension is missing.
+
+    In case the time information is given by a variable called 't' instead of 'time', it will be renamed into 'time'.
 
     The new time coordinate variable will be named ``time`` with dimension ['time'] and shape [1].
     The time bounds coordinates variable will be named ``time_bnds`` with dimensions ['time', 'bnds'] and shape [1,2].
@@ -389,9 +396,16 @@ def normalize_missing_time(ds: xr.Dataset) -> xr.Dataset:
     if not time_coverage_start and not time_coverage_end:
         # Can't do anything
         return ds
-
+    time = None
     if 'time' in ds:
-        time = ds.time
+        if isinstance(ds.time.values[0], datetime) or isinstance(ds.time.values[0], np.datetime64):
+            time = ds.time
+    elif 't' in ds:
+        if isinstance(ds.t.values[0], datetime) or isinstance(ds.t.values[0], np.datetime64):
+            ds = ds.rename_vars({"t": "time"})
+            ds = ds.assign_coords(time=('time', ds.time))
+            time = ds.time
+    if time is not None:
         if not time.dims:
             ds = ds.drop_vars('time')
         elif len(time.dims) == 1:
@@ -626,6 +640,10 @@ def _get_geo_spatial_cf_attrs_from_var(ds: xr.Dataset, var_name: str, allow_poin
         return None
 
     var = ds[var_name]
+    res_name = 'geospatial_{}_resolution'.format(var_name)
+    min_name = 'geospatial_{}_min'.format(var_name)
+    max_name = 'geospatial_{}_max'.format(var_name)
+    units_name = 'geospatial_{}_units'.format(var_name)
 
     if 'bounds' in var.attrs:
         # According to CF Conventions the corresponding 'bounds' coordinate variable name
@@ -656,12 +674,31 @@ def _get_geo_spatial_cf_attrs_from_var(ds: xr.Dataset, var_name: str, allow_poin
                 dim_res = abs(var.values[1] - var.values[0])
                 dim_min = min(var.values[0], var.values[-1]) - 0.5 * dim_res
                 dim_max = max(var.values[0], var.values[-1]) + 0.5 * dim_res
-            elif len(var.values) == 1 and allow_point:
-                dim_var = var
-                # Actually a point with no extent
-                dim_res = 0.0
-                dim_min = var.values[0]
-                dim_max = var.values[0]
+            elif len(var.values) == 1:
+                if res_name in ds.attrs:
+                    dim_res = ds.attrs[res_name]
+                    if isinstance(dim_res, str):
+                        # remove any units from string
+                        dim_res = dim_res.replace('degree', '').replace('deg', '').replace('°', '').strip()
+                    try:
+                        dim_res = float(dim_res)
+                        dim_var = var
+                        # Consider extent in metadata if provided
+                        dim_min = var.values[0] - 0.5 * dim_res
+                        dim_max = var.values[0] + 0.5 * dim_res
+                    except ValueError:
+                        if allow_point:
+                            dim_var = var
+                            # Actually a point with no extent
+                            dim_res = 0.0
+                            dim_min = var.values[0]
+                            dim_max = var.values[0]
+                elif allow_point:
+                    dim_var = var
+                    # Actually a point with no extent
+                    dim_res = 0.0
+                    dim_min = var.values[0]
+                    dim_max = var.values[0]
 
     if dim_var is None:
         # Cannot determine spatial extent for variable/dimension var_name
@@ -671,11 +708,6 @@ def _get_geo_spatial_cf_attrs_from_var(ds: xr.Dataset, var_name: str, allow_poin
         dim_units = var.attrs['units']
     else:
         dim_units = None
-
-    res_name = 'geospatial_{}_resolution'.format(var_name)
-    min_name = 'geospatial_{}_min'.format(var_name)
-    max_name = 'geospatial_{}_max'.format(var_name)
-    units_name = 'geospatial_{}_units'.format(var_name)
 
     geo_spatial_attrs = dict()
     # noinspection PyUnboundLocalVariable

@@ -34,7 +34,7 @@ from cate.core.ds import DATA_STORE_REGISTRY
 from cate.core.op import OP_REGISTRY
 from cate.core.workspace import OpKwArgs, Workspace
 from cate.core.wsmanag import WorkspaceManager
-from cate.util.misc import cwd, filter_fileset
+from cate.util.misc import cwd
 from cate.util.monitor import Monitor
 from cate.util.sround import sround_range
 
