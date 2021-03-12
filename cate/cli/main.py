@@ -1166,12 +1166,13 @@ class DataSourceCommand(SubCommandCommand):
 
         info_parser.set_defaults(sub_command_function=cls._execute_info)
 
-        add_parser = subparsers.add_parser('add', help='Add a new file data source using a file path pattern.')
-        add_parser.add_argument('ds_name', metavar='DS', help='A name for the data source.')
-        add_parser.add_argument('file', metavar='FILE', nargs="+",
-                                help='A list of files comprising this data source. '
-                                     'The files can contain the wildcard characters "*" and "?".')
-        add_parser.set_defaults(sub_command_function=cls._execute_add)
+        # TODO make this work
+        # add_parser = subparsers.add_parser('add', help='Add a new file data source using a file path pattern.')
+        # add_parser.add_argument('ds_name', metavar='DS', help='A name for the data source.')
+        # add_parser.add_argument('file', metavar='FILE', nargs="+",
+        #                         help='A list of files comprising this data source. '
+        #                              'The files can contain the wildcard characters "*" and "?".')
+        # add_parser.set_defaults(sub_command_function=cls._execute_add)
 
         del_parser = subparsers.add_parser('del', help='Removes a data source from file data store.')
         del_parser.add_argument('ds_name', metavar='DS', help='A name for the data source.')
@@ -1197,14 +1198,17 @@ class DataSourceCommand(SubCommandCommand):
     # noinspection PyShadowingNames
     @classmethod
     def _execute_list(cls, command_args):
-        from cate.core.ds import DATA_STORE_REGISTRY, get_data_descriptor
+        from cate.core.ds import DATA_STORE_POOL
+        from cate.core.ds import get_data_descriptor
         ds_name = command_args.name
         data_ids = []
-        for data_store in DATA_STORE_REGISTRY.get_data_stores():
-            data_store_ids = [data_id[0] for data_id in data_store.get_data_ids()]
+        for data_store_instance_id in DATA_STORE_POOL.store_instance_ids:
+            data_store = DATA_STORE_POOL.get_store(data_store_instance_id)
             if ds_name:
-                data_store_ids = [data_id for data_id in data_store_ids if ds_name in data_id]
-            data_ids.extend(data_store_ids)
+                data_ids.extend([data_id for data_id in data_store.get_data_ids()
+                                 if ds_name in data_id])
+            else:
+                data_ids.extend([data_id for data_id in data_store.get_data_ids()])
         if command_args.coverage:
             ds_names = []
             for ds in data_ids:
@@ -1223,7 +1227,7 @@ class DataSourceCommand(SubCommandCommand):
             find_data_store, get_info_string_from_data_descriptor
 
         ds_name = command_args.ds_name
-        data_store = find_data_store(ds_id=ds_name)
+        data_store_id, data_store = find_data_store(ds_id=ds_name)
         if not data_store:
             raise CommandError(f"No data store found that contains the ID '{ds_name}'")
         descriptor = data_store.describe_data(ds_name)
@@ -1245,24 +1249,25 @@ class DataSourceCommand(SubCommandCommand):
             print()
             print(format_variables_info_string(descriptor))
 
-    @classmethod
-    def _execute_add(cls, command_args):
-        from cate.core.ds import DATA_STORE_REGISTRY
-
-        local_store = DATA_STORE_REGISTRY.get_data_store('local')
-        if local_store is None:
-            raise RuntimeError('internal error: no file data store found')
-
-        ds_name = command_args.ds_name
-        files = command_args.file
-        ds = local_store.add_pattern(ds_name, files)
-        print("File data source with name '%s' added." % ds.id)
+    # TODO make this work
+    # @classmethod
+    # def _execute_add(cls, command_args):
+    #     from cate.core.ds import DATA_STORE_REGISTRY
+    #
+    #     local_store = DATA_STORE_REGISTRY.get_data_store('local')
+    #     if local_store is None:
+    #         raise RuntimeError('internal error: no file data store found')
+    #
+    #     ds_name = command_args.ds_name
+    #     files = command_args.file
+    #     ds = local_store.add_pattern(ds_name, files)
+    #     print("File data source with name '%s' added." % ds.id)
 
     @classmethod
     def _execute_del(cls, command_args):
-        from cate.core.ds import DATA_STORE_REGISTRY
+        from cate.core.ds import DATA_STORE_POOL
 
-        local_store = DATA_STORE_REGISTRY.get_data_store('local')
+        local_store = DATA_STORE_POOL.get_store('local')
         if local_store is None:
             raise RuntimeError('internal error: no file data store found')
         ds_name = command_args.ds_name
@@ -1272,8 +1277,10 @@ class DataSourceCommand(SubCommandCommand):
             prompt = 'Do you really want to delete file data source "%s" ([y]/n)? ' % ds_name
             answer = input(prompt)
         if not answer or answer.lower() == 'y':
-            keep_files = command_args.keep_files
-            local_store.remove_data_source(ds_name, not keep_files)
+            if command_args.keep_files:
+                local_store.deregister_data(ds_name)
+            else:
+                local_store.delete_data(ds_name)
             print("File data source with name '%s' has been removed successfully." % ds_name)
 
     @classmethod

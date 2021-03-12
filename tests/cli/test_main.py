@@ -1,65 +1,27 @@
-import glob
-import json
 import os
 import os.path
 import shutil
 import sys
 import unittest
-import datetime
 from collections import OrderedDict
 from time import sleep
 from typing import Union, List, Optional
 from unittest import TestCase
 
 from cate.cli import main
-from cate.core.ds import DATA_STORE_REGISTRY, XcubeDataStore
+from cate.core.ds import DATA_STORE_POOL
 from cate.core.op import OP_REGISTRY
 from cate.core.types import PointLike, TimeRangeLike
 from cate.core.wsmanag import FSWorkspaceManager
 from cate.util.misc import fetch_std_streams
 from cate.util.monitor import Monitor
 
+from ..storetest import StoreTest
+
 NETCDF_TEST_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')
 
 
-def _create_test_data_store():
-    metadata_path = os.path.join(os.path.dirname(__file__), '..', 'ds', 'resources', 'datasources', 'metadata')
-    json_files = glob.glob(f'{metadata_path}/*.json')
-    for json_file in json_files:
-        timestamp_file = json_file.replace('.json', '-timestamp.txt')
-        with open(timestamp_file, "w+") as fp:
-            fp.write(datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S"))
-    test_store_configs = {
-        "cci-store": {
-            "store_id": "cciodp"
-        }
-    }
-    return XcubeDataStore(
-        test_store_configs['cci-store'],
-        'cci-store',
-        meta_data_store_path=metadata_path
-    )
-
-
-class CliTestCase(unittest.TestCase):
-    _orig_stores = None
-
-    @classmethod
-    def setUpClass(cls):
-        cls._orig_stores = list(DATA_STORE_REGISTRY.get_data_stores())
-        DATA_STORE_REGISTRY._data_stores.clear()
-        DATA_STORE_REGISTRY.add_data_store(_create_test_data_store())
-
-    @classmethod
-    def tearDownClass(cls):
-        # clean up frozen files
-        for d in DATA_STORE_REGISTRY.get_data_stores():
-            d.get_updates(reset=True)
-
-        DATA_STORE_REGISTRY._data_stores.clear()
-        for data_store in cls._orig_stores:
-            DATA_STORE_REGISTRY.add_data_store(data_store)
-
+class CliTestCase(StoreTest):
     def assert_main(self,
                     args: Optional[Union[str, List[str]]],
                     expected_status: int = 0,
@@ -71,7 +33,10 @@ class CliTestCase(unittest.TestCase):
                              msg='args = %s\n'
                                  'status = %s\n'
                                  'stdout = [%s]\n'
-                                 'stderr = [%s]' % (args, actual_status, stdout.getvalue(), stderr.getvalue()))
+                                 'stderr = [%s]' % (args,
+                                                    actual_status,
+                                                    stdout.getvalue(),
+                                                    stderr.getvalue()))
         print(stdout.getvalue())
         if isinstance(expected_stdout, str):
             self.assertEqual(expected_stdout, stdout.getvalue())
@@ -96,22 +61,6 @@ class CliTestCase(unittest.TestCase):
             shutil.rmtree(dir_path, ignore_errors=ignore_errors)
         if ignore_errors and os.path.isdir(dir_path):
             self.fail("Can't remove dir %s" % dir_path)
-
-    def create_catalog_differences(self, new_ds):
-        for d in DATA_STORE_REGISTRY.get_data_stores():
-            diff_file = os.path.join(d.data_store_path, d._get_update_tag() + '-diff.json')
-            if os.path.isfile(diff_file):
-                with open(diff_file, 'r') as json_in:
-                    report = json.load(json_in)
-                report['new'].append(new_ds)
-            else:
-                generated = datetime.datetime.now()
-                report = {"generated": str(generated),
-                          "source_ref_time": str(generated),
-                          "new": [new_ds],
-                          "del": list()}
-            with open(diff_file, 'w') as json_out:
-                json.dump(report, json_out)
 
 
 class CliTest(CliTestCase):
@@ -148,10 +97,14 @@ class CliTest(CliTestCase):
                          ('sst2011', None, None, None))
 
     def test_parse_write_arg(self):
-        self.assertEqual(main._parse_write_arg('/home/norman/data'), (None, '/home/norman/data', None))
-        self.assertEqual(main._parse_write_arg('/home/norman/.git'), (None, '/home/norman/.git', None))
-        self.assertEqual(main._parse_write_arg('/home/norman/im.png'), (None, '/home/norman/im.png', None))
-        self.assertEqual(main._parse_write_arg('/home/norman/im.png,PNG'), (None, '/home/norman/im.png', 'PNG'))
+        self.assertEqual(main._parse_write_arg('/home/norman/data'),
+                         (None, '/home/norman/data', None))
+        self.assertEqual(main._parse_write_arg('/home/norman/.git'),
+                         (None, '/home/norman/.git', None))
+        self.assertEqual(main._parse_write_arg('/home/norman/im.png'),
+                         (None, '/home/norman/im.png', None))
+        self.assertEqual(main._parse_write_arg('/home/norman/im.png,PNG'),
+                         (None, '/home/norman/im.png', 'PNG'))
         self.assertEqual(main._parse_write_arg('ds=/home/norman/data.nc,netcdf4'),
                          ('ds', '/home/norman/data.nc', 'NETCDF4'))
 
@@ -160,7 +113,8 @@ class WorkspaceCommandTest(CliTestCase):
     def setUp(self):
         self.remove_tree('.cate-workspace', ignore_errors=False)
 
-        # NOTE: We use the same workspace manager instance in between cli.main() calls to simulate a stateful-service
+        # NOTE: We use the same workspace manager instance in between cli.main() calls
+        # to simulate a stateful-service
         self.cli_workspace_manager_factory = main.WORKSPACE_MANAGER_FACTORY
         self.workspace_manager = FSWorkspaceManager()
         main.WORKSPACE_MANAGER_FACTORY = lambda: self.workspace_manager
@@ -176,12 +130,14 @@ class WorkspaceCommandTest(CliTestCase):
 
     def test_ws_init_arg(self):
         base_dir = 'my_workspace'
-        self.assert_main(['ws', 'init', '-d', base_dir], expected_stdout=['Workspace initialized'])
+        self.assert_main(['ws', 'init', '-d', base_dir],
+                         expected_stdout=['Workspace initialized'])
         self.assert_workspace_base_dir(base_dir)
         self.assert_main(['ws', 'init', '-d', base_dir],
                          expected_stderr=['Workspace already opened: '],
                          expected_status=1)
-        self.assert_main(['ws', 'del', '-y', '-d', base_dir], expected_stdout=['Workspace deleted'])
+        self.assert_main(['ws', 'del', '-y', '-d', base_dir],
+                         expected_stdout=['Workspace deleted'])
         self.remove_tree('my_workspace')
 
     def test_ws_init(self):
@@ -193,23 +149,29 @@ class WorkspaceCommandTest(CliTestCase):
 
     def test_ws_del(self):
         base_dir = 'my_workspace'
-        self.assert_main(['ws', 'init', '-d', base_dir], expected_stdout=['Workspace initialized'])
-        self.assert_main(['ws', 'del', '-y', '-d', base_dir], expected_stdout=['Workspace deleted'])
+        self.assert_main(['ws', 'init', '-d', base_dir],
+                         expected_stdout=['Workspace initialized'])
+        self.assert_main(['ws', 'del', '-y', '-d', base_dir],
+                         expected_stdout=['Workspace deleted'])
         self.assert_main(['ws', 'del', '-y', '-d', base_dir],
                          expected_stderr=['cate ws: error: Not a workspace: '],
                          expected_status=1)
         self.remove_tree('my_workspace')
 
     def test_ws_clean(self):
-        self.assert_main(['ws', 'init'], expected_stdout=['Workspace initialized'])
-        self.assert_main(['res', 'read', 'ds', NETCDF_TEST_FILE], expected_stdout=['Resource "ds" set.'],
+        self.assert_main(['ws', 'init'],
+                         expected_stdout=['Workspace initialized'])
+        self.assert_main(['res', 'read', 'ds', NETCDF_TEST_FILE],
+                         expected_stdout=['Resource "ds" set.'],
                          expected_stderr=[])
-        self.assert_main(['ws', 'clean', '-y'], expected_stdout=['Workspace cleaned'])
+        self.assert_main(['ws', 'clean', '-y'],
+                         expected_stdout=['Workspace cleaned'])
 
 
 class ResourceCommandTest(CliTestCase):
     def setUp(self):
-        # NOTE: We use the same workspace manager instance in between cli.main() calls to simulate a stateful-service
+        # NOTE: We use the same workspace manager instance in between cli.main() calls
+        # to simulate a stateful-service
         self.cli_workspace_manager_factory = main.WORKSPACE_MANAGER_FACTORY
         self.workspace_manager = FSWorkspaceManager()
         main.WORKSPACE_MANAGER_FACTORY = lambda: self.workspace_manager
@@ -226,7 +188,8 @@ class ResourceCommandTest(CliTestCase):
         self.assert_main(['res', 'read', 'ds', input_file],
                          expected_stdout=['Resource "ds" set.'],
                          expected_stderr=[])
-        self.assert_main(['res', 'set', 'ts', 'cate.ops.timeseries.tseries_mean', 'ds=@ds', 'var=temperature'],
+        self.assert_main(['res', 'set', 'ts', 'cate.ops.timeseries.tseries_mean',
+                          'ds=@ds', 'var=temperature'],
                          expected_stdout=['Resource "ts" set.'])
         self.assert_main(['res', 'write', 'ts', output_file],
                          expected_stdout=['Writing resource "ts"'])
@@ -271,7 +234,8 @@ class ResourceCommandTest(CliTestCase):
         self.assert_main(['res', 'read', 'ds2', NETCDF_TEST_FILE],
                          expected_stdout=['Resource "ds2" set.'],
                          expected_stderr=[])
-        self.assert_main(['res', 'set', 'ts', 'cate.ops.timeseries.tseries_mean', 'ds=@ds2', 'var=temperature'],
+        self.assert_main(['res', 'set', 'ts', 'cate.ops.timeseries.tseries_mean',
+                          'ds=@ds2', 'var=temperature'],
                          expected_stdout=['Resource "ts" set.'])
         self.assert_main(['ws', 'status'],
                          expected_stdout=[
@@ -281,14 +245,17 @@ class ResourceCommandTest(CliTestCase):
                              '  ds2 = cate.ops.io.read_object('
                              'file=%s, format=None) [OpStep]' % NETCDF_TEST_FILE,
                              '  ts = cate.ops.timeseries.tseries_mean('
-                             'ds=@ds2, var=temperature, std_suffix=_std, calculate_std=True) [OpStep]'])
+                             'ds=@ds2, var=temperature, std_suffix=_std, calculate_std=True) '
+                             '[OpStep]'])
 
-        self.assert_main(['res', 'set', 'ts', 'cate.ops.timeseries.tseries_mean', 'ds=@ds2', 'var=temperature'],
+        self.assert_main(['res', 'set', 'ts', 'cate.ops.timeseries.tseries_mean',
+                          'ds=@ds2', 'var=temperature'],
                          expected_status=1,
                          expected_stderr=[
                              'cate res: error: A resource named "ts" already exists'])
 
-        self.assert_main(['res', 'set', '-o', 'ts', 'cate.ops.timeseries.tseries_mean', 'ds=@ds2', 'var=temperature'],
+        self.assert_main(['res', 'set', '-o', 'ts', 'cate.ops.timeseries.tseries_mean',
+                          'ds=@ds2', 'var=temperature'],
                          expected_stdout=['Resource "ts" set.'])
         self.assert_main(['ws', 'status'],
                          expected_stdout=[
@@ -298,14 +265,16 @@ class ResourceCommandTest(CliTestCase):
                              '  ds2 = cate.ops.io.read_object('
                              'file=%s, format=None) [OpStep]' % NETCDF_TEST_FILE,
                              '  ts = cate.ops.timeseries.tseries_mean('
-                             'ds=@ds2, var=temperature, std_suffix=_std, calculate_std=True) [OpStep]'])
+                             'ds=@ds2, var=temperature, std_suffix=_std, calculate_std=True) '
+                             '[OpStep]'])
 
         self.assert_main(['res', 'set', 'ts',
                           'cate.ops.timeseries.tseries_point', 'ds=@ds2', 'point=XYZ',
                           'var=temperature'],
                          expected_status=1,
                          expected_stderr=[
-                             "cate res: error: value <XYZ> for input 'point' is not compatible with type PointLike"])
+                             "cate res: error: value <XYZ> for input 'point' is not compatible "
+                             "with type PointLike"])
 
         self.assert_main(['ws', 'close'], expected_stdout=['Workspace closed.'])
 
@@ -321,16 +290,24 @@ class OperationCommandTest(CliTestCase):
         self.assert_main(['op', 'info'],
                          expected_status=2,
                          expected_stdout='',
-                         expected_stderr=["cate op info: error: the following arguments are required: OP"])
+                         expected_stderr=["cate op info: error: "
+                                          "the following arguments are required: OP"])
 
     def test_op_list(self):
-        self.assert_main(['op', 'list'], expected_stdout=['operations found'])
-        self.assert_main(['op', 'list', '-n', 'read'], expected_stdout=['operations found'])
-        self.assert_main(['op', 'list', '-n', 'nevermatch'], expected_stdout=['No operations found'])
-        self.assert_main(['op', 'list', '--internal'], expected_stdout=['One operation found'])
-        self.assert_main(['op', 'list', '--tag', 'input'], expected_stdout=['9 operations found'])
-        self.assert_main(['op', 'list', '--tag', 'output'], expected_stdout=['8 operations found'])
-        self.assert_main(['op', 'list', '--deprecated'], expected_stdout=['2 operations found'])
+        self.assert_main(['op', 'list'],
+                         expected_stdout=['operations found'])
+        self.assert_main(['op', 'list', '-n', 'read'],
+                         expected_stdout=['operations found'])
+        self.assert_main(['op', 'list', '-n', 'nevermatch'],
+                         expected_stdout=['No operations found'])
+        self.assert_main(['op', 'list', '--internal'],
+                         expected_stdout=['One operation found'])
+        self.assert_main(['op', 'list', '--tag', 'input'],
+                         expected_stdout=['9 operations found'])
+        self.assert_main(['op', 'list', '--tag', 'output'],
+                         expected_stdout=['8 operations found'])
+        self.assert_main(['op', 'list', '--deprecated'],
+                         expected_stdout=['2 operations found'])
 
 
 '''
@@ -339,62 +316,57 @@ class OperationCommandTest(CliTestCase):
 
 
 class DataSourceCommandTest(CliTestCase):
-    @unittest.skip(reason="This needs internet access and should be mocked")
-    def test_ds_info(self):
-        self.assert_main(['ds', 'info',
-                          'esacci.AEROSOL.day.L3C.AER_PRODUCTS.ATSR-2.Envisat.AATSR-ENVISAT-ENS_DAILY.v2-6.r1'],
-                         expected_status=0,
-                         expected_stdout=[
-                             'Data source esacci.AEROSOL.day.L3C.AER_PRODUCTS.ATSR-2.Envisat.AATSR-ENVISAT-ENS_DAILY.v2-6.r1'])
-        self.assert_main(['ds', 'info',
-                          'esacci.AEROSOL.day.L3C.AER_PRODUCTS.ATSR-2.Envisat.AATSR-ENVISAT-ENS_DAILY.v2-6.r1', '--var'],
-                         expected_status=0,
-                         expected_stdout=[
-                             'esacci.AEROSOL.day.L3C.AER_PRODUCTS.ATSR-2.Envisat.AATSR-ENVISAT-ENS_DAILY.v2-6.r1',
-                             'AOD550 ():'])
-        self.assert_main(['ds', 'info', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'],
-                         expected_status=1,
-                         expected_stderr=["No data store found that contains the ID 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'"])
 
-    @unittest.skip(reason="This needs internet access and should be mocked")
+    def test_ds_info(self):
+        self.assert_main(
+            ['ds', 'info',
+             '20000302-ESACCI-L3C_AEROSOL-AER_PRODUCTS-ATSR2-ERS2-ADV_DAILY-v2.30.nc'],
+            expected_status=0,
+            expected_stdout=[
+                'Data source '
+                '20000302-ESACCI-L3C_AEROSOL-AER_PRODUCTS-ATSR2-ERS2-ADV_DAILY-v2.30.nc'])
+        self.assert_main(
+            ['ds', 'info',
+             '20000302-ESACCI-L3C_AEROSOL-AER_PRODUCTS-ATSR2-ERS2-ADV_DAILY-v2.30.nc', '--var'],
+            expected_status=0,
+            expected_stdout=[
+                '20000302-ESACCI-L3C_AEROSOL-AER_PRODUCTS-ATSR2-ERS2-ADV_DAILY-v2.30.nc',
+                'ANG550-670_mean (1):',
+                'AOD550_uncertainty_mean (1):'])
+        self.assert_main(
+            ['ds', 'info', 'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'],
+            expected_status=1,
+            expected_stderr=[
+                "No data store found that contains the ID "
+                "'SOIL_MOISTURE_DAILY_FILES_ACTIVE_V02.2'"])
+
     def test_ds_list(self):
         self.assert_main(['ds', 'list'],
-                         expected_stdout=['6 data sources found'])
+                         expected_stdout=['7 data sources found'])
         self.assert_main(['ds', 'list', '--name', 'OZONE'],
                          expected_stdout=['One data source found'])
 
-    @unittest.skip(reason="This needs internet access and should be mocked")
     def test_ds_coverage(self):
+        expected_out = "One data source found\n" \
+                       "   0: ESACCI-OZONE-L3S-TC-MERGED-DLR_1M-20050501-fv0100.nc " \
+                       "[('2005-05-01', '2005-05-31')]\n"
         self.assert_main(['ds', 'list', '--name', 'OZONE', '--coverage'],
-                          expected_stdout="One data source found\n"
-                                          "   0: esacci.OZONE.day.L3S.TC.multi-sensor.multi-platform.MERGED.fv0100.r1 [('1996-03-31T23:00:00', '2011-06-29T23:00:00')]\n")
+                         expected_stdout=expected_out)
 
     @unittest.skip(reason="skipped unless you want to debug data source synchronisation")
     def test_ds_copy(self):
-        for orig_store in self._orig_stores:
-            if orig_store.id == 'local':
-                DATA_STORE_REGISTRY.add_data_store(orig_store)
+        for orig_store in self._orig_store_configs:
+            if orig_store.store_id == 'local':
+                DATA_STORE_POOL.add_store_config('orig_local', orig_store)
                 break
         try:
             self.assert_main(
-                ['ds', 'copy', 'esacci.OZONE.day.L3S.TC.multi-sensor.multi-platform.MERGED.fv0100.r1'],
+                ['ds',
+                 'copy',
+                 'esacci.OZONE.day.L3S.TC.multi-sensor.multi-platform.MERGED.fv0100.r1'],
                 expected_stderr=[])
         finally:
-            DATA_STORE_REGISTRY.remove_data_store('local')
-
-    @unittest.skip(reason="skipped unless you want to debug data source synchronisation")
-    def test_ds_copy_with_period(self):
-        for orig_store in self._orig_stores:
-            if orig_store.id == 'local':
-                DATA_STORE_REGISTRY.add_data_store(orig_store)
-                break
-        try:
-            self.assert_main(
-                ['ds', 'copy', 'esacci.OZONE.day.L3S.TC.multi-sensor.multi-platform.MERGED.fv0100.r1',
-                '-t=2007-12-01,2007-12-31'],
-                expected_stderr=[])
-        finally:
-            DATA_STORE_REGISTRY.remove_data_store('local')
+            DATA_STORE_POOL.remove_store_config('orig_local')
 
     def test_ds(self):
         self.assert_main(['ds'],
@@ -406,7 +378,8 @@ class RunCommandTest(CliTestCase):
         self.assert_main(['run'],
                          expected_status=2,
                          expected_stdout='',
-                         expected_stderr=["cate run: error: the following arguments are required: OP, ..."])
+                         expected_stderr=["cate run: error: "
+                                          "the following arguments are required: OP, ..."])
 
     def test_run_foobar(self):
         self.assert_main(['run', 'foobar', 'lat=13.2', 'lon=52.9'],
@@ -419,17 +392,21 @@ class RunCommandTest(CliTestCase):
 
         try:
             # Run without --monitor and --write
-            self.assert_main(['run', op_reg.op_meta_info.qualified_name, 'lat=13.2', 'lon=52.9'],
+            self.assert_main(['run', op_reg.op_meta_info.qualified_name,
+                              'lat=13.2', 'lon=52.9'],
                              expected_stdout=['[0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]'])
 
             # Run with --monitor and without --write
-            self.assert_main(['run', '--monitor', op_reg.op_meta_info.qualified_name, 'lat=13.2', 'lon=52.9'],
+            self.assert_main(['run', '--monitor', op_reg.op_meta_info.qualified_name,
+                              'lat=13.2', 'lon=52.9'],
                              expected_stdout=['[0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]'])
 
             # Run with --monitor and --write
             self.assert_main(['run', '--monitor', '--write', 'timeseries_data.txt',
                               op_reg.op_meta_info.qualified_name, 'lat=13.2', 'lon=52.9'],
-                             expected_stdout=['Writing output to timeseries_data.txt using TEXT format...'])
+                             expected_stdout=[
+                                 'Writing output to timeseries_data.txt using TEXT format...'
+                             ])
             self.assertTrue(os.path.isfile('timeseries_data.txt'))
             os.remove('timeseries_data.txt')
 
@@ -461,7 +438,9 @@ class RunCommandTest(CliTestCase):
             # Run with --monitor and --write
             self.assert_main(['run', '--monitor', '--write', 'timeseries_data.json',
                               workflow_file, 'lat=13.2', 'lon=52.9'],
-                             expected_stdout=['Writing output to timeseries_data.json using JSON format...'])
+                             expected_stdout=[
+                                 'Writing output to timeseries_data.json using JSON format...'
+                             ])
             self.assertTrue(os.path.isfile('timeseries_data.json'))
             os.remove('timeseries_data.json')
 
@@ -475,7 +454,8 @@ class RunCommandTest(CliTestCase):
 
 # Tests for "cate upd" may be skipped because they can be very slow
 
-@unittest.skipIf(os.environ.get('CATE_DISABLE_CLI_UPDATE_TESTS', None) == '1', 'CATE_DISABLE_CLI_UPDATE_TESTS = 1')
+@unittest.skipIf(os.environ.get('CATE_DISABLE_CLI_UPDATE_TESTS', None) == '1',
+                 'CATE_DISABLE_CLI_UPDATE_TESTS = 1')
 class UpdateCommandTest(CliTestCase):
     def test_upd_info(self):
         self.assert_main(['upd', '--info'],
@@ -485,16 +465,19 @@ class UpdateCommandTest(CliTestCase):
                          expected_stderr='')
         self.assert_main(['upd', '--info', '1.0.0'],
                          expected_status=0,
-                         expected_stdout=['Latest version is ', 'Current version is',
-                                          'Desired version is 1.0.0 (available)', 'Available versions'],
+                         expected_stdout=['Latest version is ',
+                                          'Current version is',
+                                          'Desired version is 1.0.0 (available)',
+                                          'Available versions'],
                          expected_stderr='')
 
-    @unittest.skip(
-        "Omitted due to version issue. No suitable older version for testing compatible with python 3.7 available.")
+    @unittest.skip("Omitted due to version issue. "
+                   "No suitable older version for testing compatible with python 3.7 available.")
     def test_upd_to_older_version(self):
         self.assert_main(['upd', '--dry-run', '1.0.0'],
                          expected_status=0,
-                         expected_stdout=['The following NEW packages will be INSTALLED:', 'cate-cli:'],
+                         expected_stdout=['The following NEW packages will be INSTALLED:',
+                                          'cate-cli:'],
                          expected_stderr='')
 
     def test_upd(self):
@@ -505,14 +488,16 @@ class UpdateCommandTest(CliTestCase):
         self.assert_main(['upd', '--dry-run', '282.2.1'],
                          expected_status=1,
                          expected_stdout='',
-                         expected_stderr=['cate upd: error: desired cate version 282.2.1 is not available;',
+                         expected_stderr=['cate upd: error: '
+                                          'desired cate version 282.2.1 is not available;',
                                           'type "cate upd --info" to show available versions'])
 
 
 class IOCommandTest(CliTestCase):
     IO_LIST_OUTPUT = "JSON (*.json) - JSON format (plain text, UTF8)\n" \
                      "NETCDF3 (*.nc) - netCDF 3 file format, which fully supports 2+ GB files.\n" \
-                     "NETCDF4 (*.nc) - netCDF 4 file format (HDF5 file format, using netCDF 4 API features)\n" \
+                     "NETCDF4 (*.nc) - netCDF 4 file format (HDF5 file format, " \
+                     "using netCDF 4 API features)\n" \
                      "TEXT (*.txt) - Plain text format\n"
 
     def test_io_list(self):
@@ -529,7 +514,10 @@ class IOCommandTest(CliTestCase):
 class ParseOpArgsTest(TestCase):
     def test_existing_method(self):
         op = OP_REGISTRY.get_op('cate.ops.timeseries.tseries_point', True)
-        op_args, op_kwargs = main._parse_op_args(['ds=@ds', 'point=12.2,54.3', 'var=temperature', 'method=bfill'],
+        op_args, op_kwargs = main._parse_op_args(['ds=@ds',
+                                                  'point=12.2,54.3',
+                                                  'var=temperature',
+                                                  'method=bfill'],
                                                  input_props=op.op_meta_info.inputs)
         self.assertEqual(op_args, [])
         self.assertEqual(op_kwargs, OrderedDict([('ds', dict(source='ds')),
@@ -544,15 +532,16 @@ class ParseOpArgsTest(TestCase):
         self.assertEqual(main._parse_op_args(['a=@b.x']), ([], OrderedDict(a=dict(source='b.x'))))
         self.assertEqual(main._parse_op_args(['a=b']), ([], OrderedDict(a=dict(value='b'))))
         self.assertEqual(main._parse_op_args(['a="b"']), ([], OrderedDict(a=dict(value='b'))))
-        self.assertEqual(main._parse_op_args(['a="C:\\\\Users"']), ([], OrderedDict(a=dict(value='C:\\Users'))))
-        self.assertEqual(main._parse_op_args(['a=2', 'b=']), ([], OrderedDict([('a', dict(value=2)),
-                                                                               ('b', dict(value=None))])))
+        self.assertEqual(main._parse_op_args(['a="C:\\\\Users"']),
+                         ([], OrderedDict(a=dict(value='C:\\Users'))))
+        self.assertEqual(main._parse_op_args(['a=2', 'b=']),
+                         ([], OrderedDict([('a', dict(value=2)), ('b', dict(value=None))])))
         self.assertEqual(main._parse_op_args(['a="c"']), ([], OrderedDict(a=dict(value='c'))))
         self.assertEqual(main._parse_op_args(['a=True']), ([], OrderedDict(a=dict(value=True))))
-        self.assertEqual(main._parse_op_args(['z=4.6', 'y=1', 'x=2.+6j']), ([], OrderedDict([('z', dict(value=4.6)),
-                                                                                             ('y', dict(value=1)),
-                                                                                             ('x',
-                                                                                              dict(value=(2 + 6j)))])))
+        self.assertEqual(main._parse_op_args(['z=4.6', 'y=1', 'x=2.+6j']),
+                         ([], OrderedDict([('z', dict(value=4.6)),
+                                           ('y', dict(value=1)),
+                                           ('x', dict(value=(2 + 6j)))])))
 
     def test_with_namespace(self):
         class Dataset:
@@ -564,7 +553,8 @@ class ParseOpArgsTest(TestCase):
         import math as m
         namespace = dict(ds=ds, m=m)
 
-        self.assertEqual(main._parse_op_args(['ds', 'm.pi', 'b=ds.sst + 0.2', 'u=m.cos(m.pi)'], namespace=namespace),
+        self.assertEqual(main._parse_op_args(['ds', 'm.pi', 'b=ds.sst + 0.2', 'u=m.cos(m.pi)'],
+                                             namespace=namespace),
                          ([dict(value=ds),
                            dict(value=m.pi)],
                           OrderedDict([('b', dict(value=238.0)),
@@ -606,11 +596,13 @@ class ParseOpArgsTest(TestCase):
 
         with self.assertRaises(ValueError) as cm:
             main._parse_op_args(['thres="x"'], input_props=dict(thres=dict(data_type=float)))
-        self.assertEqual(str(cm.exception), "value <\"x\"> for input 'thres' is not compatible with type float")
+        self.assertEqual(str(cm.exception),
+                         "value <\"x\"> for input 'thres' is not compatible with type float")
 
         with self.assertRaises(ValueError) as cm:
             main._parse_op_args(['thres="x"'], input_props=dict(thres=dict(data_type=PointLike)))
-        self.assertEqual(str(cm.exception), "value <\"x\"> for input 'thres' is not compatible with type PointLike")
+        self.assertEqual(str(cm.exception),
+                         "value <\"x\"> for input 'thres' is not compatible with type PointLike")
 
 
 # class PluginCommandTest(CliTestCase):
@@ -629,7 +621,8 @@ def timeseries(lat: float, lon: float, method: str = 'nearest', monitor=Monitor.
     return work_units
 
 
-def timeseries2(var, lat: float, lon: float, method: str = 'nearest', monitor=Monitor.NONE) -> list:
+def timeseries2(var, lat: float, lon: float, method: str = 'nearest', monitor=Monitor.NONE) \
+        -> list:
     """Timeseries dummy function for testing."""
     print('lat=%s lon=%s method=%s' % (lat, lon, method))
     work_units = [0.3, 0.25, 0.05, 0.4, 0.2, 0.1, 0.5]

@@ -30,19 +30,22 @@ Technical Requirements
 
 **Query data store**
 
-:Description: Allow querying registered ECV data stores using a simple function that takes a set of query parameters
-    and returns data source identifiers that can be used to open respective ECV dataset in the Cate.
+:Description: Allow querying registered ECV data stores using a simple function that takes a
+set of query parameters and returns data source identifiers that can be used to open
+datasets in Cate.
 
 :URD-Source:
     * CCIT-UR-DM0006: Data access to ESA CCI
-    * CCIT-UR-DM0010: The data module shall have the means to attain meta-level status information per ECV type
+    * CCIT-UR-DM0010: The data module shall have the means to attain meta-level status information
+    per ECV type
     * CCIT-UR-DM0013: The CCI Toolbox shall allow filtering
 
 ----
 
 **Add data store**
 
-:Description: Allow adding of user defined data stores specifying the access protocol and the layout of the data.
+:Description: Allow adding of user defined data stores specifying the access protocol and the
+layout of the data.
     These data stores can be used to access datasets.
 
 :URD-Source:
@@ -71,7 +74,8 @@ Verification
 
 The module's unit-tests are located in
 `test/test_ds.py <https://github.com/CCI-Tools/cate/blob/master/test/test_ds.py>`_
-and may be executed using ``$ py.test test/test_ds.py --cov=cate/core/ds.py`` for extra code coverage information.
+and may be executed using ``$ py.test test/test_ds.py --cov=cate/core/ds.py`` for extra code
+coverage information.
 
 
 Components
@@ -79,8 +83,6 @@ Components
 """
 
 import datetime
-import glob
-import itertools
 import logging
 import re
 from typing import Sequence, Optional, Union, Any, Dict, Set, List, Tuple
@@ -91,7 +93,6 @@ from xcube.util.progress import ProgressObserver
 from xcube.util.progress import ProgressState
 
 from .cdm import get_lon_dim_name, get_lat_dim_name
-from .opimpl import normalize_missing_time, normalize_coord_vars, normalize_impl, subset_spatial_impl
 from .types import PolygonLike, TimeRangeLike, VarNamesLike, ValidationError
 from ..util.monitor import ChildMonitor
 from ..util.monitor import Monitor
@@ -118,7 +119,8 @@ DATA_STORE_POOL = xcube_store.DataStorePool()
 
 class DataAccessWarning(UserWarning):
     """
-    Warnings produced by Cate's data stores and data sources instances, used to report any problems handling data.
+    Warnings produced by Cate's data stores and data sources instances,
+    used to report any problems handling data.
     """
     pass
 
@@ -151,7 +153,8 @@ class DataStoreNotice:
         :param id: Notice ID.
         :param title: A human-readable, plain text title.
         :param content: A human-readable, plain text title that may be formatted using Markdown.
-        :param intent: Notice intent, may be one of "default", "primary", "success", "warning", "danger"
+        :param intent: Notice intent,
+        may be one of "default", "primary", "success", "warning", "danger"
         :param icon: An option icon name. See https://blueprintjs.com/docs/versions/1/#core/icons
         """
         if id is None or id == "":
@@ -267,8 +270,8 @@ def get_metadata_from_descriptor(descriptor: xcube_store.DataDescriptor) -> Dict
                 metadata[name] = value
     if hasattr(descriptor, 'data_vars'):
         metadata['variables'] = []
-        for var_descriptor in descriptor.data_vars:
-            var_dict = dict(name=var_descriptor.name)
+        for var_name, var_descriptor in descriptor.data_vars.items():
+            var_dict = dict(name=var_name)
             if var_descriptor.attrs:
                 var_dict['units'] = var_descriptor.attrs.get('units', '')
                 var_dict['long_name'] = var_descriptor.attrs.get('long_name', '')
@@ -292,35 +295,28 @@ def get_info_string_from_data_descriptor(descriptor: xcube_store.DataDescriptor)
     return '\n'.join(info_lines)
 
 
-def find_data_store(ds_id: str,
-                    data_stores: Union[xcube_store.DataStore,
-                                       Sequence[xcube_store.DataStore]] = None) \
-        -> Optional[xcube_store.DataStore]:
+def find_data_store(ds_id: str) -> Tuple[Optional[str], Optional[xcube_store.DataStore]]:
     """
     Find the data store that includes the given *ds_id*.
     This will raise an exception if the *ds_id* is given in more than one data store.
 
     :param ds_id:  A data source identifier.
-    :param data_stores: If given these data stores will be queried. Otherwise all registered data stores will be used.
     :return: All data sources matching the given constrains.
     """
     results = []
-    if data_stores is None:
-        data_store_list = [DATA_STORE_POOL.get_store(store_instance_id)
-                           for store_instance_id in DATA_STORE_POOL.store_instance_ids]
-    else:
-        data_store_list = data_stores
-    for data_store in data_store_list:
+    for store_instance_id in DATA_STORE_POOL.store_instance_ids:
+        data_store = DATA_STORE_POOL.get_store(store_instance_id)
         if data_store.has_data(ds_id):
-            results.append(data_store)
+            results.append((store_instance_id, data_store))
     if len(results) > 1:
         raise ValidationError(f'{len(results)} data sources found for the given ID {ds_id!r}')
     if len(results) == 1:
         return results[0]
+    return None, None
 
 
 def get_data_descriptor(ds_id: str) -> Optional[xcube_store.DataDescriptor]:
-    data_store = find_data_store(ds_id)
+    data_store_id, data_store = find_data_store(ds_id)
     if data_store:
         return data_store.describe_data(ds_id)
 
@@ -352,7 +348,7 @@ def open_dataset(dataset_id: str,
     if not dataset_id:
         raise ValidationError('No data source given')
 
-    data_store = find_data_store(ds_id=dataset_id)
+    data_store_id, data_store = find_data_store(ds_id=dataset_id)
     if not data_store:
         raise ValidationError(f"No data store found that contains the ID '{dataset_id}'")
 
@@ -370,8 +366,7 @@ def open_dataset(dataset_id: str,
     monitor.start('Open dataset', total_amount_of_work)
     observer = XcubeProgressObserver(ChildMonitor(monitor, 1))
     observer.activate()
-    dataset = data_store.open_data(data_id=dataset_id,
-                                   **args)
+    dataset = data_store.open_data(data_id=dataset_id, **args)
     observer.deactivate()
     if force_local:
         observer2 = XcubeProgressObserver(ChildMonitor(monitor, 1))
@@ -392,102 +387,6 @@ def make_local(data: Any,
 
     local_data_id = local_store.write_data(data=data, data_id=local_name)
     return local_store.open_data(data_id=local_data_id), local_data_id
-
-
-# noinspection PyUnresolvedReferences,PyProtectedMember
-def open_xarray_dataset(paths,
-                        region: PolygonLike.TYPE = None,
-                        var_names: VarNamesLike.TYPE = None,
-                        monitor: Monitor = Monitor.NONE,
-                        **kwargs) -> xr.Dataset:
-    r"""
-    Open multiple files as a single dataset. This uses dask. If each individual file
-    of the dataset is small, one Dask chunk will coincide with one temporal slice,
-    e.g. the whole array in the file. Otherwise smaller dask chunks will be used
-    to split the dataset.
-
-    :param paths: Either a string glob in the form "path/to/my/files/\*.nc" or an explicit
-        list of files to open.
-    :param region: Optional region constraint.
-    :param var_names: Optional variable names constraint.
-    :param monitor: Optional progress monitor.
-    :param kwargs: Keyword arguments directly passed to ``xarray.open_mfdataset()``
-    """
-    # paths could be a string or a list
-    files = []
-    if isinstance(paths, str):
-        files.append(paths)
-    else:
-        files.extend(paths)
-
-    # should be a file or a glob or an URL
-    files = [(i,) if re.match(URL_REGEX, i) else glob.glob(i) for i in files]
-    # make a flat list
-    files = list(itertools.chain.from_iterable(files))
-
-    if not files:
-        raise IOError('File {} not found'.format(paths))
-
-    if 'concat_dim' in kwargs:
-        concat_dim = kwargs.pop('concat_dim')
-    else:
-        concat_dim = 'time'
-
-    if 'chunks' in kwargs:
-        chunks = kwargs.pop('chunks')
-    elif len(files) > 1:
-        # By default the dask chunk size of xr.open_mfdataset is (1, lat, lon). E.g.,
-        # the whole array is one dask slice irrespective of chunking on disk.
-        #
-        # netCDF files can also feature a significant level of compression rendering
-        # the known file size on disk useless to determine if the default dask chunk
-        # will be small enough that a few of them could comfortably fit in memory for
-        # parallel processing.
-        #
-        # Hence we open the first file of the dataset and detect the maximum chunk sizes
-        # used in the spatial dimensions.
-        #
-        # If no such sizes could be found, we use xarray's default chunking.
-        chunks = get_spatial_ext_chunk_sizes(files[0])
-    else:
-        chunks = None
-
-    def preprocess(raw_ds: xr.Dataset):
-        # Add a time dimension if attributes "time_coverage_start" and "time_coverage_end" are found.
-        norm_ds = normalize_missing_time(normalize_coord_vars(raw_ds))
-        monitor.progress(work=1)
-        return norm_ds
-
-    with monitor.starting('Opening dataset', len(files)):
-        # autoclose ensures that we can open datasets consisting of a number of
-        # files that exceeds OS open file limit.
-        # TODO (Suvi): - might need 2 versions ( one with combine=nested, coords=concat_dim and
-        #  other with combine='by_coords' to support opening most datasets
-        #  - we can eleminate unnecessary preprocess on datasets that already have time coordinate,
-        #  this can be when creating datasource.
-        #  - enable parallel=True to open files parallely to preprocess only when number of files
-        #  are more, otherwise it is determental to perforamnce.
-
-        ds = xr.open_mfdataset(files,
-                               coords='minimal',
-                               chunks=chunks,
-                               preprocess=preprocess,
-                               # Future behaviour will be
-                               combine='by_coords',
-                               # combine='nested',
-                               # parallel=True,
-                               compat='override',
-                               **kwargs)
-
-    if var_names:
-        ds = ds.drop_vars([var_name for var_name in ds.data_vars.keys() if var_name not in var_names])
-
-    ds = normalize_impl(ds)
-
-    if region:
-        ds = subset_spatial_impl(ds, region)
-
-    return ds
 
 
 def get_spatial_ext_chunk_sizes(ds_or_path: Union[xr.Dataset, str]) -> Dict[str, int]:
