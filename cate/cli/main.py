@@ -1166,13 +1166,12 @@ class DataSourceCommand(SubCommandCommand):
 
         info_parser.set_defaults(sub_command_function=cls._execute_info)
 
-        # TODO make this work
-        # add_parser = subparsers.add_parser('add', help='Add a new file data source using a file path pattern.')
-        # add_parser.add_argument('ds_name', metavar='DS', help='A name for the data source.')
-        # add_parser.add_argument('file', metavar='FILE', nargs="+",
-        #                         help='A list of files comprising this data source. '
-        #                              'The files can contain the wildcard characters "*" and "?".')
-        # add_parser.set_defaults(sub_command_function=cls._execute_add)
+        add_parser = subparsers.add_parser('add', help='Add a new file data source using a file path pattern.')
+        add_parser.add_argument('ds_name', metavar='DS', help='A name for the data source.')
+        add_parser.add_argument('file', metavar='FILE', nargs="+",
+                                help='A list of files comprising this data source. '
+                                     'The files can contain the wildcard characters "*" and "?".')
+        add_parser.set_defaults(sub_command_function=cls._execute_add)
 
         del_parser = subparsers.add_parser('del', help='Removes a data source from file data store.')
         del_parser.add_argument('ds_name', metavar='DS', help='A name for the data source.')
@@ -1249,19 +1248,13 @@ class DataSourceCommand(SubCommandCommand):
             print()
             print(format_variables_info_string(descriptor))
 
-    # TODO make this work
-    # @classmethod
-    # def _execute_add(cls, command_args):
-    #     from cate.core.ds import DATA_STORE_REGISTRY
-    #
-    #     local_store = DATA_STORE_REGISTRY.get_data_store('local')
-    #     if local_store is None:
-    #         raise RuntimeError('internal error: no file data store found')
-    #
-    #     ds_name = command_args.ds_name
-    #     files = command_args.file
-    #     ds = local_store.add_pattern(ds_name, files)
-    #     print("File data source with name '%s' added." % ds.id)
+    @classmethod
+    def _execute_add(cls, command_args):
+        from cate.core.ds import add_as_local
+        ds_name = command_args.ds_name
+        files = command_args.file
+        ds, ds_id = add_as_local(data_source_id=ds_name, paths=files)
+        print(f'Added local data source as "{ds_id}" added.')
 
     @classmethod
     def _execute_del(cls, command_args):

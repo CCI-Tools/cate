@@ -30,7 +30,9 @@ import xarray as xr
 from cate.conf import conf
 from cate.conf.defaults import GLOBAL_CONF_FILE
 from cate.conf.userprefs import set_user_prefs, get_user_prefs
+from cate.core.ds import add_as_local
 from cate.core.ds import DATA_STORE_POOL
+from cate.core.ds import get_data_descriptor
 from cate.core.ds import get_metadata_from_descriptor
 from cate.core.op import OP_REGISTRY
 from cate.core.workspace import OpKwArgs, Workspace
@@ -219,17 +221,15 @@ class WebSocketService:
         :param data_source_id: The identifier of the local data source.
         :param file_path_pattern: The files path containing wildcards.
         :param monitor: a progress monitor.
-        :return: JSON-serializable list of 'local' data sources, sorted by name.
+        :return: JSON-serializable list with the newly added local data source
         """
-        data_store = DATA_STORE_POOL.get_store('local')
-        if data_store is None:
-            raise ValueError('Unknown data store: "%s"' % 'local')
-        with monitor.starting('Adding file data source', 100):
-            # TODO use monitor, while extracting metadata
-            # TODO implement write data
-            data_store.write_data(data_source_id=data_source_id,
-                                  files=self._resolve_path(file_path_pattern))
-            return self.get_data_sources('local', monitor=monitor.child(100))
+        data, data_id = add_as_local(data_source_id=data_source_id, paths=file_path_pattern)
+        data_source = dict(id=data_id, title=data_id)
+        descriptor = get_data_descriptor(data_id)
+        if descriptor:
+            data_source['type_specifier'] = descriptor.type_specifier
+        return [data_source]
+
 
     def remove_local_data_source(self,
                                  data_source_id: str,

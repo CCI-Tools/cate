@@ -83,6 +83,7 @@ Components
 """
 
 import datetime
+import glob
 import logging
 import re
 from typing import Sequence, Optional, Union, Any, Dict, Set, List, Tuple
@@ -378,15 +379,43 @@ def open_dataset(dataset_id: str,
     return dataset, dataset_id
 
 
-def make_local(data: Any,
-               local_name: Optional[str] = None
-               ) -> Optional[Tuple[xr.Dataset, str]]:
+def make_local(data: Any, local_name: Optional[str] = None) -> Tuple[Any, str]:
     local_store = DATA_STORE_POOL.get_store('@local')
     if not local_store:
         raise ValueError('Cannot initialize `local` DataStore')
 
     local_data_id = local_store.write_data(data=data, data_id=local_name)
     return local_store.open_data(data_id=local_data_id), local_data_id
+
+
+def add_as_local(data_source_id: str, paths: Union[str, Sequence[str]] = None) -> Tuple[Any, str]:
+    paths = _resolve_input_paths(paths)
+    if not paths:
+        raise ValueError("No paths found")
+    # todo also support geodataframes
+    if len(paths) == 1:
+        ds = xr.open_dataset(paths[0])
+    else:
+        ds = xr.open_mfdataset(paths=paths)
+    return make_local(ds, data_source_id)
+
+
+def _resolve_input_paths(paths: Union[str, Sequence[str]]) -> Sequence[str]:
+    # very similar code is used in nc2zarr
+    resolved_input_files = []
+    if isinstance(paths, str):
+        resolved_input_files.extend(glob.glob(paths, recursive=True))
+    elif paths is not None and len(paths):
+        for file in paths:
+            resolved_input_files.extend(glob.glob(file, recursive=True))
+    # Get rid of doubles, but preserve order
+    seen_input_files = set()
+    unique_input_files = []
+    for input_file in resolved_input_files:
+        if input_file not in seen_input_files:
+            unique_input_files.append(input_file)
+            seen_input_files.add(input_file)
+    return unique_input_files
 
 
 def get_spatial_ext_chunk_sizes(ds_or_path: Union[xr.Dataset, str]) -> Dict[str, int]:
