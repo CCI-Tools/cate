@@ -160,14 +160,18 @@ class WebSocketService:
         data_store = DATA_STORE_POOL.get_store(data_store_id)
         if data_store is None:
             raise ValueError('Unknown data store: "%s"' % data_store_id)
-        data_ids = list(data_store.get_data_ids())
+        data_ids = list(data_store.get_data_ids(include_attrs=['title',
+                                                               'verification_flags',
+                                                               'type_specifier']))
         data_sources = []
         for data_id in data_ids:
             data_sources.append(
                 dict(
                     id=data_id[0],
-                    title=data_id[1],
-                    meta_info={}
+                    title=data_id[1].get('title', data_id[0]),
+                    meta_info={},
+                    verification_flags=data_id[1].get('verification_flags'),
+                    type_specifier=data_id[1].get('type_specifier')
             ))
         return data_sources
 
