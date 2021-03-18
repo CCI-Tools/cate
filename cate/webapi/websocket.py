@@ -33,6 +33,7 @@ from cate.conf.userprefs import set_user_prefs, get_user_prefs
 from cate.core.ds import add_as_local
 from cate.core.ds import DATA_STORE_POOL
 from cate.core.ds import get_data_descriptor
+from cate.core.ds import get_data_store_notices
 from cate.core.ds import get_metadata_from_descriptor
 from cate.core.op import OP_REGISTRY
 from cate.core.workspace import OpKwArgs, Workspace
@@ -146,7 +147,7 @@ class WebSocketService:
                                     title=config.title,
                                     isLocal=config.store_id == 'directory',
                                     description=config.description,
-                                    notices=[]))
+                                    notices=get_data_store_notices(instance_id)))
         return data_stores
 
     def get_data_sources(self, data_store_id: str, monitor: Monitor) -> List[Dict[str, Any]]:

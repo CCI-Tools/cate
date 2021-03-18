@@ -316,6 +316,19 @@ def find_data_store(ds_id: str) -> Tuple[Optional[str], Optional[xcube_store.Dat
     return None, None
 
 
+def get_data_store_notices(datastore_id: str) -> Sequence[dict]:
+    store_id = DATA_STORE_POOL.get_store_config(datastore_id).store_id
+
+    def name_is(extension):
+        return store_id == extension.name
+
+    extensions = xcube_store.find_data_store_extensions(predicate=name_is)
+    if len(extensions) == 0:
+        _LOG.warning(f'Found no extension for data store {datastore_id}')
+        return []
+    return extensions[0].metadata.get('data_store_notices', [])
+
+
 def get_data_descriptor(ds_id: str) -> Optional[xcube_store.DataDescriptor]:
     data_store_id, data_store = find_data_store(ds_id)
     if data_store:
