@@ -168,7 +168,6 @@ class WebSocketService:
         for data_id, attrs in data_ids:
             data_sources.append(dict(id=data_id,
                                      title=attrs.get('title', data_id),
-                                     meta_info={},
                                      verification_flags=attrs.get('verification_flags'),
                                      type_specifier=attrs.get('type_specifier')))
 
