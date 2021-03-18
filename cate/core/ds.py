@@ -271,12 +271,13 @@ def get_metadata_from_descriptor(descriptor: xcube_store.DataDescriptor) -> Dict
                 metadata[name] = value
     if hasattr(descriptor, 'data_vars'):
         metadata['variables'] = []
+        var_attrs = ['units', 'long_name', 'standard_name']
         for var_name, var_descriptor in descriptor.data_vars.items():
             var_dict = dict(name=var_name)
             if var_descriptor.attrs:
-                var_dict['units'] = var_descriptor.attrs.get('units', '')
-                var_dict['long_name'] = var_descriptor.attrs.get('long_name', '')
-                var_dict['standard_name'] = var_descriptor.attrs.get('standard_name', '')
+                for var_attr in var_attrs:
+                    if var_attr in var_descriptor.attrs:
+                        var_dict[var_attr] = var_descriptor.attrs.get(var_attr)
             metadata['variables'].append(var_dict)
     return metadata
 
