@@ -30,8 +30,8 @@ import xarray as xr
 from cate.conf import conf
 from cate.conf.defaults import GLOBAL_CONF_FILE
 from cate.conf.userprefs import set_user_prefs, get_user_prefs
-from cate.core.ds import add_as_local
 from cate.core.ds import DATA_STORE_POOL
+from cate.core.ds import add_as_local
 from cate.core.ds import get_data_descriptor
 from cate.core.ds import get_data_store_notices
 from cate.core.ds import get_metadata_from_descriptor
@@ -165,15 +165,13 @@ class WebSocketService:
                                                                'verification_flags',
                                                                'type_specifier']))
         data_sources = []
-        for data_id in data_ids:
-            data_sources.append(
-                dict(
-                    id=data_id[0],
-                    title=data_id[1].get('title', data_id[0]),
-                    meta_info={},
-                    verification_flags=data_id[1].get('verification_flags'),
-                    type_specifier=data_id[1].get('type_specifier')
-            ))
+        for data_id, attrs in data_ids:
+            data_sources.append(dict(id=data_id,
+                                     title=attrs.get('title', data_id),
+                                     meta_info={},
+                                     verification_flags=attrs.get('verification_flags'),
+                                     type_specifier=attrs.get('type_specifier')))
+
         return data_sources
 
     def get_data_source_meta_info(self,
@@ -234,7 +232,6 @@ class WebSocketService:
         if descriptor:
             data_source['type_specifier'] = descriptor.type_specifier
         return [data_source]
-
 
     def remove_local_data_source(self,
                                  data_source_id: str,
