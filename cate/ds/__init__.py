@@ -42,30 +42,23 @@ Components
 
 def cate_init():
     # Plugin initializer.
+    import yaml
     import os
     from xcube.core.store import DataStoreConfig
 
-    from cate.conf import get_config_value
     from cate.conf import get_data_stores_path
+    from cate.conf.defaults import STORES_CONF_FILE
     from cate.core.ds import DATA_STORE_POOL
 
-    store_configs = get_config_value('store_configs')
-    if store_configs is None:
-        store_configs = {
-            "local": {
-                "store_id": "directory",
-                "store_params": {
-                    "base_dir": None,
-                },
-                "title": "Local",
-                "description": "A data store that maintains data in a local directory."
-            },
-            "cci-store": {
-                "store_id": "cciodp",
-                "title": "CCI Open Data Portal",
-                "description": "A data store encapsulating access to the CCI Open Data Portal."
-            },
-        }
+    default_stores_file = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                       'data/stores.yml')
+
+    if os.path.exists(STORES_CONF_FILE):
+        with open(STORES_CONF_FILE, 'r') as fp:
+            store_configs = yaml.safe_load(fp)
+    else:
+        with open(default_stores_file, 'r') as fp:
+            store_configs = yaml.safe_load(fp)
 
     for store_name, store_config in store_configs.items():
         if store_config.get('store_id', '') == 'directory' and 'store_params' in store_config and \
