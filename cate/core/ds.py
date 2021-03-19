@@ -397,7 +397,7 @@ def open_dataset(dataset_id: str,
 
 
 def make_local(data: Any, local_name: Optional[str] = None) -> Tuple[Any, str]:
-    local_store = DATA_STORE_POOL.get_store('@local')
+    local_store = DATA_STORE_POOL.get_store('local')
     if not local_store:
         raise ValueError('Cannot initialize `local` DataStore')
 
