@@ -33,7 +33,7 @@ dependencies:
   - pip
   - psutil>=5.7.0
   - pyepsg>=0.4.0
-  - pyproj<2.0
+  - pyproj>=3.0
   - pyshp>=2.1.0
   # We require Python 3.7 as tornado 6.0.3 doesn't work with Python 3.8
   - python=3.7
