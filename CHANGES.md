@@ -1,3 +1,12 @@
+## Version 2.3.0 (in development)
+
+* xcube integration
+* new experimental Zarr store 
+
+## Version 2.2.0
+
+This version has been ommited to be aligned with the current Cate App version.
+
 ## Version 2.1.5
 
 * Fixed problem that prevented storing user preferences from Cate App if the
