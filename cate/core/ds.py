@@ -90,6 +90,7 @@ from typing import Sequence, Optional, Union, Any, Dict, Set, List, Tuple
 
 import xarray as xr
 import xcube.core.store as xcube_store
+from xcube.core.select import select_subset
 from xcube.util.progress import ProgressObserver
 from xcube.util.progress import ProgressState
 
@@ -370,30 +371,76 @@ def open_dataset(dataset_id: str,
     if not data_store:
         raise ValidationError(f"No data store found that contains the ID '{dataset_id}'")
 
-    args = {}
+    type_spec = None
+    potential_type_specs = data_store.get_type_specifiers_for_data(dataset_id)
+    for potential_type_spec in potential_type_specs:
+        if xcube_store.TYPE_SPECIFIER_CUBE.is_satisfied_by(potential_type_spec):
+            type_spec = potential_type_spec
+            break
+    if type_spec is None:
+        for potential_type_spec in potential_type_specs:
+            if xcube_store.TYPE_SPECIFIER_DATASET.is_satisfied_by(potential_type_spec):
+                type_spec = potential_type_spec
+                break
+    if type_spec is None:
+        raise ValidationError(f"Could not open '{dataset_id}' as dataset.")
+    openers = data_store.get_data_opener_ids(dataset_id, type_spec)
+    if len(openers) == 0:
+        raise DataAccessError(f'Could not find an opener for "{dataset_id}".')
+    opener_id = openers[0]
+
+    total_amount_of_work = 20 if force_local else 10
+
+    open_schema = data_store.get_open_data_params_schema(dataset_id, opener_id)
+    open_args = {}
+    subset_args = {}
     if var_names:
-        args['variable_names'] = VarNamesLike.convert(var_names)
+        var_names_list = VarNamesLike.convert(var_names)
+        if _in_schema('variable_names', open_schema):
+            open_args['variable_names'] = var_names_list
+        elif _in_schema('drop_variables', open_schema):
+            data_desc = data_store.describe_data(dataset_id, type_spec)
+            open_args['drop_variables'] = [var_name for var_name in data_desc.data_vars.keys()
+                                           if var_name not in var_names_list]
+        else:
+            subset_args['var_names'] = var_names_list
+            total_amount_of_work += 1
     if time_range:
         time_range = TimeRangeLike.convert(time_range)
-        args['time_range'] = [datetime.datetime.strftime(time_range[0], '%Y-%m-%d'),
-                              datetime.datetime.strftime(time_range[1], '%Y-%m-%d')]
+        time_range = [datetime.datetime.strftime(time_range[0], '%Y-%m-%d'),
+                      datetime.datetime.strftime(time_range[1], '%Y-%m-%d')]
+        if _in_schema('time_range', open_schema):
+            open_args['time_range'] = time_range
+        else:
+            subset_args['time_range'] = time_range
+            total_amount_of_work += 1
     if region:
-        args['bbox'] = list(PolygonLike.convert(region).bounds)
+        bbox = list(PolygonLike.convert(region).bounds)
+        if _in_schema('bbox', open_schema):
+            open_args['bbox'] = bbox
+        else:
+            subset_args['bbox'] = bbox
+            total_amount_of_work += 1
 
-    total_amount_of_work = 2 if force_local else 1
     monitor.start('Open dataset', total_amount_of_work)
-    observer = XcubeProgressObserver(ChildMonitor(monitor, 1))
+    observer = XcubeProgressObserver(ChildMonitor(monitor, 10))
     observer.activate()
-    dataset = data_store.open_data(data_id=dataset_id, **args)
+    dataset = data_store.open_data(data_id=dataset_id, opener_id=opener_id, **open_args)
     observer.deactivate()
+    dataset = select_subset(dataset, **subset_args)
+    monitor.progress(len(subset_args))
     if force_local:
-        observer2 = XcubeProgressObserver(ChildMonitor(monitor, 1))
+        observer2 = XcubeProgressObserver(ChildMonitor(monitor, 10))
         observer2.activate()
         dataset, dataset_id = make_local(data=dataset,
                                          local_name=local_ds_id)
         observer2.deactivate()
     monitor.done()
     return dataset, dataset_id
+
+
+def _in_schema(param: str, schema):
+    return param in schema.properties or param in schema.additional_properties
 
 
 def make_local(data: Any, local_name: Optional[str] = None) -> Tuple[Any, str]:
