@@ -15,7 +15,7 @@ cci-zarr-store:
     aws_access_key_id: ""
     aws_secret_access_key: ""
     bucket_name: "esacci"
-    endpoint_url: "http://cci-ke-o.s3.jc.rl.ac.uk"
+    endpoint_url: "http://cci-ke-o.s3-ext.jc.rl.ac.uk"
   description: >
     A data that contains selected datasets from the CCI Open Data Portal
     that have been converted to [Zarr format](https://zarr.readthedocs.io/) format
