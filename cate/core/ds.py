@@ -396,9 +396,9 @@ def open_dataset(dataset_id: str,
     subset_args = {}
     if var_names:
         var_names_list = VarNamesLike.convert(var_names)
-        if _in_schema('variable_names', open_schema):
+        if 'variable_names' in open_schema.properties:
             open_args['variable_names'] = var_names_list
-        elif _in_schema('drop_variables', open_schema):
+        elif 'drop_variables' in open_schema.properties:
             data_desc = data_store.describe_data(dataset_id, type_spec)
             open_args['drop_variables'] = [var_name for var_name in data_desc.data_vars.keys()
                                            if var_name not in var_names_list]
@@ -409,14 +409,14 @@ def open_dataset(dataset_id: str,
         time_range = TimeRangeLike.convert(time_range)
         time_range = [datetime.datetime.strftime(time_range[0], '%Y-%m-%d'),
                       datetime.datetime.strftime(time_range[1], '%Y-%m-%d')]
-        if _in_schema('time_range', open_schema):
+        if 'time_range' in open_schema.properties:
             open_args['time_range'] = time_range
         else:
             subset_args['time_range'] = time_range
             total_amount_of_work += 1
     if region:
         bbox = list(PolygonLike.convert(region).bounds)
-        if _in_schema('bbox', open_schema):
+        if 'bbox' in open_schema.properties:
             open_args['bbox'] = bbox
         else:
             subset_args['bbox'] = bbox
@@ -437,10 +437,6 @@ def open_dataset(dataset_id: str,
         observer2.deactivate()
     monitor.done()
     return dataset, dataset_id
-
-
-def _in_schema(param: str, schema):
-    return param in schema.properties or param in schema.additional_properties
 
 
 def make_local(data: Any, local_name: Optional[str] = None) -> Tuple[Any, str]:
