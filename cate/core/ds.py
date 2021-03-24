@@ -421,6 +421,8 @@ def open_dataset(dataset_id: str,
         else:
             subset_args['bbox'] = bbox
             total_amount_of_work += 1
+    if 'consolidated' in open_schema.properties:
+        open_args['consolidated'] = True
 
     monitor.start('Open dataset', total_amount_of_work)
     observer = XcubeProgressObserver(ChildMonitor(monitor, 10))
