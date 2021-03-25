@@ -265,7 +265,7 @@ def get_metadata_from_descriptor(descriptor: xcube_store.DataDescriptor) -> Dict
         metadata['time_range'] = descriptor.time_range
     if descriptor.time_period:
         metadata['time_period'] = descriptor.time_period
-    if hasattr(descriptor, 'attrs'):
+    if hasattr(descriptor, 'attrs') and descriptor.attrs is not None:
         for name in INFO_FIELD_NAMES:
             value = descriptor.attrs.get(name, None)
             # Many values are one-element lists: turn them into scalars
@@ -273,7 +273,7 @@ def get_metadata_from_descriptor(descriptor: xcube_store.DataDescriptor) -> Dict
                 value = value[0]
             if value is not None:
                 metadata[name] = value
-    if hasattr(descriptor, 'data_vars'):
+    if hasattr(descriptor, 'data_vars') and descriptor.data_vars is not None:
         metadata['variables'] = []
         var_attrs = ['units', 'long_name', 'standard_name']
         for var_name, var_descriptor in descriptor.data_vars.items():
