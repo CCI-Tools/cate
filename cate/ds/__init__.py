@@ -45,9 +45,11 @@ def cate_init():
     import yaml
     import os
     from xcube.core.store import DataStoreConfig
+    from xcube.core.store import get_data_store_params_schema
 
     from cate.conf import get_data_stores_path
     from cate.conf.defaults import STORES_CONF_FILE
+    from cate.core.common import default_user_agent
     from cate.core.ds import DATA_STORE_POOL
 
     default_stores_file = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -66,5 +68,10 @@ def cate_init():
             base_dir = os.environ.get('CATE_LOCAL_DATA_STORE_PATH',
                                       os.path.join(get_data_stores_path(), store_name))
             store_config['store_params']['base_dir'] = base_dir
+        store_params_schema = get_data_store_params_schema(store_config.get('store_id'))
+        if 'user_agent' in store_params_schema.properties:
+            if 'store_params' not in store_config:
+                store_config['store_params'] = {}
+            store_config['store_params']['user_agent'] = default_user_agent()
         store_config = DataStoreConfig.from_dict(store_config)
         DATA_STORE_POOL.add_store_config(store_name, store_config)
