@@ -1,6 +1,11 @@
+## Version 3.0.0 (in development)
+
+* Added a Web API function `keep_alive` that is periodically used by Cate App  
+  to avoid loosing an open WebSocket connection. (#980)
+
 ## Version 2.1.5
 
-* Fixed problem that prevented storing user preferences from Cate App if the
+* Fixed a problem that prevented storing user preferences from Cate App if the
   preferences file did not yet exist.
 * The parameters of operation `temporal_aggregation` have been changed. Both parameters
   `output_resolution` and `custom_resolution` have been replaced by a single parameter 
