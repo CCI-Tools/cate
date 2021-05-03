@@ -29,6 +29,10 @@ class WebSocketServiceTest(unittest.TestCase):
             shutil.rmtree(self._workspace_dir)
 
     @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
+    def test_keep_alive(self):
+        self.assertIsNone(self.service.keep_alive())
+
+    @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
     def test_get_data_stores(self):
         data_stores = self.service.get_data_stores()
         self.assertIsInstance(data_stores, list)

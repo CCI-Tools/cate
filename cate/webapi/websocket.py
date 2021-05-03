@@ -81,6 +81,10 @@ class WebSocketService:
                                               self.workspace_manager.root_path)
         return workspace_json
 
+    def keep_alive(self):
+        """This operation is used to keep the WebSocket connection alive."""
+        pass
+
     def get_config(self) -> dict:
         return dict(data_stores_path=conf.get_data_stores_path(),
                     use_workspace_imagery_cache=conf.get_use_workspace_imagery_cache(),
