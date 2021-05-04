@@ -130,7 +130,7 @@ def data_frame_query(df: DataFrameLike.TYPE, query_expr: str) -> pd.DataFrame:
 
         source_crs = dict(init='epsg:4326')
         try:
-            target_crs = data_frame.crs or source_crs
+            target_crs = data_frame.crs.to_dict() or source_crs
         except AttributeError:
             target_crs = source_crs
         reprojection_func = _get_reprojection_func(source_crs, target_crs)
