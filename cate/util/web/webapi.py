@@ -682,10 +682,8 @@ class _GlobalEventLoopPolicy(asyncio.DefaultEventLoopPolicy):
         self._global_loop = global_loop
 
     def get_event_loop(self):
-        # todo find out a way not to do this!
         if threading.current_thread() == threading.main_thread() or \
-                threading.current_thread().name.startswith("JsonRpcWebSocketHandler") or \
-                threading.current_thread()._parent.name.startswith("JsonRpcWebSocketHandler"):
+                threading.current_thread().name.startswith("JsonRpcWebSocketHandler"):
             return self._global_loop
         return self.new_event_loop()
 
