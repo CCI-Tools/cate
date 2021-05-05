@@ -30,7 +30,11 @@ import xarray as xr
 from cate.conf import conf
 from cate.conf.defaults import GLOBAL_CONF_FILE
 from cate.conf.userprefs import set_user_prefs, get_user_prefs
-from cate.core.ds import DATA_STORE_REGISTRY
+from cate.core.ds import DATA_STORE_POOL
+from cate.core.ds import add_as_local
+from cate.core.ds import get_data_descriptor
+from cate.core.ds import get_data_store_notices
+from cate.core.ds import get_metadata_from_descriptor
 from cate.core.op import OP_REGISTRY
 from cate.core.workspace import OpKwArgs, Workspace
 from cate.core.wsmanag import WorkspaceManager
@@ -62,16 +66,19 @@ class WebSocketService:
 
     def _resolve_workspace_dir(self, workspace_dir_or_name: str) -> str:
         """Resolve incoming workspace dir path or name against workspace manager's root path."""
-        # TODO (forman): remove me! this method exists, because we have workspace_manager.resolve_workspace_dir()
-        #   and this only because new_workspace() and save_workspace_as() take names instead of paths.
+        # TODO (forman): remove me! this method exists, because we have
+        #  workspace_manager.resolve_workspace_dir(), and this only because new_workspace()
+        #  and save_workspace_as() take names instead of paths.
         return self.workspace_manager.resolve_workspace_dir(workspace_dir_or_name)
 
     def _serialize_workspace(self, workspace: Workspace) -> dict:
-        """Serialize outgoing workspace JSON to have base_dir relative to workspace manager's root path."""
+        """Serialize outgoing workspace JSON to have base_dir
+        relative to workspace manager's root path."""
         workspace_json = workspace.to_json_dict()
         if self.workspace_manager.root_path:
-            workspace_json['base_dir'] = os.path.sep + os.path.relpath(workspace_json['base_dir'],
-                                                                       self.workspace_manager.root_path)
+            workspace_json['base_dir'] = \
+                os.path.sep + os.path.relpath(workspace_json['base_dir'],
+                                              self.workspace_manager.root_path)
         return workspace_json
 
     def keep_alive(self):
@@ -136,12 +143,16 @@ class WebSocketService:
 
         :return: JSON-serializable list of data stores, sorted by name.
         """
-        data_stores = sorted(DATA_STORE_REGISTRY.get_data_stores(), key=lambda ds: ds.title or ds.id)
-        return [dict(id=data_store.id,
-                     title=data_store.title,
-                     isLocal=data_store.is_local,
-                     description=data_store.description,
-                     notices=[notice.to_dict() for notice in data_store.notices]) for data_store in data_stores]
+        # TODO add sensible notices
+        data_stores = []
+        for instance_id in sorted(DATA_STORE_POOL.store_instance_ids):
+            config = DATA_STORE_POOL.get_store_config(instance_id)
+            data_stores.append(dict(id=instance_id,
+                                    title=config.title,
+                                    isLocal=config.store_id == 'directory',
+                                    description=config.description,
+                                    notices=get_data_store_notices(instance_id)))
+        return data_stores
 
     def get_data_sources(self, data_store_id: str, monitor: Monitor) -> List[Dict[str, Any]]:
         """
@@ -151,32 +162,45 @@ class WebSocketService:
         :param monitor: a progress monitor
         :return: JSON-serializable list of data sources, sorted by name.
         """
-        data_store = DATA_STORE_REGISTRY.get_data_store(data_store_id)
+        data_store = DATA_STORE_POOL.get_store(data_store_id)
         if data_store is None:
             raise ValueError('Unknown data store: "%s"' % data_store_id)
-        data_sources = data_store.query(monitor=monitor)
-        if data_store_id == 'esa_cci_odp_os':
-            # Filter ESA Open Data Portal data sources
-            data_source_dict = {ds.id: ds for ds in data_sources}
-            data_source_ids = list(data_source_dict.keys())
-            data_sources = [data_source_dict[ds_id] for ds_id in data_source_ids]
+        data_ids_generator = data_store.get_data_ids(include_attrs=['title',
+                                                                    'verification_flags',
+                                                                    'type_specifier'])
+        data_sources = []
+        monitor.start(f'Retrieving data sources for data store {data_store_id}')
+        for data_id, attrs in data_ids_generator:
+            data_sources.append(dict(id=data_id,
+                                     title=attrs.get('title', data_id),
+                                     verification_flags=attrs.get('verification_flags'),
+                                     type_specifier=attrs.get('type_specifier')))
+            monitor.progress(1)
+        monitor.done()
+        return data_sources
 
-        data_sources = sorted(data_sources, key=lambda ds: ds.title or ds.id)
+    def get_data_source_meta_info(self,
+                                  data_store_id: str,
+                                  data_source_id: str,
+                                  monitor: Monitor) -> Dict[str, Any]:
+        """
+        Get the meta data of the data source.
 
-        serialized_data_sources = []
-        for data_source in data_sources:
-            verification_flags = list(data_source.verification_flags) \
-                if data_source.verification_flags is not None else None
-            type_specifier = data_source.type_specifier \
-                if data_source.type_specifier is not None else None
-            serialized_data_sources.append(dict(id=data_source.id,
-                                                title=data_source.title,
-                                                metaInfo=data_source.meta_info,
-                                                verificationFlags=verification_flags,
-                                                typeSpecifier=type_specifier))
-        return serialized_data_sources
+        :param data_store_id: ID of the data store
+        :param data_source_id: ID of the data source
+        :param monitor: a progress monitor
+        :return: JSON-serializable list of data sources, sorted by name.
+        """
+        data_store = DATA_STORE_POOL.get_store(data_store_id)
+        if data_store is None:
+            raise ValueError('Unknown data store: "%s"' % data_store_id)
+        data_source_descriptor = data_store.describe_data(data_source_id)
+        return get_metadata_from_descriptor(data_source_descriptor)
 
-    def get_data_source_temporal_coverage(self, data_store_id: str, data_source_id: str, monitor: Monitor) \
+    def get_data_source_temporal_coverage(self,
+                                          data_store_id: str,
+                                          data_source_id: str,
+                                          monitor: Monitor) \
             -> Dict[str, Any]:
         """
         Get the temporal coverage of the data source.
@@ -186,20 +210,16 @@ class WebSocketService:
         :param monitor: a progress monitor
         :return: JSON-serializable list of data sources, sorted by name.
         """
-        data_store = DATA_STORE_REGISTRY.get_data_store(data_store_id)
+        data_store = DATA_STORE_POOL.get_store(data_store_id)
         if data_store is None:
             raise ValueError('Unknown data store: "%s"' % data_store_id)
-        data_sources = data_store.query(ds_id=data_source_id)
-        if not data_sources:
-            raise ValueError('data source "%s" not found' % data_source_id)
-        data_source = data_sources[0]
-        temporal_coverage = data_source.temporal_coverage(monitor=monitor)
+        data_source_descriptor = data_store.describe_data(data_source_id)
+        temporal_coverage = data_source_descriptor.time_range
         meta_info = OrderedDict()
         if temporal_coverage:
             start, end = temporal_coverage
-            meta_info['temporal_coverage_start'] = start.strftime('%Y-%m-%d')
-            meta_info['temporal_coverage_end'] = end.strftime('%Y-%m-%d')
-        # TODO mz add available data information
+            meta_info['temporal_coverage_start'] = start
+            meta_info['temporal_coverage_end'] = end
         return meta_info
 
     def add_local_data_source(self, data_source_id: str, file_path_pattern: str, monitor: Monitor):
@@ -209,30 +229,36 @@ class WebSocketService:
         :param data_source_id: The identifier of the local data source.
         :param file_path_pattern: The files path containing wildcards.
         :param monitor: a progress monitor.
-        :return: JSON-serializable list of 'local' data sources, sorted by name.
+        :return: JSON-serializable list with the newly added local data source
         """
-        data_store = DATA_STORE_REGISTRY.get_data_store('local')
-        if data_store is None:
-            raise ValueError('Unknown data store: "%s"' % 'local')
-        with monitor.starting('Adding file data source', 100):
-            # TODO use monitor, while extracting metadata
-            data_store.add_pattern(data_source_id=data_source_id, files=self._resolve_path(file_path_pattern))
-            return self.get_data_sources('local', monitor=monitor.child(100))
+        data, data_id = add_as_local(data_source_id=data_source_id, paths=file_path_pattern)
+        data_source = dict(id=data_id, title=data_id)
+        descriptor = get_data_descriptor(data_id)
+        if descriptor:
+            data_source['type_specifier'] = descriptor.type_specifier
+        return [data_source]
 
-    def remove_local_data_source(self, data_source_id: str, remove_files: bool, monitor: Monitor) -> list:
+    def remove_local_data_source(self,
+                                 data_source_id: str,
+                                 remove_files: bool,
+                                 monitor: Monitor) -> list:
         """
-        Removes the datasource (and optionally the giles belonging  to it) from the local data store.
+        Removes the datasource (and optionally the giles belonging  to it)
+        from the local data store.
 
         :param data_source_id: The identifier of the local data source.
         :param remove_files: Wether to remove the files belonging to this data source.
         :param monitor: a progress monitor.
         :return: JSON-serializable list of 'local' data sources, sorted by name.
         """
-        data_store = DATA_STORE_REGISTRY.get_data_store('local')
+        data_store = DATA_STORE_POOL.get_store('local')
         if data_store is None:
             raise ValueError('Unknown data store: "%s"' % 'local')
         # TODO use monitor, while removing files
-        data_store.remove_data_source(data_source_id, remove_files)
+        if remove_files:
+            data_store.delete_data(data_source_id)
+        else:
+            data_store.deregister_data(data_source_id)
         return self.get_data_sources('local', monitor=monitor)
 
     def get_operations(self, registry=None) -> List[dict]:
@@ -249,9 +275,11 @@ class WebSocketService:
                 continue
             op_json_dict = op_reg.op_meta_info.to_json_dict()
             op_json_dict['name'] = op_name
-            op_json_dict['inputs'] = [dict(name=name, **props) for name, props in op_json_dict['inputs'].items()
+            op_json_dict['inputs'] = [dict(name=name, **props)
+                                      for name, props in op_json_dict['inputs'].items()
                                       if not (props.get('deprecated') or props.get('context'))]
-            op_json_dict['outputs'] = [dict(name=name, **props) for name, props in op_json_dict['outputs'].items()
+            op_json_dict['outputs'] = [dict(name=name, **props)
+                                       for name, props in op_json_dict['outputs'].items()
                                        if not props.get('deprecated')]
             op_list.append(op_json_dict)
 
@@ -315,7 +343,9 @@ class WebSocketService:
 
     def rename_workspace_resource(self, base_dir: str, res_name: str, new_res_name) -> dict:
         base_dir = self._resolve_workspace_dir(base_dir)
-        workspace = self.workspace_manager.rename_workspace_resource(base_dir, res_name, new_res_name)
+        workspace = self.workspace_manager.rename_workspace_resource(base_dir,
+                                                                     res_name,
+                                                                     new_res_name)
         return self._serialize_workspace(workspace)
 
     def delete_workspace_resource(self, base_dir: str, res_name: str) -> dict:
@@ -332,18 +362,24 @@ class WebSocketService:
                                monitor: Monitor) -> list:
         base_dir = self._resolve_workspace_dir(base_dir)
         with cwd(base_dir):
-            workspace, res_name = self.workspace_manager.set_workspace_resource(base_dir,
-                                                                                op_name,
-                                                                                op_args,
-                                                                                res_name=res_name,
-                                                                                overwrite=overwrite,
-                                                                                monitor=monitor)
+            workspace, res_name = \
+                self.workspace_manager.set_workspace_resource(base_dir,
+                                                              op_name,
+                                                              op_args,
+                                                              res_name=res_name,
+                                                              overwrite=overwrite,
+                                                              monitor=monitor)
             return [self._serialize_workspace(workspace), res_name]
 
-    def set_workspace_resource_persistence(self, base_dir: str, res_name: str, persistent: bool) -> dict:
+    def set_workspace_resource_persistence(self,
+                                           base_dir: str,
+                                           res_name: str,
+                                           persistent: bool) -> dict:
         base_dir = self._resolve_workspace_dir(base_dir)
         with cwd(base_dir):
-            workspace = self.workspace_manager.set_workspace_resource_persistence(base_dir, res_name, persistent)
+            workspace = self.workspace_manager.set_workspace_resource_persistence(base_dir,
+                                                                                  res_name,
+                                                                                  persistent)
             return self._serialize_workspace(workspace)
 
     def write_workspace_resource(self, base_dir: str, res_name: str,
@@ -351,13 +387,19 @@ class WebSocketService:
                                  monitor: Monitor = Monitor.NONE) -> None:
         base_dir = self._resolve_workspace_dir(base_dir)
         with cwd(base_dir):
-            self.workspace_manager.write_workspace_resource(base_dir, res_name, file_path,
-                                                            format_name=format_name, monitor=monitor)
+            self.workspace_manager.write_workspace_resource(base_dir,
+                                                            res_name,
+                                                            file_path,
+                                                            format_name=format_name,
+                                                            monitor=monitor)
 
     def run_op_in_workspace(self, base_dir: str, op_name: str, op_args: OpKwArgs,
                             monitor: Monitor = Monitor.NONE) -> Optional[Any]:
         with cwd(base_dir):
-            return self.workspace_manager.run_op_in_workspace(base_dir, op_name, op_args, monitor=monitor)
+            return self.workspace_manager.run_op_in_workspace(base_dir,
+                                                              op_name,
+                                                              op_args,
+                                                              monitor=monitor)
 
     def extract_pixel_values(self, base_dir: str, source: str,
                              point: Tuple[float, float], indexers: dict) -> dict:
@@ -374,14 +416,19 @@ class WebSocketService:
         base_dir = self._resolve_workspace_dir(base_dir)
         with cwd(base_dir):
             self.workspace_manager.print_workspace_resource(base_dir,
-                                                            res_name_or_expr=res_name_or_expr, monitor=monitor)
+                                                            res_name_or_expr=res_name_or_expr,
+                                                            monitor=monitor)
 
     def get_color_maps(self):
         from cate.util.im.cmaps import get_cmaps
         return get_cmaps()
 
     # Note, we should turn this into an operation "actual_min_max(ds, var)"
-    def get_workspace_variable_statistics(self, base_dir: str, res_name: str, var_name: str, var_index: Sequence[int],
+    def get_workspace_variable_statistics(self,
+                                          base_dir: str,
+                                          res_name: str,
+                                          var_name: str,
+                                          var_index: Sequence[int],
                                           monitor=Monitor.NONE):
         base_dir = self._resolve_workspace_dir(base_dir)
         workspace_manager = self.workspace_manager

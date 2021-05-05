@@ -38,18 +38,36 @@ initialize_proxy()
 configure_user_agent()
 
 # noinspection PyUnresolvedReferences
-from .ds import DataStore, DataSource, open_dataset, find_data_sources, DATA_STORE_REGISTRY
+from .ds import DATA_STORE_POOL
+from .ds import find_data_store
+from .ds import open_dataset
 
 # noinspection PyUnresolvedReferences
-from .op import op, op_input, op_output, op_return, Operation, OP_REGISTRY, \
-    new_expression_op, new_subprocess_op
+from .op import new_expression_op
+from .op import new_subprocess_op
+from .op import op
+from .op import op_input
+from .op import op_output
+from .op import op_return
+from .op import Operation
+from .op import OP_REGISTRY
 
 # noinspection PyUnresolvedReferences
-from .workflow import Workflow, Step, Node, OpStep, NoOpStep, SubProcessStep, ExpressionStep, WorkflowStep, NodePort, \
-    new_workflow_op
+from .workflow import ExpressionStep
+from .workflow import new_workflow_op
+from .workflow import Node
+from .workflow import NodePort
+from .workflow import NoOpStep
+from .workflow import OpStep
+from .workflow import Step
+from .workflow import SubProcessStep
+from .workflow import Workflow
+from .workflow import WorkflowStep
 
 # noinspection PyUnresolvedReferences
-from ..util.monitor import Monitor, ChildMonitor, ConsoleMonitor
+from ..util.monitor import ChildMonitor
+from ..util.monitor import ConsoleMonitor
+from ..util.monitor import Monitor
 
 # noinspection PyUnresolvedReferences
 from ..util.opmetainf import OpMetaInfo

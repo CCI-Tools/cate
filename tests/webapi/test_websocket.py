@@ -61,6 +61,8 @@ class WebSocketServiceTest(unittest.TestCase):
         ]
         for ds in data_stores:
             self.assertIn('id', ds)
+            if ds['id'] == 'cci-zarr-store':
+                continue
             self.assertIsInstance(ds['id'], str)
 
             data_sources = self.service.get_data_sources(ds['id'], monitor=Monitor.NONE)

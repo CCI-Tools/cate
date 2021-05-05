@@ -33,7 +33,7 @@ dependencies:
   - pip
   - psutil>=5.7.0
   - pyepsg>=0.4.0
-  - pyproj<2.0
+  - pyproj>=3.0
   - pyshp>=2.1.0
   # We require Python 3.7 as tornado 6.0.3 doesn't work with Python 3.8
   - python=3.7
@@ -46,6 +46,7 @@ dependencies:
   - shapely>=1.6.4
   - tornado>=6.0
   - xarray>=0.14
+  - xcube>=0.8
   - yaml>=0.2.2
   - zarr>=2.4
   # Test libs

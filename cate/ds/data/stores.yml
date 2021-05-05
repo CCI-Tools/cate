@@ -1,0 +1,33 @@
+cci-store:
+  store_id: "cciodp"
+  title: "CCI Open Data Portal"
+  description: >
+    This data store represents the [ESA CCI Open Data Portal](http://cci.esa.int/data)
+    in the CCI Toolbox. It currently provides all CCI data that are published through
+    an OpenSearch interface. The store will be extended shortly to also provide TIFF
+    and Shapefile Data. Remote data downloaded to your computer is made available
+    through the *File Data Sources*.
+
+cci-zarr-store:
+  store_id: "s3"
+  title: "CCI Zarr Store (experimental)"
+  store_params:
+    aws_access_key_id: ""
+    aws_secret_access_key: ""
+    bucket_name: "esacci"
+    endpoint_url: "http://cci-ke-o.s3-ext.jc.rl.ac.uk"
+  description: >
+    A data that contains selected datasets from the CCI Open Data Portal
+    that have been converted to [Zarr format](https://zarr.readthedocs.io/) format
+    and placed in [JASMIN](https://jasmin.ac.uk/) Object Storage.
+    This store may be successively extended.
+
+local:
+  store_id: "directory"
+  store_params:
+    base_dir: null
+  title: "File Data Sources"
+  description: >
+    This data store represents
+    all the data sources in the file system made available to Cate.
+    It contains any cached remote data sources or manually added files.

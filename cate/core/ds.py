@@ -30,19 +30,22 @@ Technical Requirements
 
 **Query data store**
 
-:Description: Allow querying registered ECV data stores using a simple function that takes a set of query parameters
-    and returns data source identifiers that can be used to open respective ECV dataset in the Cate.
+:Description: Allow querying registered ECV data stores using a simple function that takes a
+set of query parameters and returns data source identifiers that can be used to open
+datasets in Cate.
 
 :URD-Source:
     * CCIT-UR-DM0006: Data access to ESA CCI
-    * CCIT-UR-DM0010: The data module shall have the means to attain meta-level status information per ECV type
+    * CCIT-UR-DM0010: The data module shall have the means to attain meta-level status information
+    per ECV type
     * CCIT-UR-DM0013: The CCI Toolbox shall allow filtering
 
 ----
 
 **Add data store**
 
-:Description: Allow adding of user defined data stores specifying the access protocol and the layout of the data.
+:Description: Allow adding of user defined data stores specifying the access protocol and the
+layout of the data.
     These data stores can be used to access datasets.
 
 :URD-Source:
@@ -71,7 +74,8 @@ Verification
 
 The module's unit-tests are located in
 `test/test_ds.py <https://github.com/CCI-Tools/cate/blob/master/test/test_ds.py>`_
-and may be executed using ``$ py.test test/test_ds.py --cov=cate/core/ds.py`` for extra code coverage information.
+and may be executed using ``$ py.test test/test_ds.py --cov=cate/core/ds.py`` for extra code
+coverage information.
 
 
 Components
@@ -80,23 +84,27 @@ Components
 
 import datetime
 import glob
-import itertools
 import logging
 import re
-from abc import ABCMeta, abstractmethod
-from enum import Enum
-from typing import Sequence, Optional, Union, Any, Dict, Set, List, AbstractSet
+from typing import Sequence, Optional, Union, Any, Dict, Set, List, Tuple
 
 import xarray as xr
+import xcube.core.store as xcube_store
+from xcube.core.select import select_subset
+from xcube.util.progress import ProgressObserver
+from xcube.util.progress import ProgressState
 
-from .cdm import Schema, get_lon_dim_name, get_lat_dim_name
-from .opimpl import normalize_missing_time, normalize_coord_vars, normalize_impl, subset_spatial_impl
-from .types import PolygonLike, TimeRange, TimeRangeLike, VarNamesLike, ValidationError
+from .cdm import get_lon_dim_name, get_lat_dim_name
+from .types import PolygonLike, TimeRangeLike, VarNamesLike, ValidationError
+from ..util.monitor import ChildMonitor
 from ..util.monitor import Monitor
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
-             "Marco Zühlke (Brockmann Consult GmbH), " \
-             "Chris Bernat (Telespazio VEGA UK Ltd)"
+_TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%S"
+
+__author__ = "Chris Bernat (Telespazio VEGA UK Ltd), ", \
+             "Tonio Fincke (Brockmann Consult GmbH), " \
+             "Norman Fomferra (Brockmann Consult GmbH), " \
+             "Marco Zühlke (Brockmann Consult GmbH)"
 
 URL_REGEX = re.compile(
     r'^(?:http|ftp)s?://'  # http:// or https://
@@ -108,10 +116,13 @@ URL_REGEX = re.compile(
 
 _LOG = logging.getLogger('cate')
 
+DATA_STORE_POOL = xcube_store.DataStorePool()
+
 
 class DataAccessWarning(UserWarning):
     """
-    Warnings produced by Cate's data stores and data sources instances, used to report any problems handling data.
+    Warnings produced by Cate's data stores and data sources instances,
+    used to report any problems handling data.
     """
     pass
 
@@ -132,245 +143,6 @@ class NetworkError(ConnectionError):
     pass
 
 
-class DataSource(metaclass=ABCMeta):
-    """
-    An abstract data source from which datasets can be retrieved.
-    """
-
-    @property
-    @abstractmethod
-    def id(self) -> str:
-        """Data source identifier."""
-
-    # TODO (forman): issue #399 - remove it, no use
-    @property
-    def schema(self) -> Optional[Schema]:
-        """
-        The data :py:class:`Schema` for any dataset provided by this data source or ``None`` if unknown.
-        Currently unused in cate.
-        """
-        return None
-
-    @property
-    def spatial_coverage(self) -> Optional[PolygonLike]:
-        """
-        The spatial coverage as a bounding box: A tuple of four float values in the order
-        [min_lon, min_lat, max_lon, max_lat].
-
-        :return: A tuple float values or ``None`` if the spatial coverage is unknown.
-        """
-        return None
-
-    @property
-    def verification_flags(self) -> Optional[AbstractSet[str]]:
-        return None
-
-    @property
-    def type_specifier(self) -> str:
-        return 'dataset'
-
-    # TODO (forman): issue #399 - make this a property or call it "get_temporal_coverage(...)"
-    def temporal_coverage(self, monitor: Monitor = Monitor.NONE) -> Optional[TimeRange]:
-        """
-        The temporal coverage as tuple (*start*, *end*) where *start* and *end* are UTC ``datetime`` instances.
-
-        :param monitor: a progress monitor.
-        :return: A tuple of (*start*, *end*) UTC ``datetime`` instances or ``None`` if the temporal coverage is unknown.
-        """
-        return None
-
-    @property
-    @abstractmethod
-    def data_store(self) -> 'DataStore':
-        """The data store to which this data source belongs."""
-
-    @property
-    def status(self) -> 'DataSourceStatus':
-        """
-        Return information about data source accessibility
-        """
-        return DataSourceStatus.READY
-
-    # TODO (forman): issue #399 - remove "ds_id", see TODO on "DataStore.query()"
-    def matches(self, ds_id: str = None, query_expr: str = None) -> bool:
-        """
-        Test if this data source matches the given *id* or *query_expr*.
-        If neither *id* nor *query_expr* are given, the method returns True.
-
-        :param ds_id: A data source identifier.
-        :param query_expr: A query expression. Currently, only simple search strings are supported.
-        :return: True, if this data sources matches the given *id* or *query_expr*.
-        """
-        if ds_id and ds_id.lower() == self.id.lower():
-            return True
-        if query_expr:
-            if query_expr.lower() in self.id.lower():
-                return True
-            if self.title and query_expr.lower() in self.title.lower():
-                return True
-        return False
-
-    @abstractmethod
-    def open_dataset(self,
-                     time_range: TimeRangeLike.TYPE = None,
-                     region: PolygonLike.TYPE = None,
-                     var_names: VarNamesLike.TYPE = None,
-                     protocol: str = None,
-                     monitor: Monitor = Monitor.NONE) -> Any:
-        """
-        Open a dataset from this data source.
-
-        :param time_range: An optional time constraint comprising start and end date.
-                If given, it must be a :py:class:`TimeRangeLike`.
-        :param region: An optional region constraint.
-                If given, it must be a :py:class:`PolygonLike`.
-        :param var_names: Optional names of variables to be included.
-                If given, it must be a :py:class:`VarNamesLike`.
-        :param protocol: **Deprecated.** Protocol name, if None selected default protocol
-                will be used to access data.
-        :param monitor: A progress monitor.
-        :return: A dataset instance or ``None`` if no data is available for the given constraints.
-        """
-
-    @abstractmethod
-    def make_local(self,
-                   local_name: str,
-                   local_id: str = None,
-                   time_range: TimeRangeLike.TYPE = None,
-                   region: PolygonLike.TYPE = None,
-                   var_names: VarNamesLike.TYPE = None,
-                   monitor: Monitor = Monitor.NONE) -> Optional['DataSource']:
-        """
-        Turns this (likely remote) data source into a local data source given a name and a number of
-        optional constraints.
-
-        If this is a remote data source, data will be downloaded and turned into a local data source which will
-        be added to the data store named "local".
-
-        If this is already a local data source, a new local data source will be created by copying
-        required data or data subsets.
-
-        The method returns the newly create local data source.
-
-        :param local_name: A human readable name for the new local data source.
-        :param local_id: A unique ID to be used for the new local data source.
-               If not given, a new ID will be generated.
-        :param time_range: An optional time constraint comprising start and end date.
-               If given, it must be a :py:class:`TimeRangeLike`.
-        :param region: An optional region constraint.
-               If given, it must be a :py:class:`PolygonLike`.
-        :param var_names: Optional names of variables to be included.
-               If given, it must be a :py:class:`VarNamesLike`.
-        :param monitor: A progress monitor.
-        :return: the new local data source
-        """
-        pass
-
-    @property
-    def title(self) -> Optional[str]:
-        """
-        Human-readable data source title.
-        The default implementation tries to retrieve the title from ``meta_info['title']``.
-        """
-        meta_info = self.meta_info
-        if meta_info is None:
-            return None
-        return meta_info.get('title')
-
-    # TODO (forman): issue #399 - explain expected metadata entries and their formats, e.g."variables"
-    @property
-    def meta_info(self) -> Optional[dict]:
-        """
-        Return meta-information about this data source.
-        The returned dict, if any, is JSON-serializable.
-        """
-        return None
-
-    @property
-    def cache_info(self) -> Optional[dict]:
-        """
-        Return information about cached, locally available data sets.
-        The returned dict, if any, is JSON-serializable.
-        """
-        return None
-
-    @property
-    def variables_info(self) -> Optional[dict]:
-        """
-        Return meta-information about the variables contained in this data source.
-        The returned dict, if any, is JSON-serializable.
-        """
-        return None
-
-    @property
-    def info_string(self) -> str:
-        """
-        Return a textual representation of the meta-information about this data source.
-        Useful for CLI / REPL applications.
-        """
-        meta_info = self.meta_info
-
-        if not meta_info:
-            return 'No data source meta-information available.'
-
-        max_len = 0
-        for name in meta_info.keys():
-            max_len = max(max_len, len(name))
-
-        info_lines = []
-        for name, value in meta_info.items():
-            if name != 'variables':
-                info_lines.append('%s:%s %s' % (name, (1 + max_len - len(name)) * ' ', value))
-
-        return '\n'.join(info_lines)
-
-    def __str__(self):
-        return self.info_string
-
-    # TODO (forman): issue #399 - remove @abstractmethod, provide reasonable default impl. to make it a convenient ABC
-    @abstractmethod
-    def _repr_html_(self):
-        """Provide an HTML representation of this object for IPython."""
-
-    def _cannot_access_error(self, time_range=None, region=None, var_names=None,
-                             verb="open", cause: BaseException = None, error_cls=DataAccessError):
-        error_message = f'Failed to {verb} data source "{self.id}"'
-        constraints = []
-        if time_range is not None and time_range != "":
-            constraints.append("time range")
-        if region is not None and region != "":
-            constraints.append("region")
-        if var_names is not None and var_names != "":
-            constraints.append("variable names")
-        if constraints:
-            error_message += " for given " + ", ".join(constraints)
-        if cause is not None:
-            error_message += f": {cause}"
-        _LOG.info(error_message)
-        return error_cls(error_message)
-
-    def _empty_error(self, time_range=None):
-        error_message = f'Data source "{self.id}" does not seem to have any datasets'
-        if time_range is not None:
-            error_message += f' in given time range {TimeRangeLike.format(time_range)}'
-        _LOG.info(error_message)
-        return DataAccessError(error_message)
-
-
-class DataSourceStatus(Enum):
-    """
-    Enum stating current state of Data Source accessibility.
-     * READY - data is complete and ready to use
-     * ERROR - data initialization process has been interrupted, causing that data source is incomplete or/and corrupted
-     * PROCESSING - data source initialization process is in progress.
-     * CANCELLED - data initialization process has been intentionally interrupted by user
-    """
-    READY = "READY",
-    ERROR = "ERROR",
-    PROCESSING = "PROCESSING",
-    CANCELLED = "CANCELLED"
-
-
 class DataStoreNotice:
     """
     A short notice that can be exposed to users by data stores.
@@ -383,7 +155,8 @@ class DataStoreNotice:
         :param id: Notice ID.
         :param title: A human-readable, plain text title.
         :param content: A human-readable, plain text title that may be formatted using Markdown.
-        :param intent: Notice intent, may be one of "default", "primary", "success", "warning", "danger"
+        :param intent: Notice intent,
+        may be one of "default", "primary", "success", "warning", "danger"
         :param icon: An option icon name. See https://blueprintjs.com/docs/versions/1/#core/icons
         """
         if id is None or id == "":
@@ -421,246 +194,163 @@ class DataStoreNotice:
         return dict(self._dict)
 
 
-class DataStore(metaclass=ABCMeta):
+class XcubeProgressObserver(ProgressObserver):
+
+    def __init__(self, monitor: Monitor):
+        self._monitor = monitor
+        self._latest_completed_work = 0.0
+
+    def on_begin(self, state_stack: Sequence[ProgressState]):
+        if len(state_stack) == 1:
+            self._monitor.start(state_stack[0].label, state_stack[0].total_work)
+
+    def on_update(self, state_stack: Sequence[ProgressState]):
+        if state_stack[0].completed_work > self._latest_completed_work:
+            self._monitor.progress(state_stack[0].completed_work - self._latest_completed_work,
+                                   state_stack[-1].label)
+            self._latest_completed_work = state_stack[0].completed_work
+
+    def on_end(self, state_stack: Sequence[ProgressState]):
+        if len(state_stack) == 1:
+            self._monitor.done()
+
+
+INFO_FIELD_NAMES = sorted(["abstract",
+                           "bbox_minx",
+                           "bbox_miny",
+                           "bbox_maxx",
+                           "bbox_maxy",
+                           "catalog_url",
+                           "catalogue_url",
+                           "cci_project",
+                           "creation_date",
+                           "data_type",
+                           "data_types",
+                           "ecv",
+                           "file_format",
+                           "file_formats",
+                           "info_url",
+                           "institute",
+                           "institutes",
+                           "licences",
+                           "platform_id",
+                           "platform_ids",
+                           "processing_level",
+                           "processing_levels",
+                           "product_string",
+                           "product_strings",
+                           "product_version",
+                           "product_versions",
+                           "publication_date",
+                           "sensor_id",
+                           "sensor_ids",
+                           "temporal_coverage_end",
+                           "temporal_coverage_start",
+                           "time_frequencies",
+                           "time_frequency",
+                           "title",
+                           "uuid"])
+
+
+def get_metadata_from_descriptor(descriptor: xcube_store.DataDescriptor) -> Dict:
+    metadata = dict(data_id=descriptor.data_id,
+                    type_specifier=str(descriptor.type_specifier))
+    if descriptor.crs:
+        metadata['crs'] = descriptor.crs
+    if descriptor.bbox:
+        metadata['bbox'] = descriptor.bbox
+    if hasattr(descriptor, 'spatial_res'):
+        metadata['spatial_res'] = descriptor.spatial_res
+    if descriptor.time_range:
+        metadata['time_range'] = descriptor.time_range
+    if descriptor.time_period:
+        metadata['time_period'] = descriptor.time_period
+    if hasattr(descriptor, 'attrs') and descriptor.attrs is not None:
+        for name in INFO_FIELD_NAMES:
+            value = descriptor.attrs.get(name, None)
+            # Many values are one-element lists: turn them into scalars
+            if isinstance(value, list) and len(value) == 1:
+                value = value[0]
+            if value is not None:
+                metadata[name] = value
+    if hasattr(descriptor, 'data_vars') and descriptor.data_vars is not None:
+        metadata['variables'] = []
+        var_attrs = ['units', 'long_name', 'standard_name']
+        for var_name, var_descriptor in descriptor.data_vars.items():
+            var_dict = dict(name=var_name)
+            if var_descriptor.attrs:
+                for var_attr in var_attrs:
+                    if var_attr in var_descriptor.attrs:
+                        var_dict[var_attr] = var_descriptor.attrs.get(var_attr)
+            metadata['variables'].append(var_dict)
+    return metadata
+
+
+def get_info_string_from_data_descriptor(descriptor: xcube_store.DataDescriptor) -> str:
+    meta_info = get_metadata_from_descriptor(descriptor)
+
+    max_len = 0
+    for name in meta_info.keys():
+        max_len = max(max_len, len(name))
+
+    info_lines = []
+    for name, value in meta_info.items():
+        if name != 'variables':
+            info_lines.append('%s:%s %s' % (name, (1 + max_len - len(name)) * ' ', value))
+
+    return '\n'.join(info_lines)
+
+
+def find_data_store(ds_id: str) -> Tuple[Optional[str], Optional[xcube_store.DataStore]]:
     """
-    Represents a data store of data sources.
+    Find the data store that includes the given *ds_id*.
+    This will raise an exception if the *ds_id* is given in more than one data store.
 
-    :param ds_id: Unique data store identifier.
-    :param title: A human-readable tile.
-    """
-
-    def __init__(self, ds_id: str, title: str = None, is_local: bool = False):
-        self._id = ds_id
-        self._title = title or ds_id
-        self._is_local = is_local
-
-    @property
-    def id(self) -> str:
-        """
-        Return the unique identifier for this data store.
-        """
-        return self._id
-
-    @property
-    def title(self) -> str:
-        """
-        Return a human-readable tile for this data store.
-        """
-        return self._title
-
-    @property
-    def description(self) -> Optional[str]:
-        """
-        Return an optional, human-readable description for this data store as plain text.
-
-        The text may use Markdown formatting.
-        """
-        return None
-
-    @property
-    def notices(self) -> List[DataStoreNotice]:
-        """
-        Return an optional list of notices for this data store that can be used to inform users about the
-        conventions, standards, and data extent used in this data store or upcoming service outages.
-        """
-        return []
-
-    @property
-    def is_local(self) -> bool:
-        """
-        Whether this is a remote data source not requiring any internet connection when its ``query()`` method
-        is called or the ``open_dataset()`` and ``make_local()`` methods on one of its data sources.
-        """
-        return self._is_local
-
-    def invalidate(self):
-        """
-        Datastore might use a cached list of available dataset which can change in time.
-        Resources managed by a datastore are external so we have to consider that they can
-        be updated by other process.
-        This method ask to invalidate the internal structure and synchronize it with the
-        current status
-        :return:
-        """
-        pass
-
-    def get_updates(self, reset=False) -> Dict:
-        """
-        Ask the datastore to retrieve the differences found between a previous
-        dataStore status and the current one,
-        The implementation return a dictionary with the new ['new'] and removed ['del'] dataset.
-        it also return the reference time to the datastore status taken as previous.
-        Reset flag is used to clean up the support files, freeze and diff.
-        :param: reset=False. Set this flag to true to clean up all the support files forcing a
-                synchronization with the remote catalog
-        :return: A dictionary with keys { 'generated', 'source_ref_time', 'new', 'del' }.
-                 genetated: generation time, when the check has been executed
-                 source_ref_time: when the local copy of the remoted dataset hes been made.
-                                  It is also used by the system to refresh the current images when
-                                  is older then 1 day.
-                 new: a list of new dataset entry
-                 del: a list of removed datset
-        """
-        generated = datetime.datetime.now()
-        report = {"generated": str(generated),
-                  "source_ref_time": str(generated),
-                  "new": list(),
-                  "del": list()}
-        return report
-
-    # TODO (forman): issue #399 - introduce get_data_source(ds_id), we have many usages in code, ALT+F7 on "query"
-    # @abstractmethod
-    # def get_data_source(self, ds_id: str, monitor: Monitor = Monitor.NONE) -> Optional[DataSource]:
-    #     """
-    #     Get data sources by identifier *ds_id*.
-    #
-    #     :param ds_id: Data source identifier.
-    #     :param monitor:  A progress monitor.
-    #     :return: The data sources, or ``None`` if it doesn't exists.
-    #     """
-
-    # TODO (forman): issue #399 - remove "ds_id" keyword, use "get_data_source(ds_id)" instead
-    # TODO (forman): issue #399 - code duplication: almost all implementations are same or very similar
-    @abstractmethod
-    def query(self, ds_id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) -> Sequence[DataSource]:
-        """
-        Retrieve data sources in this data store using the given constraints.
-
-        :param ds_id: Data source identifier.
-        :param query_expr: Query expression which may be used if *ìd* is unknown.
-        :param monitor:  A progress monitor.
-        :return: Sequence of data sources.
-        """
-
-    # TODO (forman): issue #399 - remove @abstractmethod, provide reasonable default impl. to make it a convenient ABC
-    @abstractmethod
-    def _repr_html_(self):
-        """Provide an HTML representation of this object for IPython."""
-
-
-class DataStoreRegistry:
-    """
-    Registry of :py:class:`DataStore` objects.
-    """
-
-    def __init__(self):
-        self._data_stores = dict()
-
-    def get_data_store(self, ds_id: str) -> Optional[DataStore]:
-        return self._data_stores.get(ds_id)
-
-    def get_data_stores(self) -> Sequence[DataStore]:
-        return list(self._data_stores.values())
-
-    def add_data_store(self, data_store: DataStore):
-        self._data_stores[data_store.id] = data_store
-
-    def remove_data_store(self, ds_id: str):
-        del self._data_stores[ds_id]
-
-    def __len__(self):
-        return len(self._data_stores)
-
-    def __str__(self):
-        return self.__repr__()
-
-    def __repr__(self):
-        import pprint
-        return pprint.pformat(self._data_stores)
-
-    def _repr_html_(self):
-        rows = []
-        for ds_id, data_store in self._data_stores.items():
-            rows.append('<tr><td>%s</td><td>%s</td></tr>' % (ds_id, repr(data_store)))
-        return '<table>%s</table>' % '\n'.join(rows)
-
-
-#: The data data store registry of type :py:class:`DataStoreRegistry`.
-#: Use it add new data stores to Cate.
-DATA_STORE_REGISTRY = DataStoreRegistry()
-
-
-def find_data_sources_update(data_stores: Union[DataStore, Sequence[DataStore]] = None) -> Dict:
-    """
-    find difference in the list of data source of the given data store (all when None).
-    The updateds will be returned as dictionaty where the key is the Data store ID.
-    The value is a dictionary too contining the list of 'new', 'de' (removed) dataset
-    :param data_stores: list of Data store(s) to be cheked. If None all the refgistered Data store
-                        will be checked
-    :return: dictionary index by data store ID, values are a second dictionary with the updates sorted by
-             new and del data source in addition to source_ref_time which is the time of snapshot used to
-             compare the data source list
-    """
-    data_store_list = []
-    if data_stores is None:
-        data_store_list = DATA_STORE_REGISTRY.get_data_stores()
-    response = dict()
-
-    for ds in data_store_list:
-        r = ds.get_updates()
-        if r['new'] or r['del']:
-            response[ds.id] = r
-
-    return response
-
-
-def find_data_sources(data_stores: Union[DataStore, Sequence[DataStore]] = None,
-                      ds_id: str = None,
-                      query_expr: str = None) -> Sequence[DataSource]:
-    """
-    Find data sources in the given data store(s) matching the given *id* or *query_expr*.
-
-    See also :py:func:`open_dataset`.
-
-    :param data_stores: If given these data stores will be queried. Otherwise all registered data stores will be used.
     :param ds_id:  A data source identifier.
-    :param query_expr:  A query expression.
     :return: All data sources matching the given constrains.
     """
     results = []
-    primary_data_store = None
-    data_store_list = []
-    if data_stores is None:
-        data_store_list = DATA_STORE_REGISTRY.get_data_stores()
-    elif isinstance(data_stores, DataStore):
-        primary_data_store = data_stores
-    else:
-        data_store_list = data_stores
-
-    for data_store in data_store_list:
-        # datastore cache might be out of synch
-        data_store.invalidate()
-
-    if not primary_data_store and ds_id and ds_id.count('.') > 0:
-        primary_data_store_index = -1
-        primary_data_store_id, data_source_name = ds_id.split('.', 1)
-        for idx, data_store in enumerate(data_store_list):
-            if data_store.id == primary_data_store_id:
-                primary_data_store_index = idx
-        if primary_data_store_index >= 0:
-            primary_data_store = data_store_list.pop(primary_data_store_index)
-
-    if primary_data_store:
-        results.extend(primary_data_store.query(ds_id=ds_id, query_expr=query_expr))
-    if not results:
-        # noinspection PyTypeChecker
-        for data_store in data_store_list:
-            results.extend(data_store.query(ds_id=ds_id, query_expr=query_expr))
-    return results
+    for store_instance_id in DATA_STORE_POOL.store_instance_ids:
+        data_store = DATA_STORE_POOL.get_store(store_instance_id)
+        if data_store.has_data(ds_id):
+            results.append((store_instance_id, data_store))
+    if len(results) > 1:
+        raise ValidationError(f'{len(results)} data sources found for the given ID {ds_id!r}')
+    if len(results) == 1:
+        return results[0]
+    return None, None
 
 
-def open_dataset(data_source: Union[DataSource, str],
+def get_data_store_notices(datastore_id: str) -> Sequence[dict]:
+    store_id = DATA_STORE_POOL.get_store_config(datastore_id).store_id
+
+    def name_is(extension):
+        return store_id == extension.name
+
+    extensions = xcube_store.find_data_store_extensions(predicate=name_is)
+    if len(extensions) == 0:
+        _LOG.warning(f'Found no extension for data store {datastore_id}')
+        return []
+    return extensions[0].metadata.get('data_store_notices', [])
+
+
+def get_data_descriptor(ds_id: str) -> Optional[xcube_store.DataDescriptor]:
+    data_store_id, data_store = find_data_store(ds_id)
+    if data_store:
+        return data_store.describe_data(ds_id)
+
+
+def open_dataset(dataset_id: str,
                  time_range: TimeRangeLike.TYPE = None,
                  region: PolygonLike.TYPE = None,
                  var_names: VarNamesLike.TYPE = None,
                  force_local: bool = False,
                  local_ds_id: str = None,
-                 monitor: Monitor = Monitor.NONE) -> Any:
+                 monitor: Monitor = Monitor.NONE) -> Tuple[Any, str]:
     """
     Open a dataset from a data source.
 
-    :param data_source: A ``DataSource`` object or a string.
-           Strings are interpreted as the identifier of an ECV dataset and must not be empty.
+    :param dataset_id: The identifier of an ECV dataset. Must not be empty.
     :param time_range: An optional time constraint comprising start and end date.
            If given, it must be a :py:class:`TimeRangeLike`.
     :param region: An optional region constraint.
@@ -672,124 +362,122 @@ def open_dataset(data_source: Union[DataSource, str],
     :param local_ds_id: Optional, fpr remote data sources only
            Local data source ID for newly created copy of remote data source
     :param monitor: A progress monitor
-    :return: An new dataset instance
+    :return: A tuple consisting of a new dataset instance and its id
     """
-    if not data_source:
+    if not dataset_id:
         raise ValidationError('No data source given')
 
-    if isinstance(data_source, str):
-        data_store_list = list(DATA_STORE_REGISTRY.get_data_stores())
-        data_sources = find_data_sources(data_store_list, ds_id=data_source)
-        if len(data_sources) == 0:
-            raise ValidationError(f'No data sources found for the given ID {data_source!r}')
-        elif len(data_sources) > 1:
-            raise ValidationError(f'{len(data_sources)} data sources found for the given ID {data_source!r}')
-        data_source = data_sources[0]
+    data_store_id, data_store = find_data_store(ds_id=dataset_id)
+    if not data_store:
+        raise ValidationError(f"No data store found that contains the ID '{dataset_id}'")
 
-    if force_local:
-        with monitor.starting('Opening dataset', 100):
-            data_source = data_source.make_local(local_name=local_ds_id if local_ds_id else "",
-                                                 time_range=time_range, region=region, var_names=var_names,
-                                                 monitor=monitor.child(80))
-            return data_source.open_dataset(time_range, region, var_names, monitor=monitor.child(20))
-    else:
-        return data_source.open_dataset(time_range, region, var_names, monitor=monitor)
+    type_spec = None
+    potential_type_specs = data_store.get_type_specifiers_for_data(dataset_id)
+    for potential_type_spec in potential_type_specs:
+        if xcube_store.TYPE_SPECIFIER_CUBE.is_satisfied_by(potential_type_spec):
+            type_spec = potential_type_spec
+            break
+    if type_spec is None:
+        for potential_type_spec in potential_type_specs:
+            if xcube_store.TYPE_SPECIFIER_DATASET.is_satisfied_by(potential_type_spec):
+                type_spec = potential_type_spec
+                break
+    if type_spec is None:
+        raise ValidationError(f"Could not open '{dataset_id}' as dataset.")
+    openers = data_store.get_data_opener_ids(dataset_id, type_spec)
+    if len(openers) == 0:
+        raise DataAccessError(f'Could not find an opener for "{dataset_id}".')
+    opener_id = openers[0]
 
+    total_amount_of_work = 20 if force_local else 10
 
-# noinspection PyUnresolvedReferences,PyProtectedMember
-def open_xarray_dataset(paths,
-                        region: PolygonLike.TYPE = None,
-                        var_names: VarNamesLike.TYPE = None,
-                        monitor: Monitor = Monitor.NONE,
-                        **kwargs) -> xr.Dataset:
-    r"""
-    Open multiple files as a single dataset. This uses dask. If each individual file
-    of the dataset is small, one Dask chunk will coincide with one temporal slice,
-    e.g. the whole array in the file. Otherwise smaller dask chunks will be used
-    to split the dataset.
-
-    :param paths: Either a string glob in the form "path/to/my/files/\*.nc" or an explicit
-        list of files to open.
-    :param region: Optional region constraint.
-    :param var_names: Optional variable names constraint.
-    :param monitor: Optional progress monitor.
-    :param kwargs: Keyword arguments directly passed to ``xarray.open_mfdataset()``
-    """
-    # paths could be a string or a list
-    files = []
-    if isinstance(paths, str):
-        files.append(paths)
-    else:
-        files.extend(paths)
-
-    # should be a file or a glob or an URL
-    files = [(i,) if re.match(URL_REGEX, i) else glob.glob(i) for i in files]
-    # make a flat list
-    files = list(itertools.chain.from_iterable(files))
-
-    if not files:
-        raise IOError('File {} not found'.format(paths))
-
-    if 'concat_dim' in kwargs:
-        concat_dim = kwargs.pop('concat_dim')
-    else:
-        concat_dim = 'time'
-
-    if 'chunks' in kwargs:
-        chunks = kwargs.pop('chunks')
-    elif len(files) > 1:
-        # By default the dask chunk size of xr.open_mfdataset is (1, lat, lon). E.g.,
-        # the whole array is one dask slice irrespective of chunking on disk.
-        #
-        # netCDF files can also feature a significant level of compression rendering
-        # the known file size on disk useless to determine if the default dask chunk
-        # will be small enough that a few of them could comfortably fit in memory for
-        # parallel processing.
-        #
-        # Hence we open the first file of the dataset and detect the maximum chunk sizes
-        # used in the spatial dimensions.
-        #
-        # If no such sizes could be found, we use xarray's default chunking.
-        chunks = get_spatial_ext_chunk_sizes(files[0])
-    else:
-        chunks = None
-
-    def preprocess(raw_ds: xr.Dataset):
-        # Add a time dimension if attributes "time_coverage_start" and "time_coverage_end" are found.
-        norm_ds = normalize_missing_time(normalize_coord_vars(raw_ds))
-        monitor.progress(work=1)
-        return norm_ds
-
-    with monitor.starting('Opening dataset', len(files)):
-        # autoclose ensures that we can open datasets consisting of a number of
-        # files that exceeds OS open file limit.
-        # TODO (Suvi): - might need 2 versions ( one with combine=nested, coords=concat_dim and
-        #  other with combine='by_coords' to support opening most datasets
-        #  - we can eleminate unnecessary preprocess on datasets that already have time coordinate,
-        #  this can be when creating datasource.
-        #  - enable parallel=True to open files parallely to preprocess only when number of files
-        #  are more, otherwise it is determental to perforamnce.
-
-        ds = xr.open_mfdataset(files,
-                               coords='minimal',
-                               chunks=chunks,
-                               preprocess=preprocess,
-                               # Future behaviour will be
-                               combine='by_coords',
-                               #combine='nested',
-                               #parallel=True,
-                               compat='override',
-                               **kwargs)
-
+    open_schema = data_store.get_open_data_params_schema(dataset_id, opener_id)
+    open_args = {}
+    subset_args = {}
     if var_names:
-        ds = ds.drop_vars([var_name for var_name in ds.data_vars.keys() if var_name not in var_names])
-
-    ds = normalize_impl(ds)
-
+        var_names_list = VarNamesLike.convert(var_names)
+        if 'variable_names' in open_schema.properties:
+            open_args['variable_names'] = var_names_list
+        elif 'drop_variables' in open_schema.properties:
+            data_desc = data_store.describe_data(dataset_id, type_spec)
+            open_args['drop_variables'] = [var_name for var_name in data_desc.data_vars.keys()
+                                           if var_name not in var_names_list]
+        else:
+            subset_args['var_names'] = var_names_list
+            total_amount_of_work += 1
+    if time_range:
+        time_range = TimeRangeLike.convert(time_range)
+        time_range = [datetime.datetime.strftime(time_range[0], '%Y-%m-%d'),
+                      datetime.datetime.strftime(time_range[1], '%Y-%m-%d')]
+        if 'time_range' in open_schema.properties:
+            open_args['time_range'] = time_range
+        else:
+            subset_args['time_range'] = time_range
+            total_amount_of_work += 1
     if region:
-        ds = subset_spatial_impl(ds, region)
+        bbox = list(PolygonLike.convert(region).bounds)
+        if 'bbox' in open_schema.properties:
+            open_args['bbox'] = bbox
+        else:
+            subset_args['bbox'] = bbox
+            total_amount_of_work += 1
+    if 'consolidated' in open_schema.properties:
+        open_args['consolidated'] = True
 
-    return ds
+    monitor.start('Open dataset', total_amount_of_work)
+    observer = XcubeProgressObserver(ChildMonitor(monitor, 10))
+    observer.activate()
+    dataset = data_store.open_data(data_id=dataset_id, opener_id=opener_id, **open_args)
+    observer.deactivate()
+    dataset = select_subset(dataset, **subset_args)
+    monitor.progress(len(subset_args))
+    if force_local:
+        observer2 = XcubeProgressObserver(ChildMonitor(monitor, 10))
+        observer2.activate()
+        dataset, dataset_id = make_local(data=dataset,
+                                         local_name=local_ds_id)
+        observer2.deactivate()
+    monitor.done()
+    return dataset, dataset_id
+
+
+def make_local(data: Any, local_name: Optional[str] = None) -> Tuple[Any, str]:
+    local_store = DATA_STORE_POOL.get_store('local')
+    if not local_store:
+        raise ValueError('Cannot initialize `local` DataStore')
+
+    local_data_id = local_store.write_data(data=data, data_id=local_name)
+    return local_store.open_data(data_id=local_data_id), local_data_id
+
+
+def add_as_local(data_source_id: str, paths: Union[str, Sequence[str]] = None) -> Tuple[Any, str]:
+    paths = _resolve_input_paths(paths)
+    if not paths:
+        raise ValueError("No paths found")
+    # todo also support geodataframes
+    if len(paths) == 1:
+        ds = xr.open_dataset(paths[0])
+    else:
+        ds = xr.open_mfdataset(paths=paths)
+    return make_local(ds, data_source_id)
+
+
+def _resolve_input_paths(paths: Union[str, Sequence[str]]) -> Sequence[str]:
+    # very similar code is used in nc2zarr
+    resolved_input_files = []
+    if isinstance(paths, str):
+        resolved_input_files.extend(glob.glob(paths, recursive=True))
+    elif paths is not None and len(paths):
+        for file in paths:
+            resolved_input_files.extend(glob.glob(file, recursive=True))
+    # Get rid of doubles, but preserve order
+    seen_input_files = set()
+    unique_input_files = []
+    for input_file in resolved_input_files:
+        if input_file not in seen_input_files:
+            unique_input_files.append(input_file)
+            seen_input_files.add(input_file)
+    return unique_input_files
 
 
 def get_spatial_ext_chunk_sizes(ds_or_path: Union[xr.Dataset, str]) -> Dict[str, int]:
@@ -846,14 +534,16 @@ def get_ext_chunk_sizes(ds: xr.Dataset, dim_names: Set[str] = None,
     return agg_chunk_sizes
 
 
-def format_variables_info_string(variables: dict):
+def format_variables_info_string(descriptor: xcube_store.DataDescriptor):
     """
-    Return some textual information about the variables contained in this data source.
+    Return some textual information about the variables described by this DataDescriptor.
     Useful for CLI / REPL applications.
     :param variables:
     :return:
     """
-    if not variables:
+    meta_info = get_metadata_from_descriptor(descriptor)
+    variables = meta_info.get('variables', [])
+    if len(variables) == 0:
         return 'No variables information available.'
 
     info_lines = []

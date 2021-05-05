@@ -5,13 +5,12 @@ import time
 import traceback
 
 from cate.core.ds import DATA_STORE_REGISTRY
-from cate.ds.esa_cci_odp import ESA_CCI_ODP_DATA_STORE_ID
 from cate.ops.io import open_dataset
 from util import ConsoleMonitor
 
 
 def get_data_store_ids():
-    data_store = DATA_STORE_REGISTRY.get_data_store(ESA_CCI_ODP_DATA_STORE_ID)
+    data_store = DATA_STORE_REGISTRY.get_data_store('cci-store')
     data_sources = data_store.query()
     return data_sources
 

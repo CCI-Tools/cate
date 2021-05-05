@@ -1,217 +1,167 @@
 import os
 import unittest
-from typing import Sequence, Any, Optional
-from unittest import TestCase, skipIf
 
 import numpy as np
 import xarray as xr
+import xcube.core.store as xcube_store
 
-from cate.core.ds import DataStore, DataSource, Schema, DataAccessError, open_xarray_dataset, find_data_sources, \
-    open_dataset, DATA_STORE_REGISTRY, get_spatial_ext_chunk_sizes, get_ext_chunk_sizes, NetworkError
-from cate.core.types import PolygonLike, TimeRangeLike, VarNamesLike
-from cate.util.monitor import Monitor
-from tests.util.test_monitor import RecordingMonitor
+from ..storetest import StoreTest
+
+from cate.core.ds import DataAccessError
+from cate.core.ds import find_data_store
+from cate.core.ds import get_data_descriptor
+from cate.core.ds import get_ext_chunk_sizes
+from cate.core.ds import get_metadata_from_descriptor
+from cate.core.ds import get_spatial_ext_chunk_sizes
+from cate.core.ds import NetworkError
+from cate.core.ds import open_dataset
+from cate.core.types import ValidationError
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_data')
 
 
-class SimpleDataStore(DataStore):
-    def __init__(self, ds_id: str, data_sources: Sequence[DataSource]):
-        super().__init__(ds_id, title='Simple Test Store', is_local=True)
-        self._data_sources = list(data_sources)
+class IOTest(StoreTest):
 
-    def query(self, ds_id: str = None, query_expr: str = None, monitor: Monitor = Monitor.NONE) \
-            -> Sequence[DataSource]:
-        if ds_id or query_expr:
-            return [ds for ds in self._data_sources if ds.matches(ds_id=ds_id, query_expr=query_expr)]
-        return self._data_sources
+    def test_find_data_store(self):
+        aerosol_store_id, aerosol_store = find_data_store(
+            '20000302-ESACCI-L3C_AEROSOL-AER_PRODUCTS-ATSR2-ERS2-ADV_DAILY-v2.30.nc')
+        self.assertEqual('local_test_store_1', aerosol_store_id)
+        self.assertIsNotNone(aerosol_store)
 
-    def _repr_html_(self):
-        return ''
+        ozone_store_id, ozone_store = \
+            find_data_store('ESACCI-OZONE-L3S-TC-MERGED-DLR_1M-20050501-fv0100.nc')
+        self.assertEqual('local_test_store_2', ozone_store_id)
+        self.assertIsNotNone(ozone_store)
 
+        permafrost_store_id, permafrost_store = find_data_store('permafrost')
+        self.assertIsNone(permafrost_store_id)
+        self.assertIsNone(permafrost_store)
 
-class SimpleDataSource(DataSource):
-    def __init__(self, ds_id: str, meta_info: dict = None):
-        self._id = ds_id
-        self._data_store = None
-        self._meta_info = meta_info
+        with self.assertRaises(ValidationError):
+            find_data_store('ESACCI-OC-L3S-IOP-MERGED-1M_MONTHLY_4km_GEO_PML_OCx_QAA-200505'
+                            '-fv4.2.nc')
 
-    @property
-    def data_store(self) -> DataStore:
-        return self.data_store
+    def test_get_data_descriptor(self):
+        aerosol_descriptor = get_data_descriptor(
+            '20000302-ESACCI-L3C_AEROSOL-AER_PRODUCTS-ATSR2-ERS2-ADV_DAILY-v2.30.nc')
+        self.assertIsInstance(aerosol_descriptor, xcube_store.DatasetDescriptor)
+        self.assertEqual('20000302-ESACCI-L3C_AEROSOL-AER_PRODUCTS-ATSR2-ERS2-ADV_DAILY-v2.30.nc',
+                         aerosol_descriptor.data_id)
 
-    @property
-    def schema(self) -> Optional[Schema]:
-        return None
+        sst_descriptor = get_data_descriptor(
+            '19910916120000-ESACCI-L3C_GHRSST-SSTskin-AVHRR12_G-CDR2.1_night-v02.0-fv01.0.nc')
+        self.assertIsInstance(sst_descriptor, xcube_store.DatasetDescriptor)
+        self.assertEqual(
+            '19910916120000-ESACCI-L3C_GHRSST-SSTskin-AVHRR12_G-CDR2.1_night-v02.0-fv01.0.nc',
+            sst_descriptor.data_id)
 
-    @property
-    def id(self) -> str:
-        return self._id
+        permafrost_descriptor = get_data_descriptor('permafrost')
+        self.assertIsNone(permafrost_descriptor)
 
-    @property
-    def meta_info(self) -> Optional[dict]:
-        return self._meta_info
+        with self.assertRaises(ValidationError):
+            get_data_descriptor(
+                'ESACCI-OC-L3S-IOP-MERGED-1M_MONTHLY_4km_GEO_PML_OCx_QAA-200505-fv4.2.nc')
 
-    def open_dataset(self,
-                     time_range: TimeRangeLike.TYPE = None,
-                     region: PolygonLike.TYPE = None,
-                     var_names: VarNamesLike.TYPE = None,
-                     protocol: str = None,
-                     monitor: Monitor = Monitor.NONE) -> Any:
-        return None
+    def test_get_metadata_from_descriptor(self):
+        descriptor = xcube_store.DatasetDescriptor(
+            data_id='xyz',
+            crs='EPSG:9346',
+            bbox=(10., 20., 30., 40.),
+            spatial_res=20.,
+            time_range=('2017-06-05', '2017-06-27'),
+            time_period='daily',
+            data_vars={
+                'surface_pressure': xcube_store.VariableDescriptor(
+                    name='surface_pressure',
+                    dtype='rj',
+                    dims=('dfjhrt', 'sg'),
+                    attrs=dict(units='hPa',
+                               long_name='dgfrf',
+                               standard_name='dhgydf'
+                               )
+                )
+            },
+            attrs=dict(
+                title='ESA Ozone Climate Change Initiative (Ozone CCI): '
+                      'Level 3 Nadir Ozone Profile Merged Data Product, version 2',
+                institution='Royal Netherlands Meteorological Institute, KNMI',
+                source='This dataset contains L2 profiles from GOME, SCIAMACHY, OMI and GOME-2 '
+                       'gridded onto a global grid.',
+                history='L2 data gridded to global grid.',
+                references='http://www.esa-ozone-cci.org/',
+                tracking_id='32CF0EE6-1F21-4FAE-B0BE-A8C6FD88A775',
+                Conventions='CF-1.6',
+                product_version='fv0002',
+                summary='This dataset contains L2 profiles from GOME, SCIAMACHY, OMI and GOME-2 '
+                        'gridded onto a global grid.',
+                keywords='satellite, observation, atmosphere, ozone',
+                id='32CF0EE6-1F21-4FAE-B0BE-A8C6FD88A775',
+                naming_authority='KNMI, http://www.knmi.nl/',
+                comment='These data were produced at KNMI as part of the ESA OZONE CCI project.',
+                date_created='2014-01-08T12:50:21.908',
+                creator_name='J.C.A. van Peet',
+                creator_url='KNMI, http://www.knmi.nl/',
+                creator_email='peet@knmi.nl',
+                project='Climate Change Initiative - European Space Agency',
+                geospatial_lat_min=-90.0,
+                geospatial_lat_max=90.0,
+                geospatial_lat_units='degree_north',
+                geospatial_lat_resolution=1.0,
+                geospatial_lon_min=-180.0,
+                geospatial_lon_max=180.0,
+                geospatial_lon_units='degree_east',
+                geospatial_lon_resolution=1.0,
+                geospatial_vertical_min=0.01,
+                geospatial_vertical_max=1013.0,
+                time_coverage_start='19970104T102333Z',
+                time_coverage_end='19970131T233849Z',
+                time_coverage_duration='P1M',
+                time_coverage_resolution='P1M',
+                standard_name_vocabulary='NetCDF Climate and Forecast(CF) Metadata Convention '
+                                         'version 20, 11 September 2012',
+                license='data use is free and open',
+                platform='merged: ERS-2, ENVISAT, EOS-AURA, METOP-A',
+                sensor='merged: GOME, SCIAMACHY, OMI and GOME-2.',
+                spatial_resolution='see geospatial_lat_resolution and geospatial_lat_resolution',
+                Note='netCDF compression applied.',
+                ecv='OZONE',
+                time_frequency='month',
+                institute='Royal Netherlands Meteorological Institute',
+                processing_level='L3',
+                product_string='MERGED',
+                data_type='NP',
+                file_formats=['.nc', '.txt']
+            )
+        )
+        descriptor_metadata = get_metadata_from_descriptor(descriptor)
+        expected_metadata = dict(
+            data_id='xyz',
+            type_specifier='dataset',
+            crs='EPSG:9346',
+            bbox=(10., 20., 30., 40.),
+            spatial_res=20.,
+            time_range=('2017-06-05', '2017-06-27'),
+            time_period='daily',
+            title='ESA Ozone Climate Change Initiative (Ozone CCI): '
+                  'Level 3 Nadir Ozone Profile Merged Data Product, version 2',
+            product_version='fv0002',
+            ecv='OZONE',
+            time_frequency='month',
+            institute='Royal Netherlands Meteorological Institute',
+            processing_level='L3',
+            product_string='MERGED',
+            data_type='NP',
+            file_formats=['.nc', '.txt'],
+            variables=[
+                dict(name='surface_pressure',
+                     units='hPa',
+                     long_name='dgfrf',
+                     standard_name='dhgydf'
+                     )
+                ]
+        )
+        self.assertEqual(expected_metadata, descriptor_metadata)
 
-    def make_local(self,
-                   local_name: str,
-                   local_id: str = None,
-                   time_range: TimeRangeLike.TYPE = None,
-                   region: PolygonLike.TYPE = None,
-                   var_names: VarNamesLike.TYPE = None,
-                   monitor: Monitor = Monitor.NONE) -> Optional[DataSource]:
-        return None
-
-    def __repr__(self):
-        return "SimpleDataSource(%s)" % repr(self._id)
-
-    def _repr_html_(self):
-        return self._id
-
-
-class InMemoryDataSource(SimpleDataSource):
-    def __init__(self, data):
-        super(InMemoryDataSource, self).__init__("in_memory")
-        self._data = data
-
-    def open_dataset(self,
-                     time_range: TimeRangeLike.TYPE = None,
-                     region: PolygonLike.TYPE = None,
-                     var_names: VarNamesLike.TYPE = None,
-                     protocol: str = None,
-                     monitor: Monitor = Monitor.NONE) -> Any:
-        return xr.Dataset({'a': self._data})
-
-    def __repr__(self):
-        return "InMemoryDataSource(%s)" % repr(self._data)
-
-    def _repr_html_(self):
-        import html
-        return html.escape(repr(self._data))
-
-
-class IOTest(TestCase):
-    def setUp(self):
-        self.DS_AEROSOL = SimpleDataSource('aerosol')
-        self.DS_OZONE = SimpleDataSource('ozone', meta_info=dict(title='This is pure Ozone'))
-        self.TEST_DATA_STORE = SimpleDataStore('test_aero_ozone', [self.DS_AEROSOL, self.DS_OZONE])
-        self.DS_AEROSOL._data_store = self.TEST_DATA_STORE
-        self.DS_OZONE._data_store = self.TEST_DATA_STORE
-        self.DS_SST = SimpleDataSource('sst', meta_info=dict())
-        self.TEST_DATA_STORE_SST = SimpleDataStore('test_sst', [self.DS_SST])
-
-    def test_title(self):
-        self.assertEqual(self.DS_AEROSOL.title, None)
-        self.assertEqual(self.DS_OZONE.title, 'This is pure Ozone')
-        self.assertEqual(self.DS_SST.title, None)
-
-    def test_meta_info(self):
-        self.assertEqual(self.DS_AEROSOL.meta_info, None)
-        self.assertEqual(self.DS_OZONE.meta_info, dict(title='This is pure Ozone'))
-        self.assertEqual(self.DS_SST.meta_info, dict())
-
-    def test_find_data_sources_default_data_store(self):
-        size_before = len(DATA_STORE_REGISTRY)
-        orig_stores = list(DATA_STORE_REGISTRY.get_data_stores())
-        try:
-            DATA_STORE_REGISTRY._data_stores.clear()
-            self.assertEqual(0, len(DATA_STORE_REGISTRY))
-
-            from cate.ds.esa_cci_ftp import set_default_data_store as set_default_data_store_ftp
-            set_default_data_store_ftp()
-            self.assertEqual(1, len(DATA_STORE_REGISTRY))
-
-            data_sources = find_data_sources()
-            self.assertIsNotNone(data_sources)
-            self.assertEqual(len(data_sources), 98)
-            self.assertEqual(data_sources[0].id, "AEROSOL_ATSR2_SU_L3_V4.2_DAILY")
-
-            data_sources = find_data_sources(ds_id="AEROSOL_ATSR2_SU_L3_V4.2_DAILY")
-            self.assertIsNotNone(data_sources)
-            self.assertEqual(len(data_sources), 1)
-
-            data_sources = find_data_sources(ds_id="ZZ")
-            self.assertIsNotNone(data_sources)
-            self.assertEqual(len(data_sources), 0)
-        finally:
-            DATA_STORE_REGISTRY._data_stores.clear()
-            for data_store in orig_stores:
-                DATA_STORE_REGISTRY.add_data_store(data_store)
-        self.assertEqual(size_before, len(DATA_STORE_REGISTRY))
-
-    def test_find_data_sources_with_data_store_value(self):
-        data_sources = find_data_sources(data_stores=self.TEST_DATA_STORE)
-        self.assertIsNotNone(data_sources)
-        self.assertEqual(len(data_sources), 2)
-        self.assertEqual(data_sources[0].id, "aerosol")
-        self.assertEqual(data_sources[1].id, "ozone")
-
-    def test_find_data_sources_with_data_store_list(self):
-        data_stores = [self.TEST_DATA_STORE, self.TEST_DATA_STORE_SST]
-        data_sources = find_data_sources(data_stores=data_stores)
-        self.assertIsNotNone(data_sources)
-        self.assertEqual(len(data_sources), 3)
-        self.assertEqual(data_sources[0].id, "aerosol")
-        self.assertEqual(data_sources[1].id, "ozone")
-        self.assertEqual(data_sources[2].id, "sst")
-
-    def test_find_data_sources_with_id_constrains(self):
-        data_sources = find_data_sources(data_stores=self.TEST_DATA_STORE, ds_id="aerosol")
-        self.assertIsNotNone(data_sources)
-        self.assertEqual(len(data_sources), 1)
-        self.assertEqual(data_sources[0].id, "aerosol")
-
-        data_sources = find_data_sources(data_stores=self.TEST_DATA_STORE, ds_id="ozone")
-        self.assertIsNotNone(data_sources)
-        self.assertEqual(len(data_sources), 1)
-        self.assertEqual(data_sources[0].id, "ozone")
-
-        data_sources = find_data_sources(data_stores=self.TEST_DATA_STORE, ds_id="Z")
-        self.assertIsNotNone(data_sources)
-        self.assertEqual(len(data_sources), 0)
-
-        data_sources = find_data_sources(data_stores=self.TEST_DATA_STORE, ds_id="x")
-        self.assertIsNotNone(data_sources)
-        self.assertEqual(len(data_sources), 0)
-
-    def test_find_data_sources_with_query_expr_constrains(self):
-        data_sources = find_data_sources(data_stores=self.TEST_DATA_STORE, query_expr="aerosol")
-        self.assertIsNotNone(data_sources)
-        self.assertEqual(len(data_sources), 1)
-        self.assertEqual(data_sources[0].id, "aerosol")
-
-        data_sources = find_data_sources(data_stores=self.TEST_DATA_STORE, query_expr="Z")
-        self.assertIsNotNone(data_sources)
-        self.assertEqual(len(data_sources), 1)
-        self.assertEqual(data_sources[0].id, "ozone")
-
-        data_sources = find_data_sources(data_stores=self.TEST_DATA_STORE, query_expr="x")
-        self.assertIsNotNone(data_sources)
-        self.assertEqual(len(data_sources), 0)
-
-    def test_find_data_sources_with_id_and_query_expr_constrains(self):
-        data_sources = find_data_sources(data_stores=self.TEST_DATA_STORE, ds_id="foo", query_expr="aerosol")
-        self.assertIsNotNone(data_sources)
-        self.assertEqual(len(data_sources), 1)
-        self.assertEqual(data_sources[0].id, "aerosol")
-
-        data_sources = find_data_sources(data_stores=self.TEST_DATA_STORE, ds_id="aerosol", query_expr="foo")
-        self.assertIsNotNone(data_sources)
-        self.assertEqual(len(data_sources), 1)
-        self.assertEqual(data_sources[0].id, "aerosol")
-
-        data_sources = find_data_sources(data_stores=self.TEST_DATA_STORE, ds_id="foo", query_expr="bar")
-        self.assertIsNotNone(data_sources)
-        self.assertEqual(len(data_sources), 0)
-
-    @skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
     def test_open_dataset(self):
         with self.assertRaises(ValueError) as cm:
             # noinspection PyTypeChecker
@@ -220,79 +170,16 @@ class IOTest(TestCase):
 
         with self.assertRaises(ValueError) as cm:
             open_dataset('foo')
-        self.assertEqual(("No data sources found for the given ID 'foo'",), cm.exception.args)
+        self.assertEqual(("No data store found that contains the ID 'foo'",), cm.exception.args)
 
-        inmem_data_source = InMemoryDataSource(42)
-        dataset1 = open_dataset(inmem_data_source)
-        self.assertIsNotNone(dataset1)
-        self.assertIsInstance(dataset1, xr.Dataset)
-        self.assertEqual(42, dataset1.a.values)
-
-        dataset2 = inmem_data_source.open_dataset()
-        self.assertIsInstance(dataset2, xr.Dataset)
-        self.assertEqual(42, dataset2.a.values)
-
-    # @skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
-    @unittest.skip(reason="Test has to be fixed, user shouldn't be able to add two ds with the same name")
-    def test_open_dataset_duplicated_names(self):
-        try:
-            ds_a1 = SimpleDataSource('duplicate')
-            ds_a2 = SimpleDataSource('duplicate')
-            duplicated_cat = SimpleDataStore('duplicated_cat', [ds_a1, ds_a2])
-            DATA_STORE_REGISTRY.add_data_store(duplicated_cat)
-            with self.assertRaises(ValueError) as cm:
-                open_dataset('duplicate')
-            self.assertEqual("2 data_sources found for the given query term 'duplicate'", str(cm.exception))
-        finally:
-            DATA_STORE_REGISTRY.remove_data_store('duplicated_cat')
-
-    def test_open_xarray_dataset(self):
-        path_large = os.path.join(_TEST_DATA_PATH, 'large', '*.nc')
-        path_small = os.path.join(_TEST_DATA_PATH, 'small', '*.nc')
-
-        ds_large_mon = RecordingMonitor()
-        ds_small_mon = RecordingMonitor()
-        ds_large = open_xarray_dataset(path_large, monitor=ds_large_mon)
-        ds_small = open_xarray_dataset(path_small, monitor=ds_small_mon)
-
-        # Test monitors
-        self.assertEqual(ds_large_mon.records, [('start', 'Opening dataset', 1), ('progress', 1, None, 100), ('done',)])
-        self.assertEqual(ds_small_mon.records, [('start', 'Opening dataset', 1), ('progress', 1, None, 100), ('done',)])
-
-        # Test chunking
-        self.assertEqual(ds_small.chunks, {'lon': (1440,), 'lat': (720,), 'time': (1,)})
-        self.assertEqual(ds_large.chunks, {'lon': (7200,), 'lat': (3600,), 'time': (1,), 'bnds': (2,)})
-
-    def test_empty_error(self):
-        data_source = SimpleDataSource("foo")
-        error = data_source._empty_error()
-        self.assertIsInstance(error, DataAccessError)
-        self.assertEqual('Data source "foo" does not seem to have any datasets',
-                         f"{error}")
-        error = data_source._empty_error(TimeRangeLike.convert("2010-01-01,2010-01-06"))
-        self.assertIsInstance(error, DataAccessError)
-        self.assertEqual('Data source "foo" does not seem to have any datasets'
-                         ' in given time range 2010-01-01, 2010-01-06T23:59:59',
-                         f"{error}")
-
-    def test_cannot_access_error(self):
-        data_source = SimpleDataSource("foo")
-        error = data_source._cannot_access_error()
-        self.assertIsInstance(error, DataAccessError)
-        self.assertEqual('Failed to open data source "foo"',
-                         f"{error}")
-        error = data_source._cannot_access_error("a", "")
-        self.assertIsInstance(error, DataAccessError)
-        self.assertEqual('Failed to open data source "foo" for given time range',
-                         f"{error}")
-        error = data_source._cannot_access_error("a", "b", "c", error_cls=NetworkError)
-        self.assertIsInstance(error, NetworkError)
-        self.assertEqual('Failed to open data source "foo" for given time range, region, variable names',
-                         f"{error}")
-        error = data_source._cannot_access_error("a", "b", "c", cause=RuntimeError("timeout"), error_cls=NetworkError)
-        self.assertIsInstance(error, NetworkError)
-        self.assertEqual('Failed to open data source "foo" for given time range, region, variable names: timeout',
-                         f"{error}")
+        aerosol_dataset, aerosol_dataset_name = \
+            open_dataset('20000302-ESACCI-L3C_AEROSOL-AER_PRODUCTS-ATSR2-ERS2-ADV_DAILY-v2.30.nc')
+        self.assertIsNotNone(aerosol_dataset)
+        self.assertEqual('20000302-ESACCI-L3C_AEROSOL-AER_PRODUCTS-ATSR2-ERS2-ADV_DAILY-v2.30.nc',
+                         aerosol_dataset_name)
+        self.assertIsInstance(aerosol_dataset, xr.Dataset)
+        self.assertEqual({'ANG550-670_mean', 'AOD550_uncertainty_mean'},
+                         set(aerosol_dataset.data_vars))
 
 
 class ChunkUtilsTest(unittest.TestCase):
@@ -303,6 +190,7 @@ class ChunkUtilsTest(unittest.TestCase):
             'v3': (['lon'], np.zeros(90)),
             'lon': (['lon'], np.linspace(-178, 178, 90)),
             'lat': (['lat'], np.linspace(-88, 88, 45))})
+        np.linspace
         ds.v1.encoding['chunksizes'] = (5, 10)
         ds.v2.encoding['chunksizes'] = (15, 30)
         chunk_sizes = get_spatial_ext_chunk_sizes(ds)
@@ -361,21 +249,6 @@ class ChunkUtilsTest(unittest.TestCase):
         chunk_sizes = get_ext_chunk_sizes(ds, init_value=[], map_fn=map_fn, reduce_fn=reduce_fn)
         self.assertIsNotNone(chunk_sizes)
         self.assertEqual(chunk_sizes, dict(time=12, lat=5, lon=10))
-
-    def test_open_xarray(self):
-        wrong_path = os.path.join(_TEST_DATA_PATH, 'small', '*.nck')
-        wrong_url = 'httpz://www.acme.com'
-        path = [wrong_path, wrong_url]
-        try:
-            open_xarray_dataset(path)
-        except IOError as e:
-            self.assertEqual(str(e), 'File {} not found'.format(path))
-
-        right_path = os.path.join(_TEST_DATA_PATH, 'small', '*.nc')
-        wrong_url = 'httpz://www.acme.com'
-        path = [right_path, wrong_url]
-        dsa = open_xarray_dataset(path)
-        self.assertIsNotNone(dsa)
 
 
 class DataAccessErrorTest(unittest.TestCase):

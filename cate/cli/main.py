@@ -25,10 +25,12 @@ Description
 
 This module provides Cate's CLI executable.
 
-To use the CLI executable, invoke the module file as a script, type ``python3 cate/cli/main.py [ARGS] [OPTIONS]``.
+To use the CLI executable, invoke the module file as a script,
+type ``python3 cate/cli/main.py [ARGS] [OPTIONS]``.
 Type `python3 cate/cli/main.py --help`` for usage help.
 
-The CLI operates on sub-commands. New sub-commands can be added by inheriting from the :py:class:`Command` class
+The CLI operates on sub-commands.
+New sub-commands can be added by inheriting from the :py:class:`Command` class
 and extending the ``Command.REGISTRY`` list of known command classes.
 
 Technical Requirements
@@ -36,9 +38,9 @@ Technical Requirements
 
 **Extensible CLI with multiple sub-commands**
 
-:Description: The CCI Toolbox should only have a single CLI executable that comes with multiple sub-commands
-    instead of maintaining a number of different executables for each purpose. Plugins shall be able to add new
-    CLI sub-commands.
+:Description: The CCI Toolbox should only have a single CLI executable that comes with multiple
+    sub-commands instead of maintaining a number of different executables for each purpose.
+    Plugins shall be able to add new CLI sub-commands.
 
 :URD-Source:
     * CCIT-UR-CR0001: Extensibility.
@@ -56,7 +58,8 @@ Technical Requirements
 
 **List available data, operations and extensions**
 
-:Description: Allow for listing dynamic content including available data, operations and plugin extensions.
+:Description: Allow for listing dynamic content including available data, operations
+    and plugin extensions.
 :URD-Source:
     * CCIT-UR-E0001: Dynamic extension by the use of plug-ins
 
@@ -65,7 +68,8 @@ Technical Requirements
 **Display information about available climate data sources**
 
 :Description: Before downloading ECV datasets to the local computer, users shall be able to
-    display information about them, e.g. included variables, total size, spatial and temporal resolution.
+    display information about them, e.g. included variables, total size, spatial and temporal
+    resolution.
 
 :URD-Source:
     * CCIT-UR-DM0009: Holding information of any CCI ECV type
@@ -75,7 +79,8 @@ Technical Requirements
 
 **Synchronize locally cached climate data**
 
-:Description: Allow for listing dynamic content including available data, operations and plugin extensions.
+:Description: Allow for listing dynamic content including available data, operations and
+    plugin extensions.
 :URD-Source:
     * CCIT-UR-DM0006: Access to and ingestion of ESA CCI datasets
 
@@ -95,24 +100,22 @@ Components
 ==========
 """
 
-import warnings
-
-warnings.filterwarnings("ignore")  # never print any warnings to users
-
 import argparse
 import os
 import os.path
 import pprint
 import sys
+import warnings
 from collections import OrderedDict
 from typing import Tuple, Union, List, Dict, Any, Optional
 
 from cate.version import __version__
-
 from cate.util.cli import run_main, Command, SubCommandCommand, CommandError
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH)"
+
+warnings.filterwarnings("ignore")  # never print any warnings to users
 
 #: Name of the Cate CLI executable (= ``cate``).
 CLI_NAME = 'cate'
@@ -151,7 +154,8 @@ def _default_workspace_manager_factory() -> Any:
     # Read any existing '.cate/webapi.json'
     service_info = read_service_info(WEBAPI_INFO_FILE)
 
-    if not service_info or not is_service_running(service_info.get('port'), service_info.get('address'), timeout=5.):
+    if not service_info or not is_service_running(service_info.get('port'),
+                                                  service_info.get('address'), timeout=5.):
         WebAPI.start_subprocess(CATE_WEBAPI_START_MODULE,
                                 caller=CLI_NAME,
                                 service_info_file=WEBAPI_INFO_FILE,
@@ -178,7 +182,8 @@ def _to_str_const(s: str) -> str:
 
 def _parse_open_arg(load_arg: str) -> Tuple[NullableStr, NullableStr, NullableStr, NullableStr]:
     """
-    Parse string argument ``DS := "DS_NAME=DS_ID[,DATE1[,DATE2]]"`` and return tuple DS_NAME,DS_ID,DATE1,DATE2.
+    Parse string argument ``DS := "DS_NAME=DS_ID[,DATE1[,DATE2]]"`` and return
+    tuple DS_NAME,DS_ID,DATE1,DATE2.
 
     :param load_arg: The DS string argument
     :return: The tuple DS_NAME,DS_ID,DATE1,DATE2
@@ -192,12 +197,14 @@ def _parse_open_arg(load_arg: str) -> Tuple[NullableStr, NullableStr, NullableSt
         ds_id, date1, date2 = ds_id_and_date_range[0], ds_id_and_date_range[1], None
     else:
         ds_id, date1, date2 = ds_id_and_date_range[0], None, None
-    return ds_name if ds_name else None, ds_id if ds_id else None, date1 if date1 else None, date2 if date2 else None
+    return ds_name if ds_name else None, ds_id if ds_id else None, date1 if date1 else \
+        None, date2 if date2 else None
 
 
 def _parse_read_arg(read_arg: str) -> Tuple[NullableStr, NullableStr, NullableStr]:
     """
-    Parse string argument ``FILE := "INP_NAME=PATH[,FORMAT]`` and return tuple INP_NAME,PATH,FORMAT.
+    Parse string argument ``FILE := "INP_NAME=PATH[,FORMAT]`` and
+    return tuple INP_NAME,PATH,FORMAT.
 
     :param read_arg: The FILE string argument
     :return: The tuple INP_NAME,PATH,FORMAT
@@ -207,7 +214,8 @@ def _parse_read_arg(read_arg: str) -> Tuple[NullableStr, NullableStr, NullableSt
 
 def _parse_write_arg(write_arg) -> Tuple[NullableStr, NullableStr, NullableStr]:
     """
-    Parse string argument ``FILE := "[OUT_NAME=]PATH[,FORMAT]`` and return tuple OUT_NAME,PATH,FORMAT.
+    Parse string argument ``FILE := "[OUT_NAME=]PATH[,FORMAT]`` and
+    return tuple OUT_NAME,PATH,FORMAT.
 
     :param write_arg: The FILE string argument
     :return: The tuple OUT_NAME,PATH,FORMAT
@@ -216,25 +224,31 @@ def _parse_write_arg(write_arg) -> Tuple[NullableStr, NullableStr, NullableStr]:
     name, path = name_and_path if len(name_and_path) == 2 else (None, write_arg)
     path_and_format = path.rsplit(',', maxsplit=1)
     path, format_name = path_and_format if len(path_and_format) == 2 else (path, None)
-    return name if name else None, path if path else None, format_name.upper() if format_name else None
+    return name if name else None, path if path else None, format_name.upper() \
+        if format_name else None
 
 
 def _parse_op_args(raw_args: List[str],
                    input_props: Dict[str, Dict[str, Any]] = None,
-                   namespace: Dict[str, Any] = None) -> Tuple[List[Dict[str, Any]], Dict[str, Dict[str, Any]]]:
+                   namespace: Dict[str, Any] = None) \
+        -> Tuple[List[Dict[str, Any]], Dict[str, Dict[str, Any]]]:
     """
     Convert a raw argument list *raw_args* into a (args, kwargs) tuple.
-    All elements of the raw argument list *raw_args* are expected to be textual values of either the form
-    "value" (positional argument) or "name=value" (keyword argument) where value may either be
+    All elements of the raw argument list *raw_args* are expected to be textual values of either
+    the form "value" (positional argument) or "name=value" (keyword argument) where value
+    may either be
 
     1. "@name":  a reference by name to another step (= step ID)
        or another step's port (= a step's input or output name).
     2. "<Python expression>":  a constant Python expression
 
     :param raw_args: raw argument list of string elements
-    :param input_props: dict which maps an input name to extra properties, e.g. the "data_type" of an input
-    :param namespace: the namespace to be used when converting the raw text values into Python objects.
-    :return: a pair comprising the list of positional arguments and a dictionary holding the keyword arguments
+    :param input_props: dict which maps an input name to extra properties,
+        e.g. the "data_type" of an input
+    :param namespace: the namespace to be used when converting the raw text values into
+        Python objects.
+    :return: a pair comprising the list of positional arguments and a dictionary holding
+        the keyword arguments
     :raise ValueError: if the parsing fails
     """
 
@@ -317,7 +331,10 @@ def _parse_op_args(raw_args: List[str],
     return op_args, op_kwargs
 
 
-def _list_items(category_singular_name: str, category_plural_name: str, names: List, pattern: Optional[str]):
+def _list_items(category_singular_name: str,
+                category_plural_name: str,
+                names: List,
+                pattern: Optional[str]):
     if pattern:
         pattern = pattern.lower()
         names = [name for name in names if pattern in name.lower()]
@@ -336,7 +353,10 @@ def _get_op_data_type_str(data_type: str):
     return data_type.__name__ if isinstance(data_type, type) else repr(data_type)
 
 
-def _get_op_io_info_str(inputs_or_outputs: dict, title_singular: str, title_plural: str, title_none: str) -> str:
+def _get_op_io_info_str(inputs_or_outputs: dict,
+                        title_singular: str,
+                        title_plural: str,
+                        title_none: str) -> str:
     op_info_str = ''
     op_info_str += '\n'
     if inputs_or_outputs:
@@ -347,7 +367,8 @@ def _get_op_io_info_str(inputs_or_outputs: dict, title_singular: str, title_plur
             if properties.get('deprecated'):
                 continue
             op_info_str += '\n'
-            op_info_str += '  %s (%s)' % (name, _get_op_data_type_str(properties.get('data_type', object)))
+            op_info_str += '  %s (%s)' % \
+                           (name, _get_op_data_type_str(properties.get('data_type', object)))
             description = properties.get('description', None)
             if description:
                 op_info_str += '\n'
@@ -393,7 +414,8 @@ def _get_op_info_str(op_meta_info: Any):
         op_info_str += str(version)
         op_info_str += '\n'
 
-    op_info_str += _get_op_io_info_str(op_meta_info.inputs, 'Input', 'Inputs', 'Operation does not have any inputs.')
+    op_info_str += _get_op_io_info_str(op_meta_info.inputs, 'Input', 'Inputs',
+                                       'Operation does not have any inputs.')
     op_info_str += _get_op_io_info_str(op_meta_info.outputs, 'Output', 'Outputs',
                                        'Operation does not have any outputs.')
 
@@ -416,11 +438,12 @@ class RunCommand(Command):
     @classmethod
     def parser_kwargs(cls):
         return dict(help='Run an operation or Workflow file.',
-                    description='Runs the given operation or Workflow file with the specified operation '
-                                'arguments. Argument values may be constant values or the names of data loaded '
-                                'by the --open or --read options. '
-                                'Type "cate op list" to list all available operations. Type "cate op info" to find out'
-                                'which arguments are supported by a given operation.')
+                    description='Runs the given operation or Workflow file with the specified '
+                                'operation arguments. Argument values may be constant values or '
+                                'the names of data loaded by the --open or --read options. '
+                                'Type "cate op list" to list all available operations. '
+                                'Type "cate op info" to find out which arguments are supported by '
+                                'a given operation.')
 
     @classmethod
     def configure_parser(cls, parser):
@@ -430,38 +453,41 @@ class RunCommand(Command):
         parser.add_argument('-o', '--open', action='append', metavar='DS_EXPR', dest='open_args',
                             help='Open a dataset from DS_EXPR.\n'
                                  'The DS_EXPR syntax is NAME=DS[,START[,END]]. '
-                                 'DS must be a valid data source name. Type "cate ds list" to show '
-                                 'all known data source names. START and END are dates and may be used to create '
-                                 'temporal data subsets. The dataset loaded will be assigned to the arbitrary '
-                                 'name NAME which is used to pass the datasets or its variables'
-                                 'as an OP argument. To pass a variable use syntax NAME.VAR_NAME.')
+                                 'DS must be a valid data source name. Type "cate ds list" to '
+                                 'show all known data source names. START and END are dates and '
+                                 'may be used to create temporal data subsets. The dataset loaded '
+                                 'will be assigned to the arbitrary name NAME which is used to '
+                                 'pass the datasets or its variables as an OP argument. To pass a '
+                                 'variable use syntax NAME.VAR_NAME.')
         parser.add_argument('-r', '--read', action='append', metavar='FILE_EXPR', dest='read_args',
                             help='Read object from FILE_EXPR.\n'
                                  'The FILE_EXPR syntax is NAME=PATH[,FORMAT]. '
                                  'Type "cate io list -r" to see which formats are supported.'
-                                 'If FORMAT is not provided, file format is derived from the PATH\'s '
-                                 'filename extensions or file content. '
-                                 'NAME may be passed as an OP argument that receives a dataset, dataset '
-                                 'variable or any other data type. To pass a variable of a dataset use '
+                                 'If FORMAT is not provided, file format is derived from the '
+                                 'PATH\'s filename extensions or file content. NAME may be passed '
+                                 'as an OP argument that receives a dataset, dataset variable or '
+                                 'any other data type. To pass a variable of a dataset use '
                                  'syntax NAME.VAR_NAME')
-        parser.add_argument('-w', '--write', action='append', metavar='FILE_EXPR', dest='write_args',
+        parser.add_argument('-w', '--write', action='append', metavar='FILE_EXPR',
+                            dest='write_args',
                             help='Write result to FILE_EXPR. '
                                  'The FILE_EXPR syntax is [NAME=]PATH[,FORMAT]. '
                                  'Type "cate io list -w" to see which formats are supported.'
-                                 'If FORMAT is not provided, file format is derived from the object '
-                                 'type and the PATH\'s filename extensions. If OP returns multiple '
-                                 'named output values, NAME is used to identify them. Multiple -w '
-                                 'options may be used in this case.')
+                                 'If FORMAT is not provided, file format is derived from the '
+                                 'object type and the PATH\'s filename extensions. If OP returns '
+                                 'multiple named output values, NAME is used to identify them. '
+                                 'Multiple -w options may be used in this case.')
         parser.add_argument('op_name', metavar='OP',
                             help='Fully qualified operation name or Workflow file. '
                                  'Type "cate op list" to list available operators.')
         parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
-                            help='Operation arguments given as KEY=VALUE. KEY is any supported input by OP. VALUE '
-                                 'depends on the expected data type of an OP input. It can be a True, False, '
-                                 'a string, a numeric constant, one of the names specified by the --open and --read '
-                                 'options, or a Python expression. Type "cate op info OP" to print information '
-                                 'about the supported OP input names to be used as KEY and their data types to be '
-                                 'used as VALUE.')
+                            help='Operation arguments given as KEY=VALUE. KEY is any supported '
+                                 'input by OP. VALUE depends on the expected data type of an OP '
+                                 'input. It can be a True, False, a string, a numeric constant, '
+                                 'one of the names specified by the --open and --read options, '
+                                 'or a Python expression. Type "cate op info OP" to print '
+                                 'information about the supported OP input names to be used as '
+                                 'KEY and their data types to be used as VALUE.')
 
     def execute(self, command_args):
         from cate.core.objectio import find_writer, read_object
@@ -501,9 +527,11 @@ class RunCommand(Command):
                 raise CommandError('unknown operation "%s"' % op_name)
 
         op_args, op_kwargs = _parse_op_args(command_args.op_args,
-                                            input_props=op.op_meta_info.inputs, namespace=namespace)
+                                            input_props=op.op_meta_info.inputs,
+                                            namespace=namespace)
         if op_args and is_workflow:
-            raise CommandError("positional arguments are not yet supported, please provide keyword=value pairs only")
+            raise CommandError("positional arguments are not yet supported, "
+                               "please provide keyword=value pairs only")
 
         write_args = None
         if command_args.write_args:
@@ -513,13 +541,14 @@ class RunCommand(Command):
                     if not out_name:
                         raise CommandError("all --write options must have a NAME")
                     if out_name not in op.op_meta_info.outputs:
-                        raise CommandError('NAME "%s" in --write option is not an OP output' % out_name)
+                        raise CommandError('NAME "%s" in --write option is not an OP output'
+                                           % out_name)
             else:
                 if len(write_args) > 1:
                     raise CommandError("multiple --write options given for singular result")
                 out_name, file, format_name = write_args[0]
                 if out_name and out_name != 'return':
-                    raise CommandError('NAME "%s" in --write option is not an OP output' % out_name)
+                    raise CommandError(f'NAME "{out_name}" in --write option is not an OP output')
 
         if command_args.monitor:
             monitor = self.new_monitor()
@@ -532,7 +561,6 @@ class RunCommand(Command):
 
         op_kwargs = OrderedDict([(kw, v['value']) for kw, v in op_kwargs.items() if 'value' in v])
 
-        # print("Running '%s' with args=%s and kwargs=%s" % (op.op_meta_info.qualified_name, op_args, dict(op_kwargs)))
         return_value = op(monitor=monitor, **op_kwargs)
         if op.op_meta_info.has_named_outputs:
             if write_args:
@@ -540,7 +568,8 @@ class RunCommand(Command):
                     out_value = return_value[out_name]
                     writer = find_writer(out_value, file, format_name=format_name)
                     if writer:
-                        print('Writing output "%s" to %s using %s format...' % (out_name, file, writer.format_name))
+                        print('Writing output "%s" to %s using %s format...' %
+                              (out_name, file, writer.format_name))
                         writer.write(out_value, file)
                     else:
                         raise CommandError('unknown format for --write output "%s"' % out_name)
@@ -562,13 +591,14 @@ class RunCommand(Command):
                     pprint.pprint(return_value)
 
 
-OP_ARGS_RES_HELP = 'Operation arguments given as KEY=VALUE. KEY is any supported input by OP. VALUE ' \
-                   'depends on the expected data type of an OP input. It can be either a value or ' \
-                   'a reference an existing resource prefixed by the add character "@". ' \
-                   'The latter connects to operation steps with each other. To provide a (constant)' \
-                   'value you can use boolean literals True and False, strings, or numeric values. ' \
-                   'Type "cate op info OP" to print information about the supported OP ' \
-                   'input names to be used as KEY and their data types to be used as VALUE. '
+OP_ARGS_RES_HELP = 'Operation arguments given as KEY=VALUE. KEY is any supported input by OP. ' \
+                   'VALUE depends on the expected data type of an OP input. It can be either a ' \
+                   'value or a reference an existing resource prefixed by the add character ' \
+                   '"@". The latter connects to operation steps with each other. To provide a ' \
+                   '(constant) value you can use boolean literals True and False, strings, or ' \
+                   'numeric values. Type "cate op info OP" to print information about the ' \
+                   'supported OP input names to be used as KEY and their data types to be used ' \
+                   'as VALUE. '
 
 
 class WorkspaceCommand(SubCommandCommand):
@@ -584,11 +614,12 @@ class WorkspaceCommand(SubCommandCommand):
     def parser_kwargs(cls):
         return dict(help='Manage workspaces.',
                     description='Used to create, open, save, modify, and delete workspaces. '
-                                'Workspaces contain named workflow resources, which can be datasets read from data '
-                                'stores, or any other data objects originating from applying operations to datasets '
-                                'and other data objects. The origin of every resource is stored in the workspace\'s '
-                                'workflow description. '
-                                'Type "cate res -h" for more information about workspace resource commands.')
+                                'Workspaces contain named workflow resources, which can be '
+                                'datasets read from data stores, or any other data objects '
+                                'originating from applying operations to datasets and other '
+                                'data objects. The origin of every resource is stored in the '
+                                'workspace\'s workflow description. Type "cate res -h" for more '
+                                'information about workspace resource commands.')
 
     @classmethod
     def configure_parser_and_subparsers(cls, parser, subparsers):
@@ -642,7 +673,8 @@ class WorkspaceCommand(SubCommandCommand):
                                 help='Do not ask for confirmation.')
         del_parser.set_defaults(sub_command_function=cls._execute_del)
 
-        clean_parser = subparsers.add_parser('clean', help='Clean workspace (removes all resources).')
+        clean_parser = subparsers.add_parser('clean',
+                                             help='Clean workspace (removes all resources).')
         clean_parser.add_argument(*base_dir_args, **base_dir_kwargs)
         clean_parser.add_argument('-y', '--yes', dest='yes', action='store_true', default=False,
                                   help='Do not ask for confirmation.')
@@ -655,10 +687,13 @@ class WorkspaceCommand(SubCommandCommand):
         list_parser = subparsers.add_parser('list', help='List all opened workspaces.')
         list_parser.set_defaults(sub_command_function=cls._execute_list)
 
-        exit_parser = subparsers.add_parser('exit', help='Exit interactive mode. Closes all open workspaces.')
+        exit_parser = subparsers.add_parser('exit',
+                                            help='Exit interactive mode. '
+                                                 'Closes all open workspaces.')
         exit_parser.add_argument('-y', '--yes', dest='yes', action='store_true', default=False,
                                  help='Do not ask for confirmation.')
-        exit_parser.add_argument('-s', '--save', dest='save_all', action='store_true', default=False,
+        exit_parser.add_argument('-s', '--save', dest='save_all', action='store_true',
+                                 default=False,
                                  help='Save any modified workspaces before closing.')
         exit_parser.set_defaults(sub_command_function=cls._execute_exit)
 
@@ -713,7 +748,8 @@ class WorkspaceCommand(SubCommandCommand):
         if command_args.yes:
             answer = 'y'
         else:
-            prompt = 'Do you really want to delete workspace "%s" ([y]/n)? ' % (command_args.base_dir or '.')
+            prompt = 'Do you really want to delete workspace "%s" ([y]/n)? ' \
+                     % (command_args.base_dir or '.')
             answer = input(prompt)
         if not answer or answer.lower() == 'y':
             workspace_manager = _new_workspace_manager()
@@ -725,7 +761,8 @@ class WorkspaceCommand(SubCommandCommand):
         if command_args.yes:
             answer = 'y'
         else:
-            prompt = 'Do you really want to clean workspace "%s" ([y]/n)? ' % (command_args.base_dir or '.')
+            prompt = 'Do you really want to clean workspace "%s" ([y]/n)? ' \
+                     % (command_args.base_dir or '.')
             answer = input(prompt)
         if not answer or answer.lower() == 'y':
             workspace_manager = _new_workspace_manager()
@@ -738,9 +775,11 @@ class WorkspaceCommand(SubCommandCommand):
 
         workspace_manager = _new_workspace_manager()
         op = OP_REGISTRY.get_op(command_args.op_name, True)
-        op_args, op_kwargs = _parse_op_args(command_args.op_args, input_props=op.op_meta_info.inputs)
+        op_args, op_kwargs = _parse_op_args(command_args.op_args,
+                                            input_props=op.op_meta_info.inputs)
         if op_args:
-            raise CommandError("positional arguments not yet supported, please provide keyword=value pairs only")
+            raise CommandError("positional arguments not yet supported, "
+                               "please provide keyword=value pairs only")
         workspace_manager.run_op_in_workspace(_base_dir(command_args.base_dir),
                                               command_args.op_name,
                                               op_kwargs,
@@ -777,7 +816,8 @@ class WorkspaceCommand(SubCommandCommand):
 
         service_info = read_service_info(WEBAPI_INFO_FILE)
         if not service_info or \
-                not is_service_running(service_info.get('port'), service_info.get('address'), timeout=5.):
+                not is_service_running(service_info.get('port'), service_info.get('address'),
+                                       timeout=5.):
             return
 
         if command_args.yes:
@@ -789,15 +829,17 @@ class WorkspaceCommand(SubCommandCommand):
             if command_args.save_all:
                 workspace_manager.save_all_workspaces(monitor=cls.new_monitor())
             workspace_manager.close_all_workspaces()
-            WebAPI.stop_subprocess(CATE_WEBAPI_STOP_MODULE, caller=CLI_NAME, service_info_file=WEBAPI_INFO_FILE)
+            WebAPI.stop_subprocess(CATE_WEBAPI_STOP_MODULE,
+                                   caller=CLI_NAME,
+                                   service_info_file=WEBAPI_INFO_FILE)
 
     @classmethod
     def _print_workspace(cls, workspace):
         workflow = workspace.workflow
-        print('Workspace base directory is [%s] (%s, %s)' % (workspace.base_dir,
-                                                             'saved' if os.path.exists(
-                                                                 workspace.workspace_data_dir) else 'not saved yet',
-                                                             'modified' if workspace.is_modified else 'no changes'))
+        print('Workspace base directory is [%s] (%s, %s)'
+              % (workspace.base_dir,
+                 'saved' if os.path.exists(workspace.workspace_data_dir) else 'not saved yet',
+                 'modified' if workspace.is_modified else 'no changes'))
         if len(workflow.steps) > 0:
             print('Workspace resources:')
             for step in workflow.steps:
@@ -818,7 +860,8 @@ class ResourceCommand(SubCommandCommand):
     @classmethod
     def parser_kwargs(cls):
         return dict(help='Manage workspace resources.',
-                    description='Used to set, run, open, read, write, plot, etc. workspace resources. '
+                    description='Used to set, run, open, read, write, plot, etc. '
+                                'workspace resources. '
                                 'All commands expect an opened workspace. '
                                 'Type "cate ws -h" for more information about workspace commands.')
 
@@ -831,20 +874,24 @@ class ResourceCommand(SubCommandCommand):
                                     'If not given, the current working directory is used.')
 
         open_parser = subparsers.add_parser('open',
-                                            help='Open a dataset from a data source and set a resource.')
+                                            help='Open a dataset from a data source and '
+                                                 'set a resource.')
         open_parser.add_argument(*base_dir_args, **base_dir_kwargs)
         open_parser.add_argument('res_name', metavar='NAME',
                                  help='Name of the new target resource.')
         open_parser.add_argument('ds_name', metavar='DS',
-                                 help='A data source named DS. Type "cate ds list" to list valid data source names.')
+                                 help='A data source named DS. Type "cate ds list" to list valid '
+                                      'data source names.')
         open_parser.add_argument('start_date', metavar='START', nargs='?',
                                  help='Start date. Use format "YYYY[-MM[-DD]]".')
         open_parser.add_argument('end_date', metavar='END', nargs='?',
                                  help='End date. Use format "YYYY[-MM[-DD]]".')
         open_parser.add_argument('region', metavar='REGION', nargs='?',
-                                 help='Region constraint. Use format "min_lon,min_lat,max_lon,max_lat".')
+                                 help='Region constraint. '
+                                      'Use format "min_lon,min_lat,max_lon,max_lat".')
         open_parser.add_argument('var_names', metavar='VAR_NAMES', nargs='?',
-                                 help='Names of variables to be included. Use format "pattern1,pattern2,pattern3".')
+                                 help='Names of variables to be included. '
+                                      'Use format "pattern1,pattern2,pattern3".')
         open_parser.set_defaults(sub_command_function=cls._execute_open)
 
         read_parser = subparsers.add_parser('read',
@@ -856,11 +903,13 @@ class ResourceCommand(SubCommandCommand):
                                  help='File path.')
         read_parser.add_argument('-f', '--format', dest='format_name', metavar='FORMAT',
                                  help='File format. '
-                                      'Type "cate io list -r" to see which formats are supported.')
+                                      'Type "cate io list -r" to see which formats '
+                                      'are supported.')
         # We may support reader-specific arguments later:
         # read_parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
         #                           help='Specific reader arguments. '
-        #                                'Type "cate res read -h" to list format-specific read arguments')
+        #                                'Type "cate res read -h" to list format-specific
+        #                                read arguments')
         read_parser.set_defaults(sub_command_function=cls._execute_read)
 
         write_parser = subparsers.add_parser('write',
@@ -872,22 +921,27 @@ class ResourceCommand(SubCommandCommand):
                                   help='File path.')
         write_parser.add_argument('-f', '--format', dest='format_name', metavar='FORMAT',
                                   help='File format. '
-                                       'Type "cate io list -w" to see which formats are supported.')
+                                       'Type "cate io list -w" to see which formats are '
+                                       'supported.')
         # We may support writer-specific arguments later:
         # read_parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
         #                           help='Specific reader arguments. '
-        #                                'Type "cate res write -h" to list format-specific write arguments')
+        #                                'Type "cate res write -h" to list format-specific
+        #                                write arguments')
         write_parser.set_defaults(sub_command_function=cls._execute_write)
 
         set_parser = subparsers.add_parser('set',
                                            help='Set a resource from the result of an operation.')
         set_parser.add_argument(*base_dir_args, **base_dir_kwargs)
         set_parser.add_argument('-o', '--overwrite', action='store_true',
-                                help='Overwrite an existing workflow step / target resource with same NAME.')
+                                help='Overwrite an existing workflow step / target resource '
+                                     'with same NAME.')
         set_parser.add_argument('res_name', metavar='NAME',
-                                help='Name of the target resource to be set. Use -o to overwrite an existing NAME.')
+                                help='Name of the target resource to be set. Use -o to overwrite '
+                                     'an existing NAME.')
         set_parser.add_argument('op_name', metavar='OP',
-                                help='Operation name. Type "cate op list" to list available operation names.')
+                                help='Operation name. Type "cate op list" to list available '
+                                     'operation names.')
         set_parser.add_argument('op_args', metavar='...', nargs=argparse.REMAINDER,
                                 help=OP_ARGS_RES_HELP)
         set_parser.set_defaults(sub_command_function=cls._execute_set)
@@ -906,17 +960,22 @@ class ResourceCommand(SubCommandCommand):
                                 help='Resource name.')
         del_parser.set_defaults(sub_command_function=cls._execute_del)
 
-        print_parser = subparsers.add_parser('print', help='If EXPR is omitted, print value of all current resources.'
-                                                           'Otherwise, if EXPR identifies a resource, print its value.'
-                                                           'Else print the value of a (Python) expression evaluated '
-                                                           'in the context of the current workspace.')
+        print_parser = subparsers.add_parser('print',
+                                             help='If EXPR is omitted, print value of all '
+                                                  'current resources. Otherwise, if EXPR '
+                                                  'identifies a resource, print its value. Else '
+                                                  'print the value of a (Python) expression '
+                                                  'evaluated in the context of the current '
+                                                  'workspace.')
         print_parser.add_argument(*base_dir_args, **base_dir_kwargs)
         print_parser.add_argument('res_name_or_expr', metavar='EXPR', nargs='?',
-                                  help='Name of an existing resource or a valid (Python) expression.')
+                                  help='Name of an existing resource or a valid (Python) '
+                                       'expression.')
         print_parser.set_defaults(sub_command_function=cls._execute_print)
 
-        plot_parser = subparsers.add_parser('plot', help='Plot a resource or the value of a (Python) expression '
-                                                         'evaluated in the context of the current workspace.')
+        plot_parser = subparsers.add_parser('plot', help='Plot a resource or the value of a '
+                                                         '(Python) expression evaluated in the '
+                                                         'context of the current workspace.')
         plot_parser.add_argument(*base_dir_args, **base_dir_kwargs)
         plot_parser.add_argument('res_name_or_expr', metavar='EXPR',
                                  help='Name of an existing resource or any (Python) expression.')
@@ -973,9 +1032,11 @@ class ResourceCommand(SubCommandCommand):
 
         workspace_manager = _new_workspace_manager()
         op = OP_REGISTRY.get_op(command_args.op_name, True)
-        op_args, op_kwargs = _parse_op_args(command_args.op_args, input_props=op.op_meta_info.inputs)
+        op_args, op_kwargs = _parse_op_args(command_args.op_args,
+                                            input_props=op.op_meta_info.inputs)
         if op_args:
-            raise CommandError("positional arguments not yet supported, please provide keyword=value pairs only")
+            raise CommandError("positional arguments not yet supported, "
+                               "please provide keyword=value pairs only")
         workspace_manager.set_workspace_resource(_base_dir(command_args.base_dir),
                                                  command_args.op_name,
                                                  op_kwargs,
@@ -993,7 +1054,7 @@ class ResourceCommand(SubCommandCommand):
         workspace_manager.rename_workspace_resource(_base_dir(command_args.base_dir),
                                                     command_args.res_name,
                                                     command_args.res_name_new)
-        print('Resource "%s" renamed to "%s".' % (command_args.res_name, command_args.res_name_new))
+        print(f'Resource "{command_args.res_name}" renamed to "{command_args.res_name_new}".')
 
     @classmethod
     def _execute_del(cls, command_args):
@@ -1040,8 +1101,8 @@ class OperationCommand(SubCommandCommand):
     @classmethod
     def parser_kwargs(cls):
         return dict(help='Manage data operations.',
-                    description='Provides a set of commands to inquire the available operations used to '
-                                'analyse and process climate datasets.')
+                    description='Provides a set of commands to inquire the available operations '
+                                'used to analyse and process climate datasets.')
 
     @classmethod
     def configure_parser_and_subparsers(cls, parser, subparsers):
@@ -1060,7 +1121,8 @@ class OperationCommand(SubCommandCommand):
                                  help='List operations tagged "internal".')
         list_parser.set_defaults(sub_command_function=cls._execute_list)
 
-        info_parser = subparsers.add_parser('info', help='Show usage information about an operation.')
+        info_parser = subparsers.add_parser('info',
+                                            help='Show usage information about an operation.')
         info_parser.add_argument('op_name', metavar='OP',
                                  help="Fully qualified operation name.")
         info_parser.set_defaults(sub_command_function=cls._execute_info)
@@ -1072,7 +1134,11 @@ class OperationCommand(SubCommandCommand):
 
         op_regs = OP_REGISTRY.op_registrations
 
-        def _is_op_selected(op_name: str, op_reg, tag_part: str, internal_only: bool, deprecated_only: bool):
+        def _is_op_selected(op_name: str,
+                            op_reg,
+                            tag_part: str,
+                            internal_only: bool,
+                            deprecated_only: bool):
             if op_name.startswith('_'):
                 # do not list private operations
                 return False
@@ -1101,8 +1167,8 @@ class OperationCommand(SubCommandCommand):
             return True
 
         op_names = sorted([op_name for op_name, op_reg in op_regs.items() if
-                           _is_op_selected(op_name, op_reg, command_args.tag, command_args.internal,
-                                           command_args.deprecated)])
+                           _is_op_selected(op_name, op_reg, command_args.tag,
+                                           command_args.internal, command_args.deprecated)])
         name_pattern = None
         if command_args.name:
             name_pattern = command_args.name
@@ -1133,9 +1199,10 @@ class DataSourceCommand(SubCommandCommand):
     @classmethod
     def parser_kwargs(cls):
         return dict(help='Manage data sources.',
-                    description='Provides a set of sub-commands used to manage climate data sources. Data sources '
-                                'are used to open local and remote datasets which are input to various analysis and '
-                                'processing operations. Type "cate op -h" to find out more about available operations.')
+                    description='Provides a set of sub-commands used to manage climate data '
+                                'sources. Data sources are used to open local and remote datasets '
+                                'which are input to various analysis and processing operations. '
+                                'Type "cate op -h" to find out more about available operations.')
 
     @classmethod
     def configure_parser_and_subparsers(cls, parser, subparsers):
@@ -1148,8 +1215,6 @@ class DataSourceCommand(SubCommandCommand):
                                  help="Show also data sources that can not be opened in Cate")
         list_parser.add_argument('--coverage', '-c', action='store_true',
                                  help="Also display temporal coverage")
-        list_parser.add_argument('--update', '-u', action='store_true',
-                                 help='Display data store updates')
         # Improvement (marcoz, 20160905): implement "cate ds list --var"
         # list_parser.add_argument('--var', '-v', metavar='VAR',
         #                          help="List only data sources with a variable named NAME or "
@@ -1157,129 +1222,124 @@ class DataSourceCommand(SubCommandCommand):
         #                               "The comparison is case insensitive.")
         list_parser.set_defaults(sub_command_function=cls._execute_list)
 
-        info_parser = subparsers.add_parser('info', help='Display information about a data source.')
+        info_parser = subparsers.add_parser('info',
+                                            help='Display information about a data source.')
         info_parser.add_argument('ds_name', metavar='DS',
                                  help='A data source name. '
-                                      'Type "cate ds list" to show all possible data source names.')
+                                      'Type "cate ds list" to show all possible data source '
+                                      'names.')
         info_parser.add_argument('--var', '-v', action='store_true',
-                                 help="Also display information about contained dataset variables.")
+                                 help="Also display information about contained dataset "
+                                      "variables.")
         info_parser.add_argument('--local', '-l', action='store_true',
                                  help="Also display temporal coverage of cached datasets.")
 
         info_parser.set_defaults(sub_command_function=cls._execute_info)
 
-        add_parser = subparsers.add_parser('add', help='Add a new file data source using a file path pattern.')
+        add_parser = subparsers.add_parser('add',
+                                           help='Add a new file data source using a file path '
+                                                'pattern.')
         add_parser.add_argument('ds_name', metavar='DS', help='A name for the data source.')
         add_parser.add_argument('file', metavar='FILE', nargs="+",
                                 help='A list of files comprising this data source. '
                                      'The files can contain the wildcard characters "*" and "?".')
         add_parser.set_defaults(sub_command_function=cls._execute_add)
 
-        del_parser = subparsers.add_parser('del', help='Removes a data source from file data store.')
+        del_parser = subparsers.add_parser('del',
+                                           help='Removes a data source from file data store.')
         del_parser.add_argument('ds_name', metavar='DS', help='A name for the data source.')
-        del_parser.add_argument('-k', '--keep_files', dest='keep_files', action='store_true', default=False,
-                                help='Do not ask for confirmation.')
+        del_parser.add_argument('-k', '--keep_files', dest='keep_files', action='store_true',
+                                default=False, help='Do not ask for confirmation.')
         del_parser.add_argument('-y', '--yes', dest='yes', action='store_true', default=False,
                                 help='Do not ask for confirmation.')
         del_parser.set_defaults(sub_command_function=cls._execute_del)
 
-        copy_parser = subparsers.add_parser('copy', help='Makes a file copy of any other data source. '
-                                                         'The copy may be limited to a subset by optional constraints.')
+        copy_parser = subparsers.add_parser('copy',
+                                            help='Makes a file copy of any other data source. '
+                                                 'The copy may be limited to a subset by optional '
+                                                 'constraints.')
         copy_parser.add_argument('ref_ds', metavar='REF_DS', help='A name of origin data source.')
         copy_parser.add_argument('--name', '-n', metavar='NAME',
                                  help='A name for new data source.')
         copy_parser.add_argument('--time', '-t', metavar='TIME',
                                  help='Time range constraint. Use format "YYYY-MM-DD,YYYY-MM-DD".')
         copy_parser.add_argument('--region', '-r', metavar='REG',
-                                 help='Region constraint. Use format: "min_lon,min_lat,max_lon,max_lat".')
+                                 help='Region constraint. '
+                                      'Use format: "min_lon,min_lat,max_lon,max_lat".')
         copy_parser.add_argument('--vars', '-v', metavar='VARS',
-                                 help='Names of variables to be included. Use format "pattern1,pattern2,..."')
+                                 help='Names of variables to be included. '
+                                      'Use format "pattern1,pattern2,..."')
         copy_parser.set_defaults(sub_command_function=cls._execute_copy)
 
     # noinspection PyShadowingNames
     @classmethod
     def _execute_list(cls, command_args):
-        from cate.core.ds import find_data_sources, find_data_sources_update
-        from cate.core.types import TimeRangeLike
-
+        from cate.core.ds import DATA_STORE_POOL
+        from cate.core.ds import get_data_descriptor
         ds_name = command_args.name
-        data_sources = sorted(find_data_sources(query_expr=ds_name), key=lambda ds: ds.id)
-        if command_args.all:
-            for ds in data_sources:
-                if hasattr(ds, 'cate_openable') and not ds.cate_openable:
-                    data_sources.remove(ds)
+        data_ids = []
+        for data_store_instance_id in DATA_STORE_POOL.store_instance_ids:
+            data_store = DATA_STORE_POOL.get_store(data_store_instance_id)
+            if ds_name:
+                data_ids.extend([data_id for data_id in data_store.get_data_ids()
+                                 if ds_name in data_id])
+            else:
+                data_ids.extend([data_id for data_id in data_store.get_data_ids()])
         if command_args.coverage:
             ds_names = []
-            for ds in data_sources:
+            for ds in data_ids:
                 time_range = 'None'
-                temporal_coverage = ds.temporal_coverage()
-                if temporal_coverage:
-                    time_range = TimeRangeLike.format(temporal_coverage)
-                ds_names.append('%s [%s]' % (ds.id, time_range))
+                data_descriptor = get_data_descriptor(ds_id=ds)
+                if data_descriptor.time_range:
+                    time_range = data_descriptor.time_range
+                ds_names.append('%s [%s]' % (ds, time_range))
         else:
-            ds_names = [ds.id for ds in data_sources]
+            ds_names = data_ids
         _list_items('data source', 'data sources', ds_names, None)
-
-        if command_args.update:
-            ds_updates = find_data_sources_update()
-            if len(ds_updates) == 0:
-                print('All datastores are up to date.')
-            else:
-                for k in ds_updates.keys():
-                    upd = ds_updates[k]
-                    msg = 'Updates found in "{}" with snapshot reference time {}'.format(k, upd['source_ref_time'])
-                    print(msg)
-                    if upd['new']:
-                        _list_items('new data source', 'new data sources', upd['new'], None)
-                    if upd['del']:
-                        _list_items('removed data source', 'removed data sources', upd['del'], None)
 
     @classmethod
     def _execute_info(cls, command_args):
-        from cate.core.ds import find_data_sources, format_cached_datasets_coverage_string, format_variables_info_string
+        from cate.core.ds import get_info_string_from_data_descriptor
+        from cate.core.ds import find_data_store
+        from cate.core.ds import format_cached_datasets_coverage_string
+        from cate.core.ds import format_variables_info_string
 
         ds_name = command_args.ds_name
-        data_sources = [data_source for data_source in find_data_sources(ds_id=ds_name) if data_source.id == ds_name]
-        if not data_sources:
-            raise CommandError('data source "%s" not found' % ds_name)
-
-        data_source = data_sources[0]
-        title = 'Data source %s' % data_source.id
+        data_store_id, data_store = find_data_store(ds_id=ds_name)
+        if not data_store:
+            raise CommandError(f"No data store found that contains the ID '{ds_name}'")
+        descriptor = data_store.describe_data(ds_name)
+        title = 'Data source %s' % descriptor.data_id
         print()
         print(title)
         print('=' * len(title))
         print()
-        print(data_source.info_string)
+        print(get_info_string_from_data_descriptor(descriptor))
         if command_args.local:
             print('\n'
                   'Locally stored datasets:\n'
                   '------------------------\n'
-                  '{info}'.format(info=format_cached_datasets_coverage_string(data_source.cache_info)))
+                  '{info}'.format(info=format_cached_datasets_coverage_string({})))
         if command_args.var:
             print()
             print('Variables')
             print('---------')
             print()
-            print(format_variables_info_string(data_source.variables_info))
+            print(format_variables_info_string(descriptor))
 
     @classmethod
     def _execute_add(cls, command_args):
-        from cate.core.ds import DATA_STORE_REGISTRY
-
-        local_store = DATA_STORE_REGISTRY.get_data_store('local')
-        if local_store is None:
-            raise RuntimeError('internal error: no file data store found')
-
+        from cate.core.ds import add_as_local
         ds_name = command_args.ds_name
         files = command_args.file
-        ds = local_store.add_pattern(ds_name, files)
-        print("File data source with name '%s' added." % ds.id)
+        ds, ds_id = add_as_local(data_source_id=ds_name, paths=files)
+        print(f'Added local data source as "{ds_id}" added.')
 
     @classmethod
     def _execute_del(cls, command_args):
-        from cate.core.ds import DATA_STORE_REGISTRY
+        from cate.core.ds import DATA_STORE_POOL
 
-        local_store = DATA_STORE_REGISTRY.get_data_store('local')
+        local_store = DATA_STORE_POOL.get_store('local')
         if local_store is None:
             raise RuntimeError('internal error: no file data store found')
         ds_name = command_args.ds_name
@@ -1289,41 +1349,32 @@ class DataSourceCommand(SubCommandCommand):
             prompt = 'Do you really want to delete file data source "%s" ([y]/n)? ' % ds_name
             answer = input(prompt)
         if not answer or answer.lower() == 'y':
-            keep_files = command_args.keep_files
-            local_store.remove_data_source(ds_name, not keep_files)
+            if command_args.keep_files:
+                local_store.deregister_data(ds_name)
+            else:
+                local_store.delete_data(ds_name)
             print("File data source with name '%s' has been removed successfully." % ds_name)
 
     @classmethod
     def _execute_copy(cls, command_args):
-        from cate.core.ds import DATA_STORE_REGISTRY, find_data_sources
-        from cate.core.types import TimeRangeLike, PolygonLike, VarNamesLike
-
-        local_store = DATA_STORE_REGISTRY.get_data_store('local')
-        if local_store is None:
-            raise RuntimeError('internal error: no file data store found')
-
-        ds_name = command_args.ref_ds
-        data_source = next(iter(find_data_sources(ds_id=ds_name)), None)
-        if data_source is None:
-            raise RuntimeError('internal error: no file data source found: %s' % ds_name)
-
-        local_name = command_args.name if command_args.name else None
-
-        time_range = TimeRangeLike.convert(command_args.time)
-        region = PolygonLike.convert(command_args.region)
-        var_names = VarNamesLike.convert(command_args.vars)
-
-        ds = data_source.make_local(local_name, time_range=time_range, region=region, var_names=var_names,
-                                    monitor=cls.new_monitor())
-        if ds:
-            print("File data source with name '%s' has been created." % ds.id)
+        from cate.core.ds import open_dataset
+        local_dataset, local_dataset_id = open_dataset(dataset_id=command_args.ref_ds,
+                                                       time_range=command_args.time,
+                                                       region=command_args.region,
+                                                       var_names=command_args.vars,
+                                                       force_local=True,
+                                                       local_ds_id=command_args.name)
+        if local_dataset:
+            print("File data source with name '%s' has been created." % local_dataset_id)
         else:
-            print("File data source not created. It would have been empty. Please check constraint.")
+            print("File data source not created. It would have been empty. "
+                  "Please check constraint.")
 
 
 class UpdateCommand(Command):
     """
-    The ``update`` command is used to update an existing cate environment to a specific or the latest cate version.
+    The ``update`` command is used to update an existing cate environment to a specific or the
+    latest cate version.
     """
 
     @classmethod
@@ -1332,8 +1383,10 @@ class UpdateCommand(Command):
 
     @classmethod
     def parser_kwargs(cls):
-        return dict(help='Update an existing cate environment to a specific or to the latest cate version',
-                    description='Update an existing cate environment to a specific or to the latest cate version.')
+        return dict(help='Update an existing cate environment to a specific or to the latest cate '
+                         'version',
+                    description='Update an existing cate environment to a specific or to the '
+                                'latest cate version.')
 
     @classmethod
     def configure_parser(cls, parser):
@@ -1345,8 +1398,9 @@ class UpdateCommand(Command):
                             help='Only display what would have been done.')
         parser.add_argument('version', metavar='VERSION', nargs='?', default=None,
                             help='A cate version identifier, e.g. "1.0.3"; '
-                                 'the version identifier must have the form "major.minor.micro" and may comprise '
-                                 'a development release suffix, e.g. "1.2.0.dev4"')
+                                 'the version identifier must have the form "major.minor.micro" '
+                                 'and may comprise a development release suffix, '
+                                 'e.g. "1.2.0.dev4"')
 
     def execute(self, command_args):
         current_version = __version__
@@ -1395,7 +1449,8 @@ class UpdateCommand(Command):
             print('Current version is %s' % current_version)
             if desired_version:
                 available = desired_version in available_versions
-                print('Desired version is %s (%s)' % (desired_version, 'available' if available else 'not available'))
+                print(f'Desired version is %s (%s)'
+                      % (desired_version, 'available' if available else 'not available'))
             print('Available versions:')
             for available_version in available_versions:
                 print(' ', available_version)
@@ -1412,18 +1467,20 @@ class UpdateCommand(Command):
             return
 
         if desired_version not in available_versions:
-            raise CommandError('desired cate version %s is not available; '
-                               'type "cate upd --info" to show available versions' % desired_version)
+            raise CommandError(f'desired cate version {desired_version} is not available; '
+                               'type "cate upd --info" to show available versions')
 
         if command_args.yes or dry_run:
             answer = 'y'
         else:
-            prompt = 'Do you really want to change from %s to %s (y/[n])? ' % (current_version, desired_version)
+            prompt = f'Do you really want to change from {current_version} to {desired_version} ' \
+                     f'(y/[n])? '
             answer = input(prompt)
         if not answer or answer.lower() != 'y':
             return
 
-        command = [conda_path, 'install', '--yes', '--channel', channel, '--channel', 'conda-forge']
+        command = [conda_path, 'install', '--yes', '--channel',
+                   channel, '--channel', 'conda-forge']
         if dry_run:
             command.append('--dry-run')
         command.append('%s=%s' % (package, desired_version))
@@ -1518,7 +1575,8 @@ class PluginCommand(SubCommandCommand):
         _list_items('plugin', 'plugins', sorted(PLUGIN_REGISTRY.keys()), name_pattern)
 
 
-#: List of sub-commands supported by the CLI. Entries are classes derived from :py:class:`Command` class.
+#: List of sub-commands supported by the CLI. Entries are classes derived from
+# :py:class:`Command` class.
 #: Cate plugins may extend this list by their commands during plugin initialisation.
 COMMAND_REGISTRY = [
     DataSourceCommand,
@@ -1548,8 +1606,8 @@ def _trim_error_message(message: str) -> str:
 def _make_cate_parser():
     from cate.util.cli import _make_parser
     # noinspection PyTypeChecker
-    return _make_parser(CLI_NAME, CLI_DESCRIPTION, __version__, COMMAND_REGISTRY, license_text=_LICENSE,
-                        docs_url=_DOCS_URL)
+    return _make_parser(CLI_NAME, CLI_DESCRIPTION, __version__, COMMAND_REGISTRY,
+                        license_text=_LICENSE, docs_url=_DOCS_URL)
 
 
 def main(args=None) -> int:

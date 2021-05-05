@@ -165,4 +165,11 @@ def _get_tolerance(ds: xr.Dataset, tolerance_default: float):
             lat_res = _get_geo_spatial_cf_attrs_from_var(ds, 'lat')[lat_res_attr_name]
         except ValueError:
             return tolerance_default
-    return (float(lon_res) + float(lat_res)) / 2
+    if isinstance(lon_res, str) and lon_res.find(' ') > 0:
+        lon_res = lon_res.split(' ')[0]
+    if isinstance(lat_res, str) and lat_res.find(' ') > 0:
+        lat_res = lat_res.split(' ')[0]
+    try:
+        return (float(lon_res) + float(lat_res)) / 2
+    except ValueError:
+        return tolerance_default

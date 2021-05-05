@@ -1,5 +1,7 @@
 ## Version 3.0.0 (in development)
 
+* xcube integration
+* new experimental Zarr store 
 * Added a Web API function `keep_alive` that is periodically used by Cate App  
   to avoid loosing an open WebSocket connection. (#980)
 

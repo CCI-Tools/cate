@@ -23,8 +23,8 @@
 Description
 ===========
 
-Operations for resources of type pandas.DataFrame, geopandas.GeoDataFrame and cate.core.types.GeoDataFrame which all
-form (Feature) Attribute Tables (FAT).
+Operations for resources of type pandas.DataFrame, geopandas.GeoDataFrame
+and cate.core.types.GeoDataFrame which all form (Feature) Attribute Tables (FAT).
 
 Functions
 =========
@@ -43,7 +43,12 @@ import shapely.geometry
 import shapely.ops
 
 from cate.core.op import op, op_input
-from cate.core.types import VarName, DataFrameLike, GeometryLike, ValidationError, VarNamesLike, PolygonLike
+from cate.core.types import DataFrameLike
+from cate.core.types import GeometryLike
+from cate.core.types import PolygonLike
+from cate.core.types import ValidationError
+from cate.core.types import VarName
+from cate.core.types import VarNamesLike
 from cate.util.monitor import Monitor
 
 _DEG2RAD = math.pi / 180.
@@ -92,7 +97,8 @@ def data_frame_max(df: DataFrameLike.TYPE, var: VarName.TYPE) -> pd.DataFrame:
 @op_input('query_expr')
 def data_frame_query(df: DataFrameLike.TYPE, query_expr: str) -> pd.DataFrame:
     """
-    Select records from the given data frame where the given conditional query expression evaluates to "True".
+    Select records from the given data frame where the given conditional query expression
+    evaluates to "True".
 
     If the data frame *df* contains a geometry column (a ``GeoDataFrame`` object),
     then the query expression *query_expr* can also contain geometric relationship tests,
@@ -124,31 +130,45 @@ def data_frame_query(df: DataFrameLike.TYPE, query_expr: str) -> pd.DataFrame:
 
         source_crs = dict(init='epsg:4326')
         try:
-            target_crs = data_frame.crs or source_crs
+            target_crs = data_frame.crs.to_dict() or source_crs
         except AttributeError:
             target_crs = source_crs
         reprojection_func = _get_reprojection_func(source_crs, target_crs)
 
         def _almost_equals(geometry: GeometryLike):
-            return _data_frame_geometry_op(data_frame.geometry.geom_almost_equals, geometry, reprojection_func)
+            return _data_frame_geometry_op(data_frame.geometry.geom_almost_equals,
+                                           geometry,
+                                           reprojection_func)
 
         def _contains(geometry: GeometryLike):
-            return _data_frame_geometry_op(data_frame.geometry.contains, geometry, reprojection_func)
+            return _data_frame_geometry_op(data_frame.geometry.contains,
+                                           geometry,
+                                           reprojection_func)
 
         def _crosses(geometry: GeometryLike):
-            return _data_frame_geometry_op(data_frame.geometry.crosses, geometry, reprojection_func)
+            return _data_frame_geometry_op(data_frame.geometry.crosses,
+                                           geometry,
+                                           reprojection_func)
 
         def _disjoint(geometry: GeometryLike):
-            return _data_frame_geometry_op(data_frame.geometry.disjoint, geometry, reprojection_func)
+            return _data_frame_geometry_op(data_frame.geometry.disjoint,
+                                           geometry,
+                                           reprojection_func)
 
         def _intersects(geometry: GeometryLike):
-            return _data_frame_geometry_op(data_frame.geometry.intersects, geometry, reprojection_func)
+            return _data_frame_geometry_op(data_frame.geometry.intersects,
+                                           geometry,
+                                           reprojection_func)
 
         def _touches(geometry: GeometryLike):
-            return _data_frame_geometry_op(data_frame.geometry.touches, geometry, reprojection_func)
+            return _data_frame_geometry_op(data_frame.geometry.touches,
+                                           geometry,
+                                           reprojection_func)
 
         def _within(geometry: GeometryLike):
-            return _data_frame_geometry_op(data_frame.geometry.within, geometry, reprojection_func)
+            return _data_frame_geometry_op(data_frame.geometry.within,
+                                           geometry,
+                                           reprojection_func)
 
         local_dict['almost_equals'] = _almost_equals
         local_dict['contains'] = _contains
@@ -263,7 +283,8 @@ def data_frame_find_closest(gdf: gpd.GeoDataFrame,
     num_rows = len(geometries)
     indexes = list()
 
-    # PERF: Note, this operation may be optimized by computing the great-circle distances using numpy array math!
+    # PERF: Note, this operation may be optimized by computing the great-circle distances
+    # using numpy array math!
 
     total_work = 100
     num_work_rows = 1 + num_rows // total_work
@@ -275,12 +296,15 @@ def data_frame_find_closest(gdf: gpd.GeoDataFrame,
                 try:
                     representative_point = geometry.representative_point()
                 except BaseException:
-                    # For some geometries shapely.representative_point() raises AttributeError or ValueError.
+                    # For some geometries shapely.representative_point() raises AttributeError
+                    # or ValueError.
                     # E.g. features that span the poles will raise ValueError.
-                    # The quick and dirty solution here is to catch such exceptions and ignore them.
+                    # The quick and dirty solution here is to catch such exceptions
+                    # and ignore them.
                     representative_point = None
                 if representative_point is not None:
-                    representative_point = _transform_coordinates(representative_point, reprojection_func)
+                    representative_point = _transform_coordinates(representative_point,
+                                                                  reprojection_func)
                     if representative_point is not None:
                         # noinspection PyTypeChecker
                         dist = great_circle_distance(location_point, representative_point)
@@ -313,14 +337,16 @@ def data_frame_aggregate(df: DataFrameLike.TYPE,
                          monitor: Monitor = Monitor.NONE) -> pd.DataFrame:
     """
     Aggregate columns into count, mean, median, sum, std, min, and max. Return a
-    new (Geo)DataFrame with a single row containing all aggregated values. Specify whether the geometries of
-    the GeoDataFrame are to be aggregated. All geometries are merged union-like.
+    new (Geo)DataFrame with a single row containing all aggregated values.
+    Specify whether the geometries of the GeoDataFrame are to be aggregated.
+    All geometries are merged union-like.
 
     The return data type will always be the same as the input data type.
 
     :param df: The (Geo)DataFrame to be analysed
     :param var_names: Variables to be aggregated ('None' uses all aggregatable columns)
-    :param aggregate_geometry: Aggregate (union like) the geometry and add it to the resulting GeoDataFrame
+    :param aggregate_geometry: Aggregate (union like) the geometry and add it
+    to the resulting GeoDataFrame
     :param monitor: Monitor for progress bar
     :return: returns either DataFrame or GeoDataFrame. Keeps input data type
     """
@@ -461,7 +487,8 @@ def _transform_coordinates(geometry: shapely.geometry.base.BaseGeometry,
 
 # Transforms a geometry that is used in an operator for e.g. feature selection purposes. It assures
 # that both use an identical 'crs' (projection)
-def _get_reprojection_func(source_crs: Dict[str, Any], target_crs: Dict[str, Any]) -> Optional[ReprojectionFunc]:
+def _get_reprojection_func(source_crs: Dict[str, Any],
+                           target_crs: Dict[str, Any]) -> Optional[ReprojectionFunc]:
     if source_crs and target_crs and source_crs != target_crs:
         # noinspection PyBroadException,PyTypeChecker
         return functools.partial(
@@ -473,7 +500,8 @@ def _get_reprojection_func(source_crs: Dict[str, Any], target_crs: Dict[str, Any
         return None
 
 
-def _maybe_convert_to_geo_data_frame(data_frame: pd.DataFrame, data_frame_2: pd.DataFrame) -> pd.DataFrame:
+def _maybe_convert_to_geo_data_frame(data_frame: pd.DataFrame,
+                                     data_frame_2: pd.DataFrame) -> pd.DataFrame:
     if isinstance(data_frame, gpd.GeoDataFrame) and not isinstance(data_frame_2, gpd.GeoDataFrame):
         return gpd.GeoDataFrame(data_frame_2, crs=data_frame.crs)
     else:

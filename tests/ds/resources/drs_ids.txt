@@ -1,8 +1,0 @@
-esacci.OZONE.mon.L3.NP.multi-sensor.multi-platform.MERGED.fv0002.r1
-esacci.OC.day.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.3-1.sinusoidal
-esacci.OC.5-days.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.3-1.sinusoidal
-esacci.OC.8-days.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.3-1.sinusoidal
-esacci.OC.mon.L3S.CHLOR_A.multi-sensor.multi-platform.MERGED.3-1.sinusoidal
-esacci.SEASTATE.satellite-orbit-frequency.L3.SWH.multi-sensor.multi-platform.MULTI_1D.1-1.r1
-esacci.SST.climatology.L4.SSTdepth.multi-sensor.multi-platform.OSTIA.2-1.r1
-esacci.AEROSOL.satellite-orbit-frequency.L2P.AOD.MERIS.Envisat.MERIS_ENVISAT.2-2.r1

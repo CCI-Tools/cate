@@ -30,6 +30,8 @@ DEFAULT_DATA_PATH = os.path.join(os.path.expanduser('~'), DEFAULT_DATA_DIR_NAME)
 DEFAULT_VERSION_DATA_PATH = os.path.join(DEFAULT_DATA_PATH, __version__)
 
 GLOBAL_CONF_FILE = os.path.join(DEFAULT_DATA_PATH, 'conf.py')
+STORES_CONF_FILE = os.environ.get('CATE_STORES_CONFIG_PATH',
+                                  os.path.join(DEFAULT_DATA_PATH, 'stores.json'))
 VERSION_CONF_FILE = os.path.join(DEFAULT_VERSION_DATA_PATH, 'conf.py')
 LOCAL_CONF_FILE = 'cate-conf.py'
 LOCATION_FILE = 'cate.location'

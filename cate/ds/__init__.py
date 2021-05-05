@@ -42,18 +42,36 @@ Components
 
 def cate_init():
     # Plugin initializer.
-    # Sets the default data store.
-
-    from .esa_cci_odp import set_default_data_store
-    set_default_data_store()
-
-    # from .esa_cci_ftp import set_default_data_store
+    import yaml
     import os
-    import distutils.util
-    if bool(distutils.util.strtobool(os.environ.get('USE_ODP_LEGACY_DATA_STORE', 'True'))):
-        bool(distutils.util.strtobool('0'))
-        from .esa_cci_odp_legacy import add_data_store
-        add_data_store()
+    from xcube.core.store import DataStoreConfig
+    from xcube.core.store import get_data_store_params_schema
 
-    from .local import add_to_data_store_registry
-    add_to_data_store_registry()
+    from cate.conf import get_data_stores_path
+    from cate.conf.defaults import STORES_CONF_FILE
+    from cate.core.common import default_user_agent
+    from cate.core.ds import DATA_STORE_POOL
+
+    default_stores_file = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                       'data/stores.yml')
+
+    if os.path.exists(STORES_CONF_FILE):
+        with open(STORES_CONF_FILE, 'r') as fp:
+            store_configs = yaml.safe_load(fp)
+    else:
+        with open(default_stores_file, 'r') as fp:
+            store_configs = yaml.safe_load(fp)
+
+    for store_name, store_config in store_configs.items():
+        if store_config.get('store_id', '') == 'directory' and 'store_params' in store_config and \
+                store_config.get('store_params', {}).get('base_dir') is None:
+            base_dir = os.environ.get('CATE_LOCAL_DATA_STORE_PATH',
+                                      os.path.join(get_data_stores_path(), store_name))
+            store_config['store_params']['base_dir'] = base_dir
+        store_params_schema = get_data_store_params_schema(store_config.get('store_id'))
+        if 'user_agent' in store_params_schema.properties:
+            if 'store_params' not in store_config:
+                store_config['store_params'] = {}
+            store_config['store_params']['user_agent'] = default_user_agent()
+        store_config = DataStoreConfig.from_dict(store_config)
+        DATA_STORE_POOL.add_store_config(store_name, store_config)

@@ -80,13 +80,13 @@ def open_dataset(ds_name: str = '',
     :return: An new dataset instance.
     """
     import cate.core.ds
-    ds = cate.core.ds.open_dataset(data_source=ds_id or ds_name,
-                                   time_range=time_range,
-                                   var_names=var_names,
-                                   region=region,
-                                   force_local=force_local,
-                                   local_ds_id=local_ds_id,
-                                   monitor=monitor)
+    ds, ds_id = cate.core.ds.open_dataset(dataset_id=ds_id or ds_name,
+                                          time_range=time_range,
+                                          var_names=var_names,
+                                          region=region,
+                                          force_local=force_local,
+                                          local_ds_id=local_ds_id,
+                                          monitor=monitor)
     if ds and normalize:
         return adjust_temporal_attrs(normalize_op(ds))
 
