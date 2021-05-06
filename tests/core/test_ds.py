@@ -184,7 +184,8 @@ class IOTest(StoreTest):
         with self.assertRaises(DataStoreError) as cm:
             open_dataset('20000302-ESACCI-L3C_AEROSOL-AER_PRODUCTS-ATSR2-ERS2-ADV_DAILY-v2.30.nc',
                          data_store_id='unknown_store')
-        self.assertEqual(('Configured data store instance "unknown_store" not found.',), cm.exception.args)
+        self.assertEqual(('Configured data store instance "unknown_store" not found.',), 
+        cm.exception.args)
 
         aerosol_dataset, aerosol_dataset_name = \
             open_dataset('20000302-ESACCI-L3C_AEROSOL-AER_PRODUCTS-ATSR2-ERS2-ADV_DAILY-v2.30.nc',
