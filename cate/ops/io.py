@@ -34,6 +34,7 @@ import pandas.api.types
 import s3fs
 import xarray as xr
 
+from cate.core.ds import DATA_STORE_POOL
 from cate.core.ds import get_spatial_ext_chunk_sizes
 from cate.core.objectio import OBJECT_IO_REGISTRY, ObjectIO
 from cate.core.op import OP_REGISTRY, op_input, op
@@ -52,6 +53,7 @@ _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 @op_input('region', data_type=PolygonLike)
 @op_input('var_names', data_type=VarNamesLike)
 @op_input('normalize')
+@op_input('data_store_id', value_set=DATA_STORE_POOL.store_instance_ids)
 @op_input('force_local')
 @op_input('local_ds_id')
 def open_dataset(ds_id: str = '',
@@ -59,17 +61,20 @@ def open_dataset(ds_id: str = '',
                  region: PolygonLike.TYPE = None,
                  var_names: VarNamesLike.TYPE = None,
                  normalize: bool = True,
+                 data_store_id: str = None,
                  force_local: bool = False,
                  local_ds_id: str = None,
                  monitor: Monitor = Monitor.NONE) -> xr.Dataset:
     """
     Open a dataset from a data source identified by *ds_name*.
 
-    :param ds_id: The identifier for the data source.
+    :param ds_id: The identifier for the data resource.
     :param time_range: Optional time range of the requested dataset
     :param region: Optional spatial region of the requested dataset
     :param var_names: Optional names of variables of the requested dataset
     :param normalize: Whether to normalize the dataset's geo- and time-coding upon opening. See operation ``normalize``.
+    :param data_store_id: Optional data store identifier. If given, *ds_id* will only be
+        looked up from the specified data store.
     :param force_local: Whether to make a local copy of remote data source if it's not present
     :param local_ds_id: Optional local identifier for newly created local copy of remote data source.
            Used only if force_local=True.
@@ -81,6 +86,7 @@ def open_dataset(ds_id: str = '',
                                           time_range=time_range,
                                           var_names=var_names,
                                           region=region,
+                                          data_store_id=data_store_id,
                                           force_local=force_local,
                                           local_ds_id=local_ds_id,
                                           monitor=monitor)

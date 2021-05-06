@@ -3,19 +3,19 @@ import unittest
 
 import numpy as np
 import xarray as xr
+
 import xcube.core.store as xcube_store
-
-from ..storetest import StoreTest
-
 from cate.core.ds import DataAccessError
+from cate.core.ds import NetworkError
 from cate.core.ds import find_data_store
 from cate.core.ds import get_data_descriptor
 from cate.core.ds import get_ext_chunk_sizes
 from cate.core.ds import get_metadata_from_descriptor
 from cate.core.ds import get_spatial_ext_chunk_sizes
-from cate.core.ds import NetworkError
 from cate.core.ds import open_dataset
 from cate.core.types import ValidationError
+from xcube.core.store import DataStoreError
+from ..storetest import StoreTest
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'test_data')
 
@@ -158,7 +158,7 @@ class IOTest(StoreTest):
                      long_name='dgfrf',
                      standard_name='dhgydf'
                      )
-                ]
+            ]
         )
         self.assertEqual(expected_metadata, descriptor_metadata)
 
@@ -174,6 +174,21 @@ class IOTest(StoreTest):
 
         aerosol_dataset, aerosol_dataset_name = \
             open_dataset('20000302-ESACCI-L3C_AEROSOL-AER_PRODUCTS-ATSR2-ERS2-ADV_DAILY-v2.30.nc')
+        self.assertIsNotNone(aerosol_dataset)
+        self.assertEqual('20000302-ESACCI-L3C_AEROSOL-AER_PRODUCTS-ATSR2-ERS2-ADV_DAILY-v2.30.nc',
+                         aerosol_dataset_name)
+        self.assertIsInstance(aerosol_dataset, xr.Dataset)
+        self.assertEqual({'ANG550-670_mean', 'AOD550_uncertainty_mean'},
+                         set(aerosol_dataset.data_vars))
+
+        with self.assertRaises(DataStoreError) as cm:
+            open_dataset('20000302-ESACCI-L3C_AEROSOL-AER_PRODUCTS-ATSR2-ERS2-ADV_DAILY-v2.30.nc',
+                         data_store_id='unknown_store')
+        self.assertEqual(('Configured data store instance "unknown_store" not found.',), cm.exception.args)
+
+        aerosol_dataset, aerosol_dataset_name = \
+            open_dataset('20000302-ESACCI-L3C_AEROSOL-AER_PRODUCTS-ATSR2-ERS2-ADV_DAILY-v2.30.nc',
+                         data_store_id='local_test_store_1')
         self.assertIsNotNone(aerosol_dataset)
         self.assertEqual('20000302-ESACCI-L3C_AEROSOL-AER_PRODUCTS-ATSR2-ERS2-ADV_DAILY-v2.30.nc',
                          aerosol_dataset_name)

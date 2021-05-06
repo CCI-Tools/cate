@@ -344,6 +344,7 @@ def open_dataset(dataset_id: str,
                  time_range: TimeRangeLike.TYPE = None,
                  region: PolygonLike.TYPE = None,
                  var_names: VarNamesLike.TYPE = None,
+                 data_store_id: str = None,
                  force_local: bool = False,
                  local_ds_id: str = None,
                  monitor: Monitor = Monitor.NONE) -> Tuple[Any, str]:
@@ -357,6 +358,8 @@ def open_dataset(dataset_id: str,
            If given, it must be a :py:class:`PolygonLike`.
     :param var_names: Optional names of variables to be included.
            If given, it must be a :py:class:`VarNamesLike`.
+    :param data_store_id: Optional data store identifier. If given, *ds_id* will only be
+           looked up from the specified data store.
     :param force_local: Optional flag for remote data sources only
            Whether to make a local copy of data source if it's not present
     :param local_ds_id: Optional, fpr remote data sources only
@@ -367,9 +370,12 @@ def open_dataset(dataset_id: str,
     if not dataset_id:
         raise ValidationError('No data source given')
 
-    data_store_id, data_store = find_data_store(ds_id=dataset_id)
-    if not data_store:
-        raise ValidationError(f"No data store found that contains the ID '{dataset_id}'")
+    if data_store_id:
+        data_store = DATA_STORE_POOL.get_store(data_store_id)
+    else:
+        data_store_id, data_store = find_data_store(ds_id=dataset_id)
+        if not data_store:
+            raise ValidationError(f"No data store found that contains the ID '{dataset_id}'")
 
     type_spec = None
     potential_type_specs = data_store.get_type_specifiers_for_data(dataset_id)
