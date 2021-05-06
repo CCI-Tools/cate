@@ -78,39 +78,46 @@ _TEST_USER_PREFS = {
 
 class MyTestCase(unittest.TestCase):
     def test_get_user_prefs(self):
-        tdir = tempfile.gettempdir()
-        tfile = os.path.join(tdir, 'test_get_prefs.txt')
-        prefs = get_user_prefs(tfile)
-
-        self.assertDictEqual(_TEST_USER_PREFS, prefs)
+        prefs_file = os.path.join(tempfile.gettempdir(), 'test_get_prefs.txt')
+        self._remove_file(prefs_file)
+        try:
+            prefs = get_user_prefs(prefs_file)
+            self.assertDictEqual(_TEST_USER_PREFS, prefs)
+        finally:
+            self._remove_file(prefs_file)
 
     def test_set_user_prefs(self):
         self.maxDiff = None
-        tdir = tempfile.gettempdir()
-        tfile = os.path.join(tdir, 'test_set_prefs.txt')
-        set_user_prefs(_TEST_USER_PREFS, tfile)
+        prefs_file = os.path.join(tempfile.gettempdir(), 'test_set_prefs.txt')
+        self._remove_file(prefs_file)
+        try:
+            set_user_prefs(_TEST_USER_PREFS, prefs_file)
+            prefs = get_user_prefs(prefs_file)
+            self.assertDictEqual(_TEST_USER_PREFS, prefs)
 
-        prefs = get_user_prefs(tfile)
+            n_prefs = _TEST_USER_PREFS.copy()
+            n_prefs['autoUpdateSoftware'] = True
 
-        self.assertDictEqual(_TEST_USER_PREFS, prefs)
+            set_user_prefs(n_prefs)
 
-        n_prefs = _TEST_USER_PREFS.copy()
-        n_prefs['autoUpdateSoftware'] = True
+            prefs = get_user_prefs(prefs_file)
 
-        set_user_prefs(n_prefs)
+            self.assertDictEqual(n_prefs, prefs)
 
-        prefs = get_user_prefs(tfile)
+            n_prefs = _TEST_USER_PREFS.copy()
+            n_prefs['autoUpdateSoftware'] = True
 
-        self.assertDictEqual(n_prefs, prefs)
+            set_user_prefs({'autoUpdateSoftware': True})
 
-        n_prefs = _TEST_USER_PREFS.copy()
-        n_prefs['autoUpdateSoftware'] = True
+            prefs = get_user_prefs(prefs_file)
 
-        set_user_prefs({'autoUpdateSoftware': True})
+            self.assertDictEqual(n_prefs, prefs)
+        finally:
+            self._remove_file(prefs_file)
 
-        prefs = get_user_prefs(tfile)
-
-        self.assertDictEqual(n_prefs, prefs)
+    def _remove_file(self, prefs_file):
+        if os.path.exists(prefs_file):
+            os.remove(prefs_file)
 
 
 if __name__ == '__main__':

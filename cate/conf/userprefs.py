@@ -103,7 +103,9 @@ def set_user_prefs(prefs: dict, user_prefs_file: str = None):
         user_prefs_file = os.path.join(DEFAULT_DATA_PATH, USER_PREFERENCES_FILE)
 
     if os.path.isfile(user_prefs_file):
-        prefs = get_user_prefs(user_prefs_file).update(prefs)
+        old_user_prefs = get_user_prefs(user_prefs_file)
+        old_user_prefs.update(prefs)
+        prefs = old_user_prefs
 
     _write_user_prefs_file(user_prefs_file, prefs)
 
