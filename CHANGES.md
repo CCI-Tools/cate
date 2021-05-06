@@ -1,9 +1,17 @@
 ## Version 3.0.0 (in development)
 
-* xcube integration
-* new experimental Zarr store 
+* Cate's implementations of the CCI ODP data store and the local data store 
+  have been replaced by [xcube]() equivalents which are faster and more 
+  robust.
+* Added a new experimental "Zarr data store" that provides fast 
+  access to selected CCI datasets in JASMIN object storage. 
 * Added a Web API function `keep_alive` that is periodically used by Cate App  
   to avoid loosing an open WebSocket connection. (#980)
+* Removed functions and parameters that have been deprecated in cate 2.x:
+  - Function `cate.ops.utility.from_dataframe`
+  - Function `cate.ops.plot.plot_data_frame`
+  - Parameter `crs` of function `cate.ops.io.read_geo_data_frame` 
+`
 
 ## Version 2.1.5
 

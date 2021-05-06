@@ -702,38 +702,6 @@ def plot_hist(ds: xr.Dataset,
     return figure if not in_notebook() else None
 
 
-@op(tags=['plot'],
-    res_pattern='plot_{index}',
-    deprecated="This operation is deprecated and will be removed in future versions. User plot() instead.")
-@op_input('plot_type', value_set=['line', 'bar', 'barh', 'hist', 'box', 'kde',
-                                  'area', 'pie', 'scatter', 'hexbin'])
-@op_input('file', file_open_mode='w', file_filters=[PLOT_FILE_FILTER])
-def plot_data_frame(df: pd.DataFrame,
-                    plot_type: str = 'line',
-                    file: str = None,
-                    **kwargs) -> Figure:
-    """
-    Plot a data frame.
-    This is a wrapper of pandas.DataFrame.plot() function.
-    For further documentation please see
-    http://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.plot.html
-    :param df: A pandas dataframe to plot
-    :param plot_type: Plot type
-    :param file: path to a file in which to save the plot
-    :param kwargs: Keyword arguments to pass to the underlying
-                   pandas.DataFrame.plot function
-    """
-    if not isinstance(df, pd.DataFrame):
-        raise ValidationError('"df" must be of type "pandas.DataFrame"')
-
-    ax = df.plot(kind=plot_type, figsize=(8, 4), **kwargs)
-    figure = ax.get_figure()
-    if file:
-        figure.savefig(file)
-
-    return figure if not in_notebook() else None
-
-
 @op(tags=['plot'], res_pattern='plot_{index}', version='1.0')
 @op_input('var', value_set_source='ds', data_type=VarName)
 @op_input('x_axis', value_set_source='ds.var', data_type=DimName)

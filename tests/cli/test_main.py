@@ -307,7 +307,7 @@ class OperationCommandTest(CliTestCase):
         self.assert_main(['op', 'list', '--tag', 'output'],
                          expected_stdout=['8 operations found'])
         self.assert_main(['op', 'list', '--deprecated'],
-                         expected_stdout=['2 operations found'])
+                         expected_stdout=['No operations found'])
 
 
 '''

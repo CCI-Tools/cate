@@ -48,15 +48,13 @@ _ALL_FILE_FILTER = dict(name='All Files', extensions=['*'])
 
 @op(tags=['input'], res_pattern='ds_{index}')
 @op_input('ds_id', nullable=False)
-@op_input('ds_name', nullable=False, deprecated='use "ds_id" instead')
 @op_input('time_range', data_type=TimeRangeLike)
 @op_input('region', data_type=PolygonLike)
 @op_input('var_names', data_type=VarNamesLike)
 @op_input('normalize')
 @op_input('force_local')
 @op_input('local_ds_id')
-def open_dataset(ds_name: str = '',
-                 ds_id: str = '',
+def open_dataset(ds_id: str = '',
                  time_range: TimeRangeLike.TYPE = None,
                  region: PolygonLike.TYPE = None,
                  var_names: VarNamesLike.TYPE = None,
@@ -67,7 +65,6 @@ def open_dataset(ds_name: str = '',
     """
     Open a dataset from a data source identified by *ds_name*.
 
-    :param ds_name: The name of data source. This parameter has been deprecated, please use *ds_id* instead.
     :param ds_id: The identifier for the data source.
     :param time_range: Optional time range of the requested dataset
     :param region: Optional spatial region of the requested dataset
@@ -80,7 +77,7 @@ def open_dataset(ds_name: str = '',
     :return: An new dataset instance.
     """
     import cate.core.ds
-    ds, ds_id = cate.core.ds.open_dataset(dataset_id=ds_id or ds_name,
+    ds, ds_id = cate.core.ds.open_dataset(dataset_id=ds_id,
                                           time_range=time_range,
                                           var_names=var_names,
                                           region=region,
@@ -475,9 +472,8 @@ GEO_DATA_FRAME_FILE_FILTERS = [
 # noinspection PyIncorrectDocstring,PyUnusedLocal
 @op(tags=['input'], res_pattern='gdf_{index}')
 @op_input('file', file_open_mode='r', file_filters=GEO_DATA_FRAME_FILE_FILTERS)
-@op_input('crs', nullable=True, deprecated="Not used at all.")
 @op_input('more_args', nullable=True, data_type=DictLike)
-def read_geo_data_frame(file: str, crs: str = None,
+def read_geo_data_frame(file: str,
                         more_args: DictLike.TYPE = None) -> gpd.GeoDataFrame:
     """
     Read a geo data frame from a file with a format such as ESRI Shapefile or GeoJSON.

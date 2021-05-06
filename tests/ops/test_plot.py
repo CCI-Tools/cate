@@ -17,7 +17,7 @@ import xarray as xr
 
 from cate.core.op import OP_REGISTRY
 from cate.core.types import ValidationError
-from cate.ops.plot import plot, plot_line, plot_map, plot_data_frame, plot_hovmoeller, plot_scatter
+from cate.ops.plot import plot, plot_line, plot_map, plot_hovmoeller, plot_scatter
 from cate.util.misc import object_to_qualified_name
 
 _counter = itertools.count()
@@ -269,42 +269,6 @@ class TestPlotLine(TestCase):
 
         with create_tmp_file('remove_me', 'jpg') as tmp_file:
             reg_op(ds=dataset, var_names=['first', 'second'], file=tmp_file)
-            self.assertTrue(os.path.isfile(tmp_file))
-
-
-@unittest.skipIf(condition=os.environ.get('CATE_DISABLE_PLOT_TESTS', None),
-                 reason="skipped if CATE_DISABLE_PLOT_TESTS=1")
-class TestPlotDataFrame(TestCase):
-    """
-    Test plot_data_frame() function.
-    """
-
-    def test_nominal(self):
-        """
-        Test nominal execution
-        """
-        data = {'A': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-                'B': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]}
-        df = pd.DataFrame(data=data, index=pd.date_range('2000-01-01',
-                                                         periods=10))
-
-        with create_tmp_file('remove_me', 'png') as tmp_file:
-            plot_data_frame(df, file=tmp_file)
-            self.assertTrue(os.path.isfile(tmp_file))
-
-    def test_registered(self):
-        """
-        Test the method when run as a registered operation
-        """
-        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(plot_data_frame))
-
-        data = {'A': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
-                'B': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]}
-        df = pd.DataFrame(data=data, index=pd.date_range('2000-01-01',
-                                                         periods=10))
-
-        with create_tmp_file('remove_me', 'png') as tmp_file:
-            reg_op(df=df, file=tmp_file)
             self.assertTrue(os.path.isfile(tmp_file))
 
 

@@ -64,12 +64,12 @@ from .io import (open_dataset, save_dataset, read_object, write_object,
 from .normalize import normalize, adjust_temporal_attrs, adjust_spatial_attrs
 from .outliers import detect_outliers
 from .plot import (plot_map, plot, plot_contour, plot_scatter, plot_hist,
-                   plot_data_frame, plot_hovmoeller)
+                   plot_hovmoeller)
 from .resampling import resample_2d, downsample_2d, upsample_2d
 from .select import select_var
 from .subset import subset_spatial, subset_temporal, subset_temporal_index
 from .timeseries import tseries_point, tseries_mean
-from .utility import sel, from_dataframe, identity, literal, pandas_fillna
+from .utility import sel, identity, literal, pandas_fillna
 
 __all__ = [
     # .timeseries
@@ -97,7 +97,6 @@ __all__ = [
     # .plot
     'plot_map',
     'plot',
-    'plot_data_frame',
     'plot_contour',
     'plot_scatter',
     'plot_hist',
@@ -120,7 +119,6 @@ __all__ = [
     'write_netcdf4',
     # .utility
     'sel',
-    'from_dataframe',
     'identity',
     'literal',
     'pandas_fillna',

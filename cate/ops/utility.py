@@ -28,10 +28,9 @@ utility functions.
 All operations in this module are tagged with the ``"utility"`` tag.
 
 """
-from datetime import timezone
-
 import pandas as pd
 import xarray as xr
+from datetime import timezone
 
 from cate.core.ds import NetworkError, DataAccessError
 from cate.core.op import op, op_input, op_return
@@ -164,22 +163,6 @@ def from_data_frame(df: pd.DataFrame) -> xr.Dataset:
     :return: A dataset created from the given dataframe
     """
     return xr.Dataset.from_dataframe(df)
-
-
-@op(tags=['utility'], deprecated='Use from_data_frame() instead')
-def from_dataframe(df: pd.DataFrame) -> xr.Dataset:
-    """
-    Convert the given dataframe to an xarray dataset.
-
-    This is a wrapper for the ``xarray.from_dataframe()`` function.
-
-    For documentation refer to xarray documentation at
-    http://xarray.pydata.org/en/stable/generated/xarray.Dataset.from_dataframe.html#xarray.Dataset.from_dataframe
-
-    :param df: Dataframe to convert
-    :return: A dataset created from the given dataframe
-    """
-    return from_data_frame(df)
 
 
 @op(tags=['utility'])

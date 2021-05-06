@@ -11,7 +11,7 @@ import xarray as xr
 from cate.core.ds import NetworkError
 from cate.core.op import OP_REGISTRY
 from cate.core.types import ValidationError
-from cate.ops.utility import merge, sel, from_dataframe, identity, literal, pandas_fillna, no_op
+from cate.ops.utility import merge, sel, from_data_frame, identity, literal, pandas_fillna, no_op
 from cate.util.misc import object_to_qualified_name
 
 
@@ -124,14 +124,14 @@ class TestFromDataframe(TestCase):
             'B': (['time'], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
             'time': time})
 
-        actual = from_dataframe(df)
+        actual = from_data_frame(df)
         assert_dataset_equal(expected, actual)
 
     def test_registered(self):
         """
         Test nominal execution as a registered operation
         """
-        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(from_dataframe))
+        reg_op = OP_REGISTRY.get_op(object_to_qualified_name(from_data_frame))
 
         time = pd.date_range('2000-01-01', periods=10, tz=timezone.utc)
         data = {'A': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
