@@ -40,6 +40,9 @@ from ..util.time import get_timestamps_from_string
 __author__ = "Janis Gailis (S[&]T Norway)" \
              "Norman Fomferra (Brockmann Consult GmbH)"
 
+DatetimeTypes = np.datetime64, cftime.datetime, datetime
+Datetime = Union[np.datetime64, cftime.datetime, datetime]
+
 
 def normalize_impl(ds: xr.Dataset) -> xr.Dataset:
     """
@@ -96,10 +99,11 @@ def _normalize_zonal_lat_lon(ds: xr.Dataset) -> xr.Dataset:
         return ds
 
     latitude_centers = ds.latitude_centers
-    lat = xr.DataArray(latitude_centers.values, dims='lat', attrs=latitude_centers.attrs)
+    latitude_centers_values = latitude_centers.values
+    lat = xr.DataArray(latitude_centers_values, dims='lat', attrs=latitude_centers.attrs)
     ds_zonal = ds.drop_vars('latitude_centers')
 
-    resolution = (latitude_centers.values[1] - latitude_centers.values[0])
+    resolution = (latitude_centers_values[1] - latitude_centers_values[0])
     lon = xr.DataArray([i + (resolution / 2) for i in np.arange(-180.0, 180.0, resolution)], dims='lon')
 
     ds_zonal = ds_zonal.rename_dims({'latitude_centers': 'lat'})
@@ -585,21 +589,21 @@ def _get_temporal_cf_attrs_from_var(ds: xr.Dataset, var_name: str = 'time') -> O
         if len(bnds_var.shape) == 2 and bnds_var.shape[0] > 0 and bnds_var.shape[1] == 2:
             dim_var = bnds_var
             if bnds_var.shape[0] > 1:
-                dim_min = bnds_var.values[0][0]
-                dim_max = bnds_var.values[-1][1]
+                dim_min = bnds_var[0, 0]
+                dim_max = bnds_var[-1, 1]
             else:
-                dim_min = bnds_var.values[0][0]
-                dim_max = bnds_var.values[0][1]
+                dim_min = bnds_var[0, 0]
+                dim_max = bnds_var[0, 1]
 
     if dim_var is None:
         if len(var.shape) == 1 and var.shape[0] > 0:
             dim_var = var
             if var.shape[0] > 1:
-                dim_min = var.values[0]
-                dim_max = var.values[-1]
+                dim_min = var[0]
+                dim_max = var[-1]
             else:
-                dim_min = var.values[0]
-                dim_max = var.values[0]
+                dim_min = var[0]
+                dim_max = var[0]
 
     # Make sure dim_min and dim_max are valid and are time instances
     # See https://github.com/CCI-Tools/cate/issues/643
@@ -607,6 +611,9 @@ def _get_temporal_cf_attrs_from_var(ds: xr.Dataset, var_name: str = 'time') -> O
             or not _is_supported_time_dtype(dim_var.dtype):
         # Cannot determine temporal extent for dimension var_name
         return None
+
+    dim_min = dim_min.values
+    dim_max = dim_max.values
 
     if dim_min != dim_max:
         duration = _get_duration(dim_min, dim_max)
@@ -635,9 +642,7 @@ def _get_valid_time_coord(ds: xr.Dataset, name: str) -> Optional[xr.DataArray]:
 
 
 def _is_supported_time_dtype(dtype: np.dtype) -> bool:
-    return np.issubdtype(dtype, np.datetime64) \
-           or np.issubdtype(dtype, cftime.datetime) \
-           or np.issubdtype(dtype, datetime)
+    return any(np.issubdtype(dtype, t) for t in DatetimeTypes)
 
 
 def _get_geo_spatial_cf_attrs_from_var(ds: xr.Dataset, var_name: str, allow_point: bool = False) -> Optional[dict]:
@@ -676,22 +681,22 @@ def _get_geo_spatial_cf_attrs_from_var(ds: xr.Dataset, var_name: str, allow_poin
         bnds_var = ds[bnds_name]
         if len(bnds_var.shape) == 2 and bnds_var.shape[0] > 0 and bnds_var.shape[1] == 2:
             dim_var = bnds_var
-            dim_res = abs(bnds_var.values[0][1] - bnds_var.values[0][0])
+            dim_res = abs(bnds_var[0, 1] - bnds_var[0, 0])
             if bnds_var.shape[0] > 1:
-                dim_min = min(bnds_var.values[0][0], bnds_var.values[-1][1])
-                dim_max = max(bnds_var.values[0][0], bnds_var.values[-1][1])
+                dim_min = min(bnds_var[0, 0], bnds_var[-1, 1])
+                dim_max = max(bnds_var[0, 0], bnds_var[-1, 1])
             else:
-                dim_min = min(bnds_var.values[0][0], bnds_var.values[0][1])
-                dim_max = max(bnds_var.values[0][0], bnds_var.values[0][1])
+                dim_min = min(bnds_var[0, 0], bnds_var[0, 1])
+                dim_max = max(bnds_var[0, 0], bnds_var[0, 1])
 
     if dim_var is None:
         if len(var.shape) == 1 and var.shape[0] > 0:
             if var.shape[0] > 1:
                 dim_var = var
-                dim_res = abs(var.values[1] - var.values[0])
-                dim_min = min(var.values[0], var.values[-1]) - 0.5 * dim_res
-                dim_max = max(var.values[0], var.values[-1]) + 0.5 * dim_res
-            elif len(var.values) == 1:
+                dim_res = abs(var[1] - var[0])
+                dim_min = min(var[0], var[-1]) - 0.5 * dim_res
+                dim_max = max(var[0], var[-1]) + 0.5 * dim_res
+            elif var.size == 1:
                 if res_name in ds.attrs:
                     dim_res = ds.attrs[res_name]
                     if isinstance(dim_res, str):
@@ -701,21 +706,21 @@ def _get_geo_spatial_cf_attrs_from_var(ds: xr.Dataset, var_name: str, allow_poin
                         dim_res = float(dim_res)
                         dim_var = var
                         # Consider extent in metadata if provided
-                        dim_min = var.values[0] - 0.5 * dim_res
-                        dim_max = var.values[0] + 0.5 * dim_res
+                        dim_min = var[0] - 0.5 * dim_res
+                        dim_max = var[0] + 0.5 * dim_res
                     except ValueError:
                         if allow_point:
                             dim_var = var
                             # Actually a point with no extent
                             dim_res = 0.0
-                            dim_min = var.values[0]
-                            dim_max = var.values[0]
+                            dim_min = var[0]
+                            dim_max = var[0]
                 elif allow_point:
                     dim_var = var
                     # Actually a point with no extent
                     dim_res = 0.0
-                    dim_min = var.values[0]
-                    dim_max = var.values[0]
+                    dim_min = var[0]
+                    dim_max = var[0]
 
     if dim_var is None:
         # Cannot determine spatial extent for variable/dimension var_name
@@ -756,7 +761,7 @@ def _get_temporal_res(time: xr.DataArray) -> str:
         return 'P{}D'.format(int(days))
 
 
-def _get_duration(tmin: np.datetime64, tmax: np.datetime64) -> str:
+def _get_duration(tmin: Datetime, tmax: Datetime) -> str:
     """
     Determine the duration of the given datetimes.
 
@@ -768,6 +773,7 @@ def _get_duration(tmin: np.datetime64, tmax: np.datetime64) -> str:
     """
     delta = tmax - tmin
     day = np.timedelta64(1, 'D')
+    # noinspection PyTypeChecker
     days = (delta.astype('timedelta64[D]') / day) + 1
     return 'P{}D'.format(int(days))
 
@@ -801,7 +807,7 @@ def _lat_inverted(lat: xr.DataArray) -> bool:
     """
     Determine if the latitude is inverted
     """
-    if lat.values[0] > lat.values[-1]:
+    if lat[0] > lat[-1]:
         return True
 
     return False
@@ -849,7 +855,7 @@ def _pad_extents(ds: xr.Dataset, extents: Sequence[float]):
     to maximum valid geospatial extents.
     """
     try:
-        lon_pixel = abs(ds.lon.values[1] - ds.lon.values[0])
+        lon_pixel = abs(ds.lon[1] - ds.lon[0])
         lon_min = extents[0] - lon_pixel / 2
         lon_max = extents[2] + lon_pixel / 2
     except IndexError:
@@ -858,7 +864,7 @@ def _pad_extents(ds: xr.Dataset, extents: Sequence[float]):
         lon_max = extents[2]
 
     try:
-        lat_pixel = abs(ds.lat.values[1] - ds.lat.values[0])
+        lat_pixel = abs(ds.lat[1] - ds.lat[0])
         lat_min = extents[1] - lat_pixel / 2
         lat_max = extents[3] + lat_pixel / 2
     except IndexError:
@@ -960,6 +966,10 @@ def subset_spatial_impl(ds: xr.Dataset,
                                   ' without masking.')
     monitor.progress(1)
     if crosses_antimeridian:
+        # TODO (forman): reimplement entirely, respect dask arrays, use roll() array operation
+        warnings.warn('Entering inefficient code block that requires refactoring.'
+                      ' Expect long execution time and/or out of memory errors.')
+
         # Shapely messes up longitudes if the polygon crosses the antimeridian
         if not explicit_coords:
             lon_min, lon_max = lon_max, lon_min
@@ -972,25 +982,30 @@ def subset_spatial_impl(ds: xr.Dataset,
                                ds.lon.sel(lon=lon_left_of_idl)), dim='lon')
 
         indexers = {'lon': lon_index, 'lat': lat_index}
-        retset = ds.sel(**indexers)
+        ds_subset = ds.sel(**indexers)
 
         # Preserve the original longitude dimension, masking elements that
         # do not belong to the polygon with NaN.
         with monitor.observing('subset'):
-            return reset_non_spatial(ds, retset.reindex_like(ds.lon))
+            return reset_non_spatial(ds, ds_subset.reindex_like(ds.lon))
 
     lon_slice = slice(lon_min, lon_max)
     indexers = {'lat': lat_index, 'lon': lon_slice}
-    retset = ds.sel(**indexers)
+    ds_subset = ds.sel(**indexers)
 
-    if len(retset.lat) == 0 or len(retset.lon) == 0:
+    if len(ds_subset.lat) == 0 or len(ds_subset.lon) == 0:
         # Empty return dataset => region out of dataset bounds
         raise ValueError("Can not select a region outside dataset boundaries.")
 
     if not mask or simple_polygon or explicit_coords:
         # The polygon doesn't cross the anti-meridian, it is a simple box -> Use a simple slice
         with monitor.observing('subset'):
-            return reset_non_spatial(ds, retset)
+            return reset_non_spatial(ds, ds_subset)
+
+    # TODO (forman): reimplement following code entirely, respect dask arrays,
+    #  use efficient mask operations from xcube
+    warnings.warn('Entering inefficient code block that requires refactoring.'
+                  ' Expect long execution time and/or out of memory errors.')
 
     # Create the mask array. The result of this is a lon/lat DataArray where
     # all pixels falling in the region or on its boundary are denoted with True
@@ -1000,33 +1015,35 @@ def subset_spatial_impl(ds: xr.Dataset,
                                           polygon.exterior.coords.xy[1]]))
 
     # Handle also a single pixel and 1D edge cases
-    if len(retset.lat) == 1 or len(retset.lon) == 1:
+    ds_subset_lon_values = ds_subset.lon.values
+    ds_subset__lat_values = ds_subset.lat.values
+    if len(ds_subset.lat) == 1 or len(ds_subset.lon) == 1:
         # Create a mask directly on pixel centers
-        lonm, latm = np.meshgrid(retset.lon.values, retset.lat.values)
+        lonm, latm = np.meshgrid(ds_subset.lon.values, ds_subset.lat.values)
         grid_points = [(lon, lat) for lon, lat in zip(lonm.ravel(), latm.ravel())]
         mask_arr = polypath.contains_points(grid_points)
         mask_arr = mask_arr.reshape(lonm.shape)
         mask_arr = xr.DataArray(mask_arr,
-                                coords={'lon': retset.lon.values, 'lat': retset.lat.values},
-                                dims=['lat', 'lon'])
+                                coords={'lon': ds_subset.lon, 'lat': ds_subset.lat},
+                                dims=[ds_subset.lat.dims[0], ds_subset.lon.dims[0]])
 
         with monitor.observing('subset'):
             # Apply the mask to data
-            retset = retset.where(mask_arr, drop=True)
+            ds_subset = ds_subset.where(mask_arr, drop=True)
 
-        return reset_non_spatial(ds, retset)
+        return reset_non_spatial(ds, ds_subset)
 
     # The normal case
     # Create a grid of pixel vertices
-    lon_pixel = abs(ds.lon.values[1] - ds.lon.values[0])
-    lat_pixel = abs(ds.lat.values[1] - ds.lat.values[0])
-    lon_min = retset.lon.values[0] - lon_pixel / 2
-    lon_max = retset.lon.values[-1] + lon_pixel / 2
-    lat_min = retset.lat.values[0] - lat_pixel / 2
-    lat_max = retset.lat.values[-1] + lat_pixel / 2
+    lon_pixel = abs(ds.lon[1] - ds.lon[0])
+    lat_pixel = abs(ds.lat[1] - ds.lat[0])
+    lon_min = ds_subset.lon[0] - lon_pixel / 2
+    lon_max = ds_subset.lon[-1] + lon_pixel / 2
+    lat_min = ds_subset.lat[0] - lat_pixel / 2
+    lat_max = ds_subset.lat[-1] + lat_pixel / 2
 
-    lat_grid = np.linspace(lat_min, lat_max, len(retset.lat.values) + 1, dtype='float32')
-    lon_grid = np.linspace(lon_min, lon_max, len(retset.lon.values) + 1, dtype='float32')
+    lat_grid = np.linspace(lat_min, lat_max, ds_subset.lat.size + 1, dtype='float32')
+    lon_grid = np.linspace(lon_min, lon_max, ds_subset.lon.size + 1, dtype='float32')
 
     try:
         lonm, latm = np.meshgrid(lon_grid, lat_grid)
@@ -1059,15 +1076,15 @@ def subset_spatial_impl(ds: xr.Dataset,
     mask_arr = mask_arr[1:, 1:] + mask_arr[1:, :-1] + mask_arr[:-1, 1:] + mask_arr[:-1, :-1]
 
     mask_arr = xr.DataArray(mask_arr,
-                            coords={'lon': retset.lon.values, 'lat': retset.lat.values},
+                            coords={'lon': ds_subset_lon_values, 'lat': ds_subset__lat_values},
                             dims=['lat', 'lon'])
 
     with monitor.observing('subset'):
         # Apply the mask to data
-        retset = retset.where(mask_arr, drop=False)
+        ds_subset = ds_subset.where(mask_arr, drop=False)
 
     monitor.done()
-    return reset_non_spatial(ds, retset)
+    return reset_non_spatial(ds, ds_subset)
 
 
 def _crosses_antimeridian(region: Polygon) -> bool:
