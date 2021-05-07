@@ -776,6 +776,21 @@ class TestNormalizeMissingTime(TestCase):
         new_ds = normalize_missing_time(ds)
         self.assertIs(ds, new_ds)
 
+    def test_ds_with_cftime(self):
+        time_data = xr.cftime_range(start='2010-01-01T00:00:00',
+                                    periods=6,
+                                    freq='D',
+                                    calendar='gregorian').values
+        ds = xr.Dataset({'first': (['time', 'lat', 'lon'], np.zeros([6, 90, 180])),
+                         'second': (['time', 'lat', 'lon'], np.zeros([6, 90, 180]))},
+                        coords={'lat': np.linspace(-89.5, 89.5, 90),
+                                'lon': np.linspace(-179.5, 179.5, 180),
+                                'time': time_data},
+                        attrs = {'time_coverage_start': '20120101',
+                                 'time_coverage_end': '20121231'})
+        new_ds = normalize_missing_time(ds)
+        self.assertIs(ds, new_ds)
+
 
 class Fix360Test(TestCase):
 
