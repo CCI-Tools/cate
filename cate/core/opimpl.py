@@ -34,7 +34,8 @@ from shapely.geometry import box, LineString, Polygon
 from .types import PolygonLike, ValidationError
 from ..util.misc import to_list
 from ..util.monitor import Monitor
-from ..util.time import get_timestamps_from_string, get_timestamp_from_string
+from ..util.time import get_timestamp_from_string
+from ..util.time import get_timestamps_from_string
 
 __author__ = "Janis Gailis (S[&]T Norway)" \
              "Norman Fomferra (Brockmann Consult GmbH)"
