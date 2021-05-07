@@ -362,8 +362,7 @@ def open_dataset(dataset_id: str,
            looked up from the specified data store.
     :param force_local: Optional flag for remote data sources only
            Whether to make a local copy of data source if it's not present
-    :param local_ds_id: Optional, fpr remote data sources only
-           Local data source ID for newly created copy of remote data source
+    :param local_ds_id: Optional ID for newly created copy of remote data
     :param monitor: A progress monitor
     :return: A tuple consisting of a new dataset instance and its id
     """
@@ -441,17 +440,26 @@ def open_dataset(dataset_id: str,
         observer2 = XcubeProgressObserver(ChildMonitor(monitor, 10))
         observer2.activate()
         dataset, dataset_id = make_local(data=dataset,
-                                         local_name=local_ds_id)
+                                         local_name=local_ds_id,
+                                         orig_dataset_name=dataset_id)
         observer2.deactivate()
     monitor.done()
     return dataset, dataset_id
 
 
-def make_local(data: Any, local_name: Optional[str] = None) -> Tuple[Any, str]:
+def make_local(data: Any,
+               *,
+               local_name: Optional[str] = None,
+               orig_dataset_name: Optional[str] = None) -> Tuple[Any, str]:
     local_store = DATA_STORE_POOL.get_store('local')
     if not local_store:
         raise ValueError('Cannot initialize `local` DataStore')
-
+    if not local_name and orig_dataset_name is not None:
+        i = 1
+        local_name = f'local.{orig_dataset_name}.{i}.zarr'
+        while local_store.has_data(local_name):
+            i += 1
+            local_name = f'local.{orig_dataset_name}.{i}.zarr'
     local_data_id = local_store.write_data(data=data, data_id=local_name)
     return local_store.open_data(data_id=local_data_id), local_data_id
 
@@ -465,7 +473,7 @@ def add_as_local(data_source_id: str, paths: Union[str, Sequence[str]] = None) -
         ds = xr.open_dataset(paths[0])
     else:
         ds = xr.open_mfdataset(paths=paths)
-    return make_local(ds, data_source_id)
+    return make_local(ds, local_name=data_source_id)
 
 
 def _resolve_input_paths(paths: Union[str, Sequence[str]]) -> Sequence[str]:
