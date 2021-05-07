@@ -6,6 +6,7 @@ import calendar
 from datetime import datetime
 from unittest import TestCase
 
+import cftime
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -511,46 +512,56 @@ class TestAdjustSpatial(TestCase):
         self.assertIs(ds2, ds)
 
 
-class TestAdjustTemporal(TestCase):
+class AdjustTemporalAttrsTest(TestCase):
     def test_nominal(self):
-        ds = xr.Dataset({
-            'first': (['lat', 'lon', 'time'], np.zeros([45, 90, 12])),
-            'second': (['lat', 'lon', 'time'], np.zeros([45, 90, 12])),
-            'lat': np.linspace(-88, 88, 45),
-            'lon': np.linspace(-178, 178, 90),
-            'time': [datetime(2000, x, 1) for x in range(1, 13)]})
 
-        ds1 = adjust_temporal_attrs(ds)
+        time_datas = [
+            [datetime(2000, x, 1) for x in range(1, 13)],
+            [np.datetime64(datetime(2000, x, 1)) for x in range(1, 13)],
+            [cftime.DatetimeGregorian(2000, x, 1) for x in range(1, 13)],
+        ]
 
-        # Make sure original dataset is not altered
-        with self.assertRaises(KeyError):
-            # noinspection PyStatementEffect
-            ds.attrs['time_coverage_start']
+        for time_data in time_datas:
+            print(time_data)
+            ds = xr.Dataset({
+                'first': (['lat', 'lon', 'time'], np.zeros([45, 90, 12])),
+                'second': (['lat', 'lon', 'time'], np.zeros([45, 90, 12])),
+                'lat': np.linspace(-88, 88, 45),
+                'lon': np.linspace(-178, 178, 90),
+                'time': time_data
+            })
 
-        # Make sure expected values are in the new dataset
-        self.assertEqual(ds1.attrs['time_coverage_start'],
-                         '2000-01-01T00:00:00.000000000')
-        self.assertEqual(ds1.attrs['time_coverage_end'],
-                         '2000-12-01T00:00:00.000000000')
-        self.assertEqual(ds1.attrs['time_coverage_resolution'],
-                         'P1M')
-        self.assertEqual(ds1.attrs['time_coverage_duration'],
-                         'P336D')
+            ds1 = adjust_temporal_attrs(ds)
 
-        # Test existing attributes update
-        # noinspection PyTypeChecker
-        indexers = {'time': slice(datetime(2000, 2, 15), datetime(2000, 6, 15))}
-        ds2 = ds1.sel(**indexers)
-        ds2 = adjust_temporal_attrs(ds2)
+            # Make sure original dataset is not altered
+            with self.assertRaises(KeyError):
+                # noinspection PyStatementEffect
+                ds.attrs['time_coverage_start']
 
-        self.assertEqual(ds2.attrs['time_coverage_start'],
-                         '2000-03-01T00:00:00.000000000')
-        self.assertEqual(ds2.attrs['time_coverage_end'],
-                         '2000-06-01T00:00:00.000000000')
-        self.assertEqual(ds2.attrs['time_coverage_resolution'],
-                         'P1M')
-        self.assertEqual(ds2.attrs['time_coverage_duration'],
-                         'P93D')
+            # Make sure expected values are in the new dataset
+            self.assertEqual(ds1.attrs['time_coverage_start'],
+                             '2000-01-01T00:00:00')
+            self.assertEqual(ds1.attrs['time_coverage_end'],
+                             '2000-12-01T00:00:00')
+            self.assertEqual(ds1.attrs['time_coverage_resolution'],
+                             'P1M')
+            self.assertEqual(ds1.attrs['time_coverage_duration'],
+                             'P336D')
+
+            # Test existing attributes update
+            # noinspection PyTypeChecker
+            indexers = {'time': slice(datetime(2000, 2, 15), datetime(2000, 6, 15))}
+            ds2 = ds1.sel(**indexers)
+            ds2 = adjust_temporal_attrs(ds2)
+
+            self.assertEqual(ds2.attrs['time_coverage_start'],
+                             '2000-03-01T00:00:00')
+            self.assertEqual(ds2.attrs['time_coverage_end'],
+                             '2000-06-01T00:00:00')
+            self.assertEqual(ds2.attrs['time_coverage_resolution'],
+                             'P1M')
+            self.assertEqual(ds2.attrs['time_coverage_duration'],
+                             'P93D')
 
     def test_wrong_type(self):
         ds = xr.Dataset({
@@ -598,9 +609,9 @@ class TestAdjustTemporal(TestCase):
 
         # Make sure expected values are in the new dataset
         self.assertEqual(ds1.attrs['time_coverage_start'],
-                         '2000-01-01T00:00:00.000000000')
+                         '2000-01-01T00:00:00')
         self.assertEqual(ds1.attrs['time_coverage_end'],
-                         '2000-12-31T00:00:00.000000000')
+                         '2000-12-31T00:00:00')
         self.assertEqual(ds1.attrs['time_coverage_resolution'],
                          'P1M')
         self.assertEqual(ds1.attrs['time_coverage_duration'],
@@ -629,9 +640,9 @@ class TestAdjustTemporal(TestCase):
 
         # Make sure expected values are in the new dataset
         self.assertEqual(ds1.attrs['time_coverage_start'],
-                         '2000-01-01T00:00:00.000000000')
+                         '2000-01-01T00:00:00')
         self.assertEqual(ds1.attrs['time_coverage_end'],
-                         '2000-01-31T00:00:00.000000000')
+                         '2000-01-31T00:00:00')
         self.assertEqual(ds1.attrs['time_coverage_duration'],
                          'P31D')
         with self.assertRaises(KeyError):
@@ -650,9 +661,9 @@ class TestAdjustTemporal(TestCase):
         ds1 = adjust_temporal_attrs(ds)
 
         self.assertEqual(ds1.attrs['time_coverage_start'],
-                         '2000-01-01T00:00:00.000000000')
+                         '2000-01-01T00:00:00')
         self.assertEqual(ds1.attrs['time_coverage_end'],
-                         '2000-01-01T00:00:00.000000000')
+                         '2000-01-01T00:00:00')
         with self.assertRaises(KeyError):
             # noinspection PyStatementEffect
             ds.attrs['time_coverage_resolution']
@@ -786,8 +797,8 @@ class TestNormalizeMissingTime(TestCase):
                         coords={'lat': np.linspace(-89.5, 89.5, 90),
                                 'lon': np.linspace(-179.5, 179.5, 180),
                                 'time': time_data},
-                        attrs = {'time_coverage_start': '20120101',
-                                 'time_coverage_end': '20121231'})
+                        attrs={'time_coverage_start': '20120101',
+                               'time_coverage_end': '20121231'})
         new_ds = normalize_missing_time(ds)
         self.assertIs(ds, new_ds)
 
