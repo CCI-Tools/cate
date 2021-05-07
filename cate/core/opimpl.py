@@ -23,6 +23,7 @@ import warnings
 from datetime import datetime
 from typing import Optional, Sequence, Union, Tuple
 
+import cftime
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -30,10 +31,10 @@ from jdcal import jd2gcal
 from matplotlib import path
 from shapely.geometry import box, LineString, Polygon
 
-from cate.util.time import get_timestamps_from_string, get_timestamp_from_string
 from .types import PolygonLike, ValidationError
 from ..util.misc import to_list
 from ..util.monitor import Monitor
+from ..util.time import get_timestamps_from_string, get_timestamp_from_string
 
 __author__ = "Janis Gailis (S[&]T Norway)" \
              "Norman Fomferra (Brockmann Consult GmbH)"
@@ -396,12 +397,11 @@ def normalize_missing_time(ds: xr.Dataset) -> xr.Dataset:
     if not time_coverage_start and not time_coverage_end:
         # Can't do anything
         return ds
-    time = None
-    if 'time' in ds:
-        if isinstance(ds.time.values[0], datetime) or isinstance(ds.time.values[0], np.datetime64):
-            time = ds.time
-    elif 't' in ds:
-        if isinstance(ds.t.values[0], datetime) or isinstance(ds.t.values[0], np.datetime64):
+
+    time = _get_valid_time_coord(ds, 'time')
+    if time is None:
+        time = _get_valid_time_coord(ds, 't')
+        if time is not None:
             ds = ds.rename_vars({"t": "time"})
             ds = ds.assign_coords(time=('time', ds.time))
             time = ds.time
@@ -600,10 +600,10 @@ def _get_temporal_cf_attrs_from_var(ds: xr.Dataset, var_name: str = 'time') -> O
                 dim_min = var.values[0]
                 dim_max = var.values[0]
 
-    # Make sure dim_min and dim_max are valid and are instances of np.datetime64
+    # Make sure dim_min and dim_max are valid and are time instances
     # See https://github.com/CCI-Tools/cate/issues/643
     if dim_var is None \
-            or not np.issubdtype(dim_var.dtype, np.datetime64):
+            or not _is_supported_time_dtype(dim_var.dtype):
         # Cannot determine temporal extent for dimension var_name
         return None
 
@@ -613,7 +613,7 @@ def _get_temporal_cf_attrs_from_var(ds: xr.Dataset, var_name: str = 'time') -> O
         duration = None
 
     if dim_min < dim_max and len(var) >= 2:
-        resolution = _get_temporal_res(var.values)
+        resolution = _get_temporal_res(var)
     else:
         resolution = None
 
@@ -621,6 +621,22 @@ def _get_temporal_cf_attrs_from_var(ds: xr.Dataset, var_name: str = 'time') -> O
                 time_coverage_end=str(dim_max),
                 time_coverage_duration=duration,
                 time_coverage_resolution=resolution)
+
+
+def _get_valid_time_coord(ds: xr.Dataset, name: str) -> Optional[xr.DataArray]:
+    if name in ds:
+        time = ds[name]
+        if time.size > 0 \
+                and time.ndim == 1 \
+                and _is_supported_time_dtype(time.dtype):
+            return time
+    return None
+
+
+def _is_supported_time_dtype(dtype: np.dtype) -> bool:
+    return np.issubdtype(dtype, np.datetime64) \
+           or np.issubdtype(dtype, cftime.datetime) \
+           or np.issubdtype(dtype, datetime)
 
 
 def _get_geo_spatial_cf_attrs_from_var(ds: xr.Dataset, var_name: str, allow_point: bool = False) -> Optional[dict]:
@@ -721,7 +737,7 @@ def _get_geo_spatial_cf_attrs_from_var(ds: xr.Dataset, var_name: str, allow_poin
     return geo_spatial_attrs
 
 
-def _get_temporal_res(time: np.ndarray) -> str:
+def _get_temporal_res(time: xr.DataArray) -> str:
     """
     Determine temporal resolution of the given datetimes array.
 
@@ -731,7 +747,7 @@ def _get_temporal_res(time: np.ndarray) -> str:
     :return: Temporal resolution formatted as an ISO 8601:2004 duration string
     """
     delta = time[1] - time[0]
-    days = delta.astype('timedelta64[D]') / np.timedelta64(1, 'D')
+    days = delta.values.astype('timedelta64[D]') / np.timedelta64(1, 'D')
 
     if (27 < days) and (days < 32):
         return 'P1M'
