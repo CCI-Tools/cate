@@ -625,8 +625,8 @@ def _get_temporal_cf_attrs_from_var(ds: xr.Dataset, var_name: str = 'time') -> O
     else:
         resolution = None
 
-    return dict(time_coverage_start=str(dim_min),
-                time_coverage_end=str(dim_max),
+    return dict(time_coverage_start=_to_isoformat(dim_min),
+                time_coverage_end=_to_isoformat(dim_max),
                 time_coverage_duration=duration,
                 time_coverage_resolution=resolution)
 
@@ -643,6 +643,13 @@ def _get_valid_time_coord(ds: xr.Dataset, name: str) -> Optional[xr.DataArray]:
 
 def _is_supported_time_dtype(dtype: np.dtype) -> bool:
     return any(np.issubdtype(dtype, t) for t in DatetimeTypes)
+
+
+def _to_isoformat(time_value: np.ndarray) -> str:
+    if np.issubdtype(time_value.dtype, cftime.datetime):
+        return time_value.item().isoformat()
+    else:
+        return np.datetime_as_string(time_value, unit='s')
 
 
 def _get_geo_spatial_cf_attrs_from_var(ds: xr.Dataset, var_name: str, allow_point: bool = False) -> Optional[dict]:
@@ -771,10 +778,8 @@ def _get_duration(tmin: Datetime, tmax: Datetime) -> str:
     :param tmax: Time maximum
     :return: Temporal resolution formatted as an ISO 8601:2004 duration string
     """
-    delta = tmax - tmin
     day = np.timedelta64(1, 'D')
-    # noinspection PyTypeChecker
-    days = (delta.astype('timedelta64[D]') / day) + 1
+    days = (np.timedelta64(tmax - tmin).astype(dtype='timedelta64[D]') / day) + 1
     return 'P{}D'.format(int(days))
 
 
