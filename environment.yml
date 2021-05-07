@@ -9,6 +9,7 @@ dependencies:
   - boto3>=1.14
   - botocore>=1.17
   - cartopy>=0.17.0
+  - cftime>=1.4.1
   - conda>=4.8
   - cython>=0.29.2
   - dask>=2.10
