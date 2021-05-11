@@ -83,6 +83,7 @@ Components
 """
 
 import datetime
+import geopandas as gpd
 import glob
 import logging
 import re
@@ -454,12 +455,20 @@ def make_local(data: Any,
     local_store = DATA_STORE_POOL.get_store('local')
     if not local_store:
         raise ValueError('Cannot initialize `local` DataStore')
+    if isinstance(data, xr.Dataset):
+        extension = '.zarr'
+    elif isinstance(data, gpd.GeoDataFrame):
+        extension = '.geojson'
+    else:
+        raise DataAccessError(f'Unsupported data type {type(data)}')
+    if local_name is not None and not local_name.endswith(extension):
+        local_name = local_name + extension
     if not local_name and orig_dataset_name is not None:
         i = 1
-        local_name = f'local.{orig_dataset_name}.{i}.zarr'
+        local_name = f'local.{orig_dataset_name}.{i}{extension}'
         while local_store.has_data(local_name):
             i += 1
-            local_name = f'local.{orig_dataset_name}.{i}.zarr'
+            local_name = f'local.{orig_dataset_name}.{i}{extension}'
     local_data_id = local_store.write_data(data=data, data_id=local_name)
     return local_store.open_data(data_id=local_data_id), local_data_id
 
