@@ -13,6 +13,12 @@
   - Parameter `crs` of function `cate.ops.io.read_geo_data_frame` 
 * Fixed bug with user preferences not being saved correctly.
   ([#146](https://github.com/CCI-Tools/cate-app/issues/146))
+* Internal: the metadata format returned by the WebSocket JSON RPC operation 
+  `get_data_source_meta_info` has changed:
+  - `variables` field has been renamed to `data_vars`;
+  - `coords` field has been added;
+  - the variable descriptors in `data_vars` and `coords` have 
+    an optional `dims` field. 
 
 ## Version 2.1.5
 
