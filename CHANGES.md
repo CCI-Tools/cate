@@ -14,7 +14,7 @@
 * Fixed bug with user preferences not being saved correctly.
   ([#146](https://github.com/CCI-Tools/cate-app/issues/146))
 * Fixed environment not building with matplotlib version `<3.3.0`. (#929)
-* Fixed the operator `animate`not working with the current xarray version (0.18)
+* Fixed the operation `animate_map` that stopped working with xarray version 0.18.0.
 
 ## Version 2.1.5
 
