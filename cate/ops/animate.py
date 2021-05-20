@@ -227,11 +227,9 @@ def animate_map(ds: xr.Dataset,
         # transform keyword is for the coordinate our data is in, which in case of a
         # 'normal' lat/lon dataset is PlateCarree.
         if contour_plot:
-            var_data.plot.contourf(ax=ax, transform=ccrs.PlateCarree(), subplot_kws={'projection': proj},
-                                   add_colorbar=True, **plot_kwargs)
+            var_data.plot.contourf(ax=ax, transform=ccrs.PlateCarree(), add_colorbar=True, **plot_kwargs)
         else:
-            var_data.plot.pcolormesh(ax=ax, transform=ccrs.PlateCarree(), subplot_kws={'projection': proj},
-                                     add_colorbar=True, **plot_kwargs)
+            var_data.plot.pcolormesh(ax=ax, transform=ccrs.PlateCarree(), add_colorbar=True, **plot_kwargs)
         if title:
             ax.set_title(title)
         figure.tight_layout()
@@ -246,12 +244,15 @@ def animate_map(ds: xr.Dataset,
             ax.coastlines()
             indexers[animate_dim] = value
             var_data = get_var_data(var, indexers, remaining_dims=('lon', 'lat'))
-            var_data.plot.contourf(ax=ax, transform=ccrs.PlateCarree(), subplot_kws={'projection': proj},
+            var_data.plot.contourf(ax=ax, transform=ccrs.PlateCarree(),
                                    add_colorbar=False, **plot_kwargs)
             if title:
                 ax.set_title(title)
             monitor.progress(1)
             return ax
+
+        # Reports Optional[int] expected but iterable allowed
+        # noinspection PyTypeChecker
         anim = animation.FuncAnimation(figure, run, [i for i in var[animate_dim]],
                                        interval=interval, blit=False, repeat=False)
         anim_html = anim.to_jshtml()
