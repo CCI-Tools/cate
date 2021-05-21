@@ -32,7 +32,8 @@ Components
 import xarray as xr
 
 from cate.core.op import op, op_return
-from cate.core.opimpl import normalize_impl, adjust_temporal_attrs_impl, adjust_spatial_attrs_impl
+from cate.core.opimpl import adjust_temporal_attrs_impl
+import xcube.core.normalize as xcube_normalize
 
 
 @op(tags=['utility'], version='1.0')
@@ -56,7 +57,7 @@ def normalize(ds: xr.Dataset) -> xr.Dataset:
     :param ds: The dataset to normalize.
     :return: The normalized dataset, or the original dataset, if it is already "normal".
     """
-    return normalize_impl(ds)
+    return xcube_normalize.normalize_dataset(ds)
 
 
 @op(tags=['utility'], version='1.0')
@@ -76,7 +77,7 @@ def adjust_spatial_attrs(ds: xr.Dataset, allow_point: bool = False) -> xr.Datase
     :param allow_point: Whether a dataset containing a single point is allowed
     :return: Adjusted dataset
     """
-    return adjust_spatial_attrs_impl(ds, allow_point=allow_point)
+    return xcube_normalize.adjust_spatial_attrs(ds, allow_point=allow_point)
 
 
 @op(tags=['utility'], version='1.0')
