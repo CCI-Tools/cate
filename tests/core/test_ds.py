@@ -97,12 +97,10 @@ class IOTest(StoreTest):
                 'surface_pressure': xcube_store.VariableDescriptor(
                     name='surface_pressure',
                     dtype='float32',
-                    dims=('lat', 'lon'),
+                    dims=('time', 'lat', 'lon'),
                     attrs=dict(units='hPa',
                                long_name='surface_pressure',
-                               standard_name='surface_pressure'
-                               )
-                )
+                               standard_name='surface_pressure'))
             },
             attrs=dict(
                 title='ESA Ozone Climate Change Initiative (Ozone CCI): '
@@ -176,22 +174,30 @@ class IOTest(StoreTest):
             data_type='NP',
             file_formats=['.nc', '.txt'],
             data_vars=[
-                {'long_name': 'surface_pressure',
-                 'name': 'surface_pressure',
+                {'name': 'surface_pressure',
+                 'dtype': 'float32',
+                 'dims': ('time', 'lat', 'lon'),
+                 'long_name': 'surface_pressure',
                  'standard_name': 'surface_pressure',
                  'units': 'hPa'}
             ],
             coords=[
-                {'long_name': 'longitude',
-                 'name': 'lon',
+                {'name': 'lon',
+                 'dtype': 'float32',
+                 'dims': ('lon',),
+                 'long_name': 'longitude',
                  'standard_name': 'longitude',
                  'units': 'degrees'},
-                {'long_name': 'latitude',
-                 'name': 'lat',
+                {'name': 'lat',
+                 'dtype': 'float32',
+                 'dims': ('lat',),
+                 'long_name': 'latitude',
                  'standard_name': 'latitude',
                  'units': 'degrees'},
-                {'long_name': 'time',
-                 'name': 'time',
+                {'name': 'time',
+                 'dtype': 'datetime64[ms]',
+                 'dims': ('time',),
+                 'long_name': 'time',
                  'standard_name': 'time',
                  'units': 'milliseconds since 1970-01-01T00:00:00'}
             ],

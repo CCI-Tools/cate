@@ -278,9 +278,11 @@ def get_metadata_from_descriptor(descriptor: xcube_store.DataDescriptor) -> Dict
     for vars_key in ('data_vars', 'coords'):
         if hasattr(descriptor, vars_key) and isinstance(getattr(descriptor, vars_key), dict):
             metadata[vars_key] = []
-            var_attrs = ['units', 'long_name', 'standard_name', 'dims']
+            var_attrs = ['units', 'long_name', 'standard_name']
             for var_name, var_descriptor in getattr(descriptor, vars_key).items():
-                var_dict = dict(name=var_name)
+                var_dict = dict(name=var_name, dtype=var_descriptor.dtype, dims=var_descriptor.dims)
+                if var_descriptor.chunks is not None:
+                    var_dict['chunks'] = var_descriptor.chunks
                 if var_descriptor.attrs:
                     for var_attr in var_attrs:
                         if var_attr in var_descriptor.attrs:
@@ -298,7 +300,7 @@ def get_info_string_from_data_descriptor(descriptor: xcube_store.DataDescriptor)
 
     info_lines = []
     for name, value in meta_info.items():
-        if name != 'data_vars':
+        if name not in ('data_vars', 'coords'):
             info_lines.append('%s:%s %s' % (name, (1 + max_len - len(name)) * ' ', value))
 
     return '\n'.join(info_lines)

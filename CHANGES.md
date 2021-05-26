@@ -18,7 +18,7 @@
   - `variables` field has been renamed to `data_vars`;
   - `coords` field has been added;
   - the variable descriptors in `data_vars` and `coords` have 
-    an optional `dims` field. 
+    now `dtype` and `dims` fields. 
 
 ## Version 2.1.5
 
