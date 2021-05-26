@@ -197,31 +197,6 @@ class WebSocketService:
         data_source_descriptor = data_store.describe_data(data_source_id)
         return get_metadata_from_descriptor(data_source_descriptor)
 
-    def get_data_source_temporal_coverage(self,
-                                          data_store_id: str,
-                                          data_source_id: str,
-                                          monitor: Monitor) \
-            -> Dict[str, Any]:
-        """
-        Get the temporal coverage of the data source.
-
-        :param data_store_id: ID of the data store
-        :param data_source_id: ID of the data source
-        :param monitor: a progress monitor
-        :return: JSON-serializable list of data sources, sorted by name.
-        """
-        data_store = DATA_STORE_POOL.get_store(data_store_id)
-        if data_store is None:
-            raise ValueError('Unknown data store: "%s"' % data_store_id)
-        data_source_descriptor = data_store.describe_data(data_source_id)
-        temporal_coverage = data_source_descriptor.time_range
-        meta_info = OrderedDict()
-        if temporal_coverage:
-            start, end = temporal_coverage
-            meta_info['temporal_coverage_start'] = start
-            meta_info['temporal_coverage_end'] = end
-        return meta_info
-
     def add_local_data_source(self, data_source_id: str, file_path_pattern: str, monitor: Monitor):
         """
         Adds a local data source made up of the specified files.
