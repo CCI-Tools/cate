@@ -71,7 +71,6 @@ import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 
 import xarray as xr
-import pandas as pd
 import cartopy.crs as ccrs
 import numpy as np
 import json
@@ -208,9 +207,9 @@ def plot_map(ds: xr.Dataset,
     # transform keyword is for the coordinate our data is in, which in case of a
     # 'normal' lat/lon dataset is PlateCarree.
     if contour_plot:
-        var_data.plot.contourf(ax=ax, transform=ccrs.PlateCarree(), subplot_kws={'projection': proj}, **properties)
+        var_data.plot.contourf(ax=ax, transform=ccrs.PlateCarree(), **properties)
     else:
-        var_data.plot.pcolormesh(ax=ax, transform=ccrs.PlateCarree(), subplot_kws={'projection': proj}, **properties)
+        var_data.plot.pcolormesh(ax=ax, transform=ccrs.PlateCarree(), **properties)
 
     if title:
         ax.set_title(title)

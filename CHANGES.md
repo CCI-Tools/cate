@@ -19,6 +19,8 @@
   - `coords` field has been added;
   - the variable descriptors in `data_vars` and `coords` have 
     now `dtype` and `dims` fields. 
+* Fixed environment not building with matplotlib version `<3.3.0`. (#929)
+* Fixed the operation `animate_map` that stopped working with xarray version 0.18.0.
 
 ## Version 2.1.5
 
