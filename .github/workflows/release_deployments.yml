@@ -37,8 +37,6 @@ jobs:
         with:
           repository: bcdev/k8s-configs
           token: ${{ secrets.CATE_GITHUB_K8S_CONFIGS_PAT }}
-
-      - name: clone k8s-config
         run: |
           cd ke/helm/xcube-hub
           sed -i -e 's/cate-version [a-z0-9\.]*$/cate-version ${{ steps.releasename.outputs.VERSION }}/g' values-dev.yaml
