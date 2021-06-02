@@ -38,7 +38,7 @@ jobs:
         run: |
           git clone https://bcdev:${{ secrets.CATE_GITHUB_K8S_CONFIGS_PAT }}@github.com/bcdev/k8s-configs
           cd k8s-configs
-          git checkout dzelge_###_cate
+          git checkout dzelge_xxx_cate
           git config --global user.email "bcdev@brockmann-consult.de"
           git config --global user.name "BC Dev"
       - name: trigger deploy dev
@@ -61,4 +61,4 @@ jobs:
           git commit -a -m "Updated cate production version to ${{ steps.releasename.outputs.VERSION }}"
       - name: Push to k8s-configs
         run: |
-          git push origin dzelge_###_cate
+          git push origin dzelge_xxx_cate
