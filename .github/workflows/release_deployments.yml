@@ -61,4 +61,5 @@ jobs:
           git commit -a -m "Updated cate production version to ${{ steps.releasename.outputs.VERSION }}"
       - name: Push to k8s-configs
         run: |
+          cd k8s-configs
           git push origin dzelge_xxx_cate
