@@ -7,8 +7,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v1
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          miniconda-version: "latest"
+          activate-environment: base
       - name: Install mamba
         run: |
           conda --version
@@ -18,6 +20,10 @@ jobs:
           mamba env create
           source activate cate-env
           python setup.py develop
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          miniconda-version: "latest"
+          activate-environment: cate-env
       - name: unittest cate
         run: |
           # For the unit-tests, disable Numba JIT, otherwise Coverage wont reach the actual Python code
