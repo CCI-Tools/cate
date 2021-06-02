@@ -9,7 +9,9 @@ jobs:
       - uses: actions/checkout@v2
       - name: Set Release Name
         id: releasename
-        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
+        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/*/}
+      - name: Test release name
+        run: echo ${{ steps.releasename.outputs.VERSION }}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
       - name: Login to DockerHub
@@ -25,4 +27,4 @@ jobs:
           context: .
           file: docker/Dockerfile
           push: true
-          tags: quay.io/ccitools/cate:${{ steps.releasename.outputs.tag }}
+          tags: quay.io/ccitools/cate:${{ steps.releasename.outputs.VERSION }}
