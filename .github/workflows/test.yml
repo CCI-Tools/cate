@@ -4,7 +4,7 @@ on: workflow_dispatch
 
 jobs:
   unittest:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.8
