@@ -35,7 +35,7 @@ jobs:
         run: echo ::set-output name=VERSION::${GITHUB_REF#refs/*/}
       - uses: actions/checkout@v2
         with:
-          repository: https://github.com/bcdev/k8s-configs
+          repository: bcdev/k8s-configs
           token: ${{ secrets.CATE_GITHUB_K8S_CONFIGS_PAT }}
 
       - name: clone k8s-config
