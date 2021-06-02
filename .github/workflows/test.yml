@@ -9,17 +9,16 @@ jobs:
       - uses: actions/checkout@v2
       - name: Set up Python 3.8
         uses: actions/setup-python@v1
+      - name: Install mamba
         run: |
           conda --version
           conda install -n base -c conda-forge mamba
       - name: install cate
-        uses: actions/setup-python@v1
         run: |
           mamba env create
           source activate cate-env
           python setup.py develop
       - name: unittest cate
-        uses: actions/setup-python@v1
         run: |
           # For the unit-tests, disable Numba JIT, otherwise Coverage wont reach the actual Python code
           export NUMBA_DISABLE_JIT=1
