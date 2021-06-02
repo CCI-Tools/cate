@@ -33,9 +33,13 @@ jobs:
       - name: Set Release Name
         id: releasename
         run: echo ::set-output name=VERSION::${GITHUB_REF#refs/*/}
+      - uses: actions/checkout@v2
+        with:
+          repository: https://github.com/bcdev/k8s-configs
+          token: ${{ secrets.CATE_GITHUB_K8S_CONFIGS_PAT }}
+
       - name: clone k8s-config
         run: |
-          git clone https://github.com/bcdev/k8s-configs
           cd k8s-configs/ke/helm/xcube-hub
           sed -i -e 's/cate-version [a-z0-9\.]*$/cate-version ${{ steps.releasename.outputs.VERSION }}/g' values-dev.yaml
           git commit -a -m "Updated cate version to ${{ steps.releasename.outputs.VERSION }}"
