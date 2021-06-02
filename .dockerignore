@@ -1,3 +1,4 @@
+.cate
 docs
 CHANGES.md
 notebooks
@@ -14,7 +15,7 @@ setup-util.py
 .github
 .flake8
 .idea
-Dockerfile
+docker/Dockerfile
 .dockerignore
 cate.egg-info
 
