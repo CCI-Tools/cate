@@ -1,9 +1,6 @@
 name: Deploy on Release
 
-on:
-  release:
-    types:
-      - published
+on: workflow_dispatch
 
 jobs:
   build-docker:
@@ -37,24 +34,23 @@ jobs:
       - name: Set Release Name
         id: releasename
         run: echo ::set-output name=VERSION::${GITHUB_REF#refs/*/}
+      - name: Clone k8s-configs
+        run: |
+          git clone https://bcdev:${{ secrets.CATE_GITHUB_K8S_CONFIGS_PAT }}@github.com/bcdev/k8s-configs
+          cd k8s-configs
+          git config --global user.email "bcdev@brockmann-consult.de"
+          git config --global user.name "BC Dev"
       - name: trigger deploy dev
         if: contains(${{ steps.releasename.outputs.VERSION }}, 'dev')
         run: |
-          git clone https://bcdev:${{ secrets.CATE_GITHUB_K8S_CONFIGS_PAT }}@github.com/bcdev/k8s-configs
-          cd k8s-configs
-          git config --global user.email "bcdev@brockmann-consult.de"
-          git config --global user.name "BC Dev"
           sed -i -e 's/cate-version [a-z0-9\.]*$/cate-version ${{ steps.releasename.outputs.VERSION }}/g' ke/helm/xcube-hub/values-dev.yaml
           sed -i -e 's/cate-version [a-z0-9\.]*$/cate-version ${{ steps.releasename.outputs.VERSION }}/g' ke/helm/xcube-hub/values-stage.yaml
           git commit -a -m "Updated cate dev version to ${{ steps.releasename.outputs.VERSION }}"
-          git push origin main
       - name: trigger deploy dev
         if: !contains(${{ steps.releasename.outputs.VERSION }}, 'dev')
         run: |
-          git clone https://bcdev:${{ secrets.CATE_GITHUB_K8S_CONFIGS_PAT }}@github.com/bcdev/k8s-configs
-          cd k8s-configs
-          git config --global user.email "bcdev@brockmann-consult.de"
-          git config --global user.name "BC Dev"
           sed -i -e 's/cate-version [a-z0-9\.]*$/cate-version ${{ steps.releasename.outputs.VERSION }}/g' ke/helm/xcube-hub/values-prod.yaml
           git commit -a -m "Updated cate production version to ${{ steps.releasename.outputs.VERSION }}"
+      - name: Push to k8s-configs
+        run: |
           git push origin main

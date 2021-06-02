@@ -13,17 +13,15 @@ jobs:
           channels: conda-forge
           activate-environment: cate-env
           environment-file: environment.yml
-      - shell: bash -l {0}
+      - name: setup cate
+        shell: bash -l {0}
         run: |
           conda info
           conda list
-          conda config --show-sources
-          conda config --show
-          printenv | sort
+          python setup.py develop
       - name: unittest cate
         shell: bash -l {0}
         run: |
-          python setup.py develop
           # For the unit-tests, disable Numba JIT, otherwise Coverage wont reach the actual Python code
           export NUMBA_DISABLE_JIT=1
           # Uncomment following line if web testing on travis breaks our build
