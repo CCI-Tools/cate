@@ -42,4 +42,4 @@ jobs:
           git config --global user.name "BC Dev"
           sed -i -e 's/cate-version [a-z0-9\.]*$/cate-version ${{ steps.releasename.outputs.VERSION }}/g' ke/helm/xcube-hub/values-dev.yaml
           git commit -a -m "Updated cate version to ${{ steps.releasename.outputs.VERSION }}"
-          git push origin main
+          git push origin dzelge_xxx_cate
