@@ -10,8 +10,6 @@ jobs:
       - name: Set Release Name
         id: releasename
         run: echo ::set-output name=VERSION::${GITHUB_REF#refs/*/}
-      - name: Test release name
-        run: echo ${{ steps.releasename.outputs.VERSION }}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
       - name: Login to DockerHub
@@ -28,3 +26,17 @@ jobs:
           file: docker/Dockerfile
           push: true
           tags: quay.io/ccitools/cate:${{ steps.releasename.outputs.VERSION }}
+  trigger-deployment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set Release Name
+        id: releasename
+        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/*/}
+      - name: clone k8s-config
+        run: |
+          git clone https://github.com/bcdev/k8s-configs
+          cd k8s-configs/ke/helm/xcube-hub
+          sed -i -e 's/cate-version [a-z0-9\.]*$/cate-version ${{ steps.releasename.outputs.VERSION }}/g' values-dev.yaml
+          git commit -a -m "Updated cate version to ${{ steps.releasename.outputs.VERSION }}"
+          git push origin main
