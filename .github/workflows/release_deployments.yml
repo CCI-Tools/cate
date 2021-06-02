@@ -33,13 +33,10 @@ jobs:
       - name: Set Release Name
         id: releasename
         run: echo ::set-output name=VERSION::${GITHUB_REF#refs/*/}
-      - uses: actions/checkout@v2
-        with:
-          repository: bcdev/k8s-configs
-          ref: dzelge_xxx_cate
-          token: ${{ secrets.CATE_GITHUB_K8S_CONFIGS_PAT }}
       - name: trigger deploy
         run: |
+          git clone https://bcdev:${{ secrets.CATE_GITHUB_K8S_CONFIGS_PAT }}@github.com/bcdev/k8s-configs
+          cd k8s-configs
           sed -i -e 's/cate-version [a-z0-9\.]*$/cate-version ${{ steps.releasename.outputs.VERSION }}/g' ke/helm/xcube-hub/values-dev.yaml
           git commit -a -m "Updated cate version to ${{ steps.releasename.outputs.VERSION }}"
           git push origin main
