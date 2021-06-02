@@ -21,6 +21,7 @@ jobs:
           conda config --show
           printenv | sort
       - name: unittest cate
+        shell: bash -l {0}
         run: |
           python setup.py develop
           # For the unit-tests, disable Numba JIT, otherwise Coverage wont reach the actual Python code
