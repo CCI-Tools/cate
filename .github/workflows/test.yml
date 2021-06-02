@@ -13,6 +13,13 @@ jobs:
           channels: conda-forge
           activate-environment: cate-env
           environment-file: environment.yml
+      - shell: bash -l {0}
+        run: |
+          conda info
+          conda list
+          conda config --show-sources
+          conda config --show
+          printenv | sort
       - name: unittest cate
         run: |
           python setup.py develop
