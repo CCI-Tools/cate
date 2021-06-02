@@ -17,14 +17,13 @@ jobs:
       - name: install cate
         run: |
           mamba env create
-          source activate cate-env
-          python setup.py develop
       - uses: conda-incubator/setup-miniconda@v2
         with:
           miniconda-version: "latest"
           activate-environment: cate-env
       - name: unittest cate
         run: |
+          python setup.py develop
           # For the unit-tests, disable Numba JIT, otherwise Coverage wont reach the actual Python code
           export NUMBA_DISABLE_JIT=1
           # Uncomment following line if web testing on travis breaks our build
