@@ -47,7 +47,7 @@ jobs:
           sed -i -e 's/cate-version [a-z0-9\.]*$/cate-version ${{ steps.releasename.outputs.VERSION }}/g' ke/helm/xcube-hub/values-stage.yaml
           git commit -a -m "Updated cate dev version to ${{ steps.releasename.outputs.VERSION }}"
       - name: trigger deploy dev
-        if: !contains(${{ steps.releasename.outputs.VERSION }}, 'dev')
+        if: "!contains(${{ steps.releasename.outputs.VERSION }}, 'dev')"
         run: |
           sed -i -e 's/cate-version [a-z0-9\.]*$/cate-version ${{ steps.releasename.outputs.VERSION }}/g' ke/helm/xcube-hub/values-prod.yaml
           git commit -a -m "Updated cate production version to ${{ steps.releasename.outputs.VERSION }}"
