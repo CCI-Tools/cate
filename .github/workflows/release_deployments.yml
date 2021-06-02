@@ -25,4 +25,4 @@ jobs:
           context: .
           file: docker/Dockerfile
           push: true
-          tags: ccitools/cate:${{ steps.release.outputs.name }}
+          tags: quay.io/ccitools/cate:${{ steps.release.outputs.name }}
