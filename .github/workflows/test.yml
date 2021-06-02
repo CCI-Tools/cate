@@ -9,17 +9,12 @@ jobs:
       - uses: actions/checkout@v2
       - uses: conda-incubator/setup-miniconda@v2
         with:
-          miniconda-version: "latest"
-      - name: Install mamba
-        run: |
-          conda --version
-          conda install -n base -c conda-forge mamba
-      - name: install cate
-        run: |
-          mamba env create
+          mamba-version: "*"
+          channels: conda-forge
+          activate-environment: cate-env
+          environment-file: environment.yml
       - name: unittest cate
         run: |
-          conda activate cate-env
           python setup.py develop
           # For the unit-tests, disable Numba JIT, otherwise Coverage wont reach the actual Python code
           export NUMBA_DISABLE_JIT=1
