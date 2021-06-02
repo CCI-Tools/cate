@@ -27,7 +27,7 @@ jobs:
 #          push: true
 #          tags: quay.io/ccitools/cate:${{ steps.releasename.outputs.VERSION }}
   trigger-deployment:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v2
       - name: Set Release Name
