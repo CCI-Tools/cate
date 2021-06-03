@@ -38,6 +38,9 @@ jobs:
       - name: Tag latest
         if: github.event_name == 'push' && ${{ steps.releasename.outputs.VERSION }} == 'master'
         run: |
+          echo "_______________________________________________"
+          echo ${{ steps.releasename.outputs.VERSION }}
+          echo "_______________________________________________"
           docker tag quay.io/ccitools/cate:master quay.io/ccitools/cate:latest
           docker push quay.io/ccitools/cate:latest
 
