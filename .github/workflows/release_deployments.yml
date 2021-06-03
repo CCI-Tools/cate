@@ -52,10 +52,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: build-docker
     steps:
+      # Checkout repo
       - uses: actions/checkout@v2
+      # Determine release name
       - name: Set Release Name
         id: releasename
         run: echo ::set-output name=VERSION::${GITHUB_REF#refs/*/}
+      # Clone k8s-config to udpate versions in values-*.yml
       - name: Clone k8s-configs
         run: |
           git clone https://bcdev:${{ secrets.CATE_GITHUB_K8S_CONFIGS_PAT }}@github.com/bcdev/k8s-configs
@@ -63,7 +66,9 @@ jobs:
 
           git config --global user.email "bcdev@brockmann-consult.de"
           git config --global user.name "BC Dev"
+      # Deploy to dev and stage for dev releases
       - name: trigger deploy dev
+        if: "github.event_name == 'release' && contains(${{ steps.releasename.outputs.VERSION }}, 'dev')"
         run: |
           echo "##############################################"
           echo "Deploy dev version ${{ steps.releasename.outputs.VERSION }}"
@@ -72,8 +77,9 @@ jobs:
           sed -i -e 's/cate-version [a-z0-9\.]*$/cate-version ${{ steps.releasename.outputs.VERSION }}/g' ke/helm/xcube-hub/values-dev.yaml
           sed -i -e 's/cate-version [a-z0-9\.]*$/cate-version ${{ steps.releasename.outputs.VERSION }}/g' ke/helm/xcube-hub/values-stage.yaml
           git commit -a -m "Updated cate dev version to ${{ steps.releasename.outputs.VERSION }}"
-      - name: trigger deploy dev
-        if: "!contains(${{ steps.releasename.outputs.VERSION }}, 'dev')"
+      # Deploy to prod for prod releases
+      - name: trigger deploy prod
+        if: "github.event_name == 'release' && !contains(${{ steps.releasename.outputs.VERSION }}, 'dev')"
         run: |
           echo "##############################################"
           echo "Deploy production version ${{ steps.releasename.outputs.VERSION }}"
@@ -81,15 +87,16 @@ jobs:
           cd k8s-configs
           sed -i -e 's/cate-version [a-z0-9\.]*$/cate-version ${{ steps.releasename.outputs.VERSION }}/g' ke/helm/xcube-hub/values-prod.yaml
           git commit -a -m "Updated cate production version to ${{ steps.releasename.outputs.VERSION }}"
+      # Deploy latest to dev if 'release' is master
       - name: trigger deploy latest
-        if: ${{ steps.releasename.outputs.VERSION }} == 'master'
+        if: github.event_name == 'push' && ${{ steps.releasename.outputs.VERSION }} == 'master'
         run: |
           echo "##############################################"
-          echo "Deploy production version ${{ steps.releasename.outputs.VERSION }}"
+          echo "Deploy dev version latest"
           echo "##############################################"
           cd k8s-configs
           sed -i -e 's/cate-version [a-z0-9\.]*$/cate-version latest/g' ke/helm/xcube-hub/values-dev.yaml
-          git commit -a -m "Updated cate latest version to ${{ steps.releasename.outputs.VERSION }}"
+          git commit -a -m "Updated cate latest version to latest"
       - name: Push to k8s-configs
         run: |
           cd k8s-configs
