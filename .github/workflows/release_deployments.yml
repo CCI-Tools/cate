@@ -43,9 +43,6 @@ jobs:
       - name: Tag latest
         if: ${{ github.event_name == 'push' && steps.releasename.outputs.VERSION == 'master' }}
         run: |
-          echo "_______________________________________________"
-          echo ${{ steps.releasename.outputs.VERSION }}
-          echo "_______________________________________________"
           docker tag quay.io/ccitools/cate:master quay.io/ccitools/cate:latest
           docker push quay.io/ccitools/cate:latest
 
@@ -90,7 +87,7 @@ jobs:
           git commit -a -m "Updated cate production version to ${{ steps.releasename.outputs.VERSION }}"
       # Deploy latest to dev if 'release' is master
       - name: trigger deploy latest
-        if: github.event_name == 'push' && ${{ steps.releasename.outputs.VERSION }} == 'master'
+        if: ${{ github.event_name == 'push' && steps.releasename.outputs.VERSION == 'master' }}
         run: |
           echo "##############################################"
           echo "Deploy dev version latest"
