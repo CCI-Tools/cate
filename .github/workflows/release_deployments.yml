@@ -97,6 +97,7 @@ jobs:
           cd k8s-configs
           sed -i -e 's/cate-version [a-z0-9\.]*$/cate-version latest/g' ke/helm/xcube-hub/values-dev.yaml
           git commit -a -m "Updated cate latest version to latest"
+      # Push image to docker repo
       - name: Push to k8s-configs
         run: |
           cd k8s-configs
