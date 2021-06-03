@@ -26,16 +26,6 @@ jobs:
           registry: quay.io
           username: ${{ secrets.QUAY_DOCKER_REPO_USERNAME }}
           password: ${{ secrets.QUAY_DOCKER_REPO_PASSWORD }}
-      # Build latest if release name is master and push to docker repo
-      - name: Setup Build and push
-        id: docker_build_latest
-        if: ${{ steps.releasename.outputs.VERSION }} == 'master'
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: docker/Dockerfile
-          push: true
-          tags: quay.io/ccitools/cate:latest
       # Build release
       - name: Build and push
         id: docker_build_release
@@ -45,6 +35,12 @@ jobs:
           file: docker/Dockerfile
           push: true
           tags: quay.io/ccitools/cate:${{ steps.releasename.outputs.VERSION }}
+      - name: Tag latest
+        if: github.event_name == 'push' && ${{ steps.releasename.outputs.VERSION }} == 'master'
+        run: |
+          docker tag quay.io/ccitools/cate:master quay.io/ccitools/cate:latest
+          docker push quay.io/ccitools/cate:latest
+
   trigger-deployment:
     runs-on: ubuntu-latest
     needs: build-docker
