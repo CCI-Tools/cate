@@ -42,7 +42,7 @@ jobs:
           push: true
           tags: quay.io/ccitools/cate:${{ steps.releasename.outputs.VERSION }}
       - name: Tag latest
-        if: ${{ github.event_name == 'push' && steps.releasename.outputs.VERSION == 'dzelge_xxx_k8s_auto' }}
+        if: github.event_name == 'push' && steps.releasename.outputs.VERSION == 'dzelge_xxx_k8s_auto'
         run: |
           docker tag quay.io/ccitools/cate:dzelge_xxx_k8s_auto quay.io/ccitools/cate:latest
           docker push quay.io/ccitools/cate:latest
