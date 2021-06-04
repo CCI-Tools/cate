@@ -7,7 +7,7 @@ on:
       - created
   push:
     branches:
-      - master
+      - dzelge_xxx_k8s_auto
 
 jobs:
   build-docker:
@@ -41,7 +41,7 @@ jobs:
           push: true
           tags: quay.io/ccitools/cate:${{ steps.releasename.outputs.VERSION }}
       - name: Tag latest
-        if: ${{ github.event_name == 'push' && steps.releasename.outputs.VERSION == 'master' }}
+        if: ${{ github.event_name == 'push' && steps.releasename.outputs.VERSION == 'dzelge_xxx_k8s_auto' }}
         run: |
           docker tag quay.io/ccitools/cate:master quay.io/ccitools/cate:latest
           docker push quay.io/ccitools/cate:latest
@@ -87,7 +87,7 @@ jobs:
           git commit -a -m "Updated cate production version to ${{ steps.releasename.outputs.VERSION }}"
       # Deploy latest to dev if 'release' is master
       - name: trigger deploy latest
-        if: ${{ github.event_name == 'push' && steps.releasename.outputs.VERSION == 'master' }}
+        if: ${{ github.event_name == 'push' && steps.releasename.outputs.VERSION == 'dzelge_xxx_k8s_auto' }}
         run: |
           echo "##############################################"
           echo "Deploy dev version latest"
