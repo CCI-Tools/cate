@@ -22,6 +22,7 @@ jobs:
       - name: Tag latest
         run: |
           echo "_______________________________________________"
+          echo ${{ github.event_name }}
           echo ${{ steps.releasename.outputs.VERSION }}
           echo "_______________________________________________"
       # Login to docker repo provider
