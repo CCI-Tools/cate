@@ -14,9 +14,11 @@ from jdcal import gcal2jd
 from numpy.testing import assert_array_almost_equal
 
 from cate.core.op import OP_REGISTRY
-from cate.core.opimpl import normalize_missing_time, normalize_coord_vars
 from cate.ops.normalize import normalize, adjust_spatial_attrs, adjust_temporal_attrs
 from cate.util.misc import object_to_qualified_name
+
+from xcube.core.normalize import normalize_coord_vars
+from xcube.core.normalize import normalize_missing_time
 
 
 # noinspection PyPep8Naming
@@ -28,28 +30,6 @@ def assertDatasetEqual(expected, actual):
 
 
 class TestNormalize(TestCase):
-    def test_normalize_zonal_lat_lon(self):
-        resolution = 10
-        lat_size = 3
-        lat_coords = np.arange(0, 30, resolution)
-        lon_coords = [i + 5. for i in np.arange(-180.0, 180.0, resolution)]
-
-        var_values_1d = xr.DataArray(np.random.random(lat_size), coords=[('latitude_centers', lat_coords)])
-        var_values_2d = xr.DataArray(np.array([var_values_1d.values for _ in lon_coords]).T,
-                                     coords={'lat': lat_coords, 'lon': lon_coords},
-                                     dims=['lat', 'lon'])
-
-        dataset = xr.Dataset({'first': var_values_1d})
-        expected = xr.Dataset({'first': var_values_2d})
-        expected = expected.assign_coords(
-            lon_bnds=xr.DataArray([[i - (resolution / 2), i + (resolution / 2)] for i in expected.lon.values],
-                                  dims=['lon', 'bnds']))
-        expected = expected.assign_coords(
-            lat_bnds=xr.DataArray([[i - (resolution / 2), i + (resolution / 2)] for i in expected.lat.values],
-                                  dims=['lat', 'bnds']))
-        actual = normalize(dataset)
-
-        xr.testing.assert_equal(actual, expected)
 
     def test_normalize_lon_lat_2d(self):
         """
