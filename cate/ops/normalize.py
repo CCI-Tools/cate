@@ -57,7 +57,7 @@ def normalize(ds: xr.Dataset) -> xr.Dataset:
     :param ds: The dataset to normalize.
     :return: The normalized dataset, or the original dataset, if it is already "normal".
     """
-    return xcube_normalize.normalize_dataset(ds)
+    return xcube_normalize.normalize_dataset(ds, reverse_decreasing_lat=True)
 
 
 @op(tags=['utility'], version='1.0')
