@@ -23,7 +23,7 @@ build_script:
   - python setup.py develop
   # Install xcube-cci
   - cd ..\xcube-cci
-  - mamba install -c conda-forge lxml pydap asyncio nest-asyncio
+  - mamba install -c conda-forge lxml pydap aiohttp nest-asyncio
   - python setup.py develop
   # Install cate-specific packages
   - cd ..
