@@ -40,7 +40,7 @@ from cate.util.misc import to_scalar
 from cate.util.monitor import Monitor
 from cate.util.undefined import UNDEFINED
 
-from xcube.core.normalize import get_geo_spatial_cf_attrs_from_var
+from xcube.core.normalize import get_geo_spatial_attrs_from_var
 
 
 @op(tags=['geometric', 'spatial', 'subset'], version='1.0')
@@ -167,8 +167,8 @@ def _get_tolerance(ds: xr.Dataset, tolerance_default: float):
         lat_res = ds.attrs[lat_res_attr_name]
     else:
         try:
-            lon_res = get_geo_spatial_cf_attrs_from_var(ds, 'lon')[lon_res_attr_name]
-            lat_res = get_geo_spatial_cf_attrs_from_var(ds, 'lat')[lat_res_attr_name]
+            lon_res = get_geo_spatial_attrs_from_var(ds, 'lon')[lon_res_attr_name]
+            lat_res = get_geo_spatial_attrs_from_var(ds, 'lat')[lat_res_attr_name]
         except ValueError:
             return tolerance_default
     if isinstance(lon_res, str) and lon_res.find(' ') > 0:
