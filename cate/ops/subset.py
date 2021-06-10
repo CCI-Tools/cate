@@ -33,13 +33,14 @@ from typing import Dict
 import xarray as xr
 
 from cate.core.op import op, op_input, op_return
-from cate.core.opimpl import subset_spatial_impl, subset_temporal_impl, subset_temporal_index_impl, \
-    _get_geo_spatial_cf_attrs_from_var
+from cate.core.opimpl import subset_spatial_impl, subset_temporal_impl, subset_temporal_index_impl
 from cate.core.types import PolygonLike, TimeRangeLike, DatasetLike, PointLike, DictLike
 from cate.ops.normalize import adjust_spatial_attrs, adjust_temporal_attrs
 from cate.util.misc import to_scalar
 from cate.util.monitor import Monitor
 from cate.util.undefined import UNDEFINED
+
+from xcube.core.normalize import get_geo_spatial_attrs_from_var
 
 
 @op(tags=['geometric', 'spatial', 'subset'], version='1.0')
@@ -54,7 +55,9 @@ def subset_spatial(ds: xr.Dataset,
 
     :param ds: Dataset to subset
     :param region: Spatial region to subset
-    :param mask: Should values falling in the bounding box of the polygon but not the polygon itself be masked with NaN.
+    :param mask: Should values falling in the bounding box of the polygon but not the polygon
+    itself be masked with NaN.
+    :param monitor: A monitor to report the progress of the process
     :return: Subset dataset
     """
     return adjust_spatial_attrs(subset_spatial_impl(ds, region, mask, monitor), allow_point=True)
@@ -111,7 +114,8 @@ def extract_point(ds: DatasetLike.TYPE,
     :param indexers: Optional indexers into data array of *var*. The *indexers* is a dictionary
            or a comma-separated string of key-value pairs that maps the variable's dimension names
            to constant labels. e.g. "layer=4".
-    :param tolerance_default: The default longitude and latitude tolerance for the nearest neighbour lookup.
+    :param tolerance_default: The default longitude and latitude tolerance for the nearest
+           neighbour lookup.
            It will only be used, if it is not possible to deduce the resolution of the dataset.
     :return: A dict with the scalar values of all variables and the variable names as keys.
     """
@@ -140,7 +144,9 @@ def extract_point(ds: DatasetLike.TYPE,
                     # if there is no exact match for the "additional" dims, skip this variable
                     continue
                 try:
-                    point_data = lon_lat_data.sel(method='nearest', tolerance=tolerance, **lon_lat_indexers)
+                    point_data = lon_lat_data.sel(method='nearest',
+                                                  tolerance=tolerance,
+                                                  **lon_lat_indexers)
                 except KeyError:
                     # if there is no point within the given tolerance, return an empty dict
                     return {}
@@ -161,8 +167,8 @@ def _get_tolerance(ds: xr.Dataset, tolerance_default: float):
         lat_res = ds.attrs[lat_res_attr_name]
     else:
         try:
-            lon_res = _get_geo_spatial_cf_attrs_from_var(ds, 'lon')[lon_res_attr_name]
-            lat_res = _get_geo_spatial_cf_attrs_from_var(ds, 'lat')[lat_res_attr_name]
+            lon_res = get_geo_spatial_attrs_from_var(ds, 'lon')[lon_res_attr_name]
+            lat_res = get_geo_spatial_attrs_from_var(ds, 'lat')[lat_res_attr_name]
         except ValueError:
             return tolerance_default
     if isinstance(lon_res, str) and lon_res.find(' ') > 0:
