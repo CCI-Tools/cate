@@ -208,7 +208,8 @@ class XcubeProgressObserver(ProgressObserver):
 
     def on_update(self, state_stack: Sequence[ProgressState]):
         if state_stack[0].completed_work > self._latest_completed_work:
-            self._monitor.progress(state_stack[0].completed_work - self._latest_completed_work,
+            self._monitor.progress(state_stack[0].completed_work
+                                   - self._latest_completed_work,
                                    state_stack[-1].label)
             self._latest_completed_work = state_stack[0].completed_work
 
@@ -267,7 +268,8 @@ def get_metadata_from_descriptor(descriptor: xcube_store.DataDescriptor) -> Dict
         metadata['time_range'] = descriptor.time_range
     if descriptor.time_period:
         metadata['time_period'] = descriptor.time_period
-    if hasattr(descriptor, 'attrs') and isinstance(getattr(descriptor, 'attrs'), dict):
+    if hasattr(descriptor, 'attrs') \
+            and isinstance(getattr(descriptor, 'attrs'), dict):
         for name in INFO_FIELD_NAMES:
             value = descriptor.attrs.get(name, None)
             # Many values are one-element lists: turn them into scalars
@@ -276,11 +278,14 @@ def get_metadata_from_descriptor(descriptor: xcube_store.DataDescriptor) -> Dict
             if value is not None:
                 metadata[name] = value
     for vars_key in ('data_vars', 'coords'):
-        if hasattr(descriptor, vars_key) and isinstance(getattr(descriptor, vars_key), dict):
+        if hasattr(descriptor, vars_key) \
+                and isinstance(getattr(descriptor, vars_key), dict):
             metadata[vars_key] = []
             var_attrs = ['units', 'long_name', 'standard_name']
             for var_name, var_descriptor in getattr(descriptor, vars_key).items():
-                var_dict = dict(name=var_name, dtype=var_descriptor.dtype, dims=var_descriptor.dims)
+                var_dict = dict(name=var_name,
+                                dtype=var_descriptor.dtype,
+                                dims=var_descriptor.dims)
                 if var_descriptor.chunks is not None:
                     var_dict['chunks'] = var_descriptor.chunks
                 if var_descriptor.attrs:
@@ -301,7 +306,9 @@ def get_info_string_from_data_descriptor(descriptor: xcube_store.DataDescriptor)
     info_lines = []
     for name, value in meta_info.items():
         if name not in ('data_vars', 'coords'):
-            info_lines.append('%s:%s %s' % (name, (1 + max_len - len(name)) * ' ', value))
+            info_lines.append('%s:%s %s' % (name,
+                                            (1 + max_len - len(name)) * ' ',
+                                            value))
 
     return '\n'.join(info_lines)
 
@@ -410,8 +417,10 @@ def open_dataset(dataset_id: str,
             open_args['variable_names'] = var_names_list
         elif 'drop_variables' in open_schema.properties:
             data_desc = data_store.describe_data(dataset_id, type_spec)
-            if hasattr(data_desc, 'data_vars') and isinstance(getattr(data_desc, 'data_vars'), dict):
-                open_args['drop_variables'] = [var_name for var_name in data_desc.data_vars.keys()
+            if hasattr(data_desc, 'data_vars') \
+                    and isinstance(getattr(data_desc, 'data_vars'), dict):
+                open_args['drop_variables'] = [var_name
+                                               for var_name in data_desc.data_vars.keys()
                                                if var_name not in var_names_list]
         else:
             subset_args['var_names'] = var_names_list
