@@ -24,7 +24,7 @@ cci-zarr-store:
     A data store that contains selected datasets from the CCI Open Data Portal
     which have been converted to [Zarr format](https://zarr.readthedocs.io/)
     and placed in [JASMIN](https://jasmin.ac.uk/) Object Storage.
-    Its datasets should offer a much better access performance compared to the
+    Its datasets are expected to offer a much better access performance compared to the
     CCI Open Data Portal that uses OPeNDAP as data transport protocol.
     The CCI Zarr Store is still experimental, but it is planned to further
     develop and extend it successively.
