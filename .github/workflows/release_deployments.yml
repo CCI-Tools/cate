@@ -41,6 +41,8 @@ jobs:
           file: docker/Dockerfile
           push: true
           tags: quay.io/ccitools/cate:${{ steps.releasename.outputs.VERSION }}
+          build-args: |
+            TEST=bla
       - name: Tag latest
         if: github.event_name == 'push' && steps.releasename.outputs.VERSION == 'master'
         run: |
