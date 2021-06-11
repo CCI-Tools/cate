@@ -47,7 +47,6 @@ setup(
     author='Cate Development Team',
     packages=packages,
     package_data={
-        'cate.ds': ['esa_cci_ftp.json'],
         'cate.ds.data.countries': ['countries-10m.geojson',
                                    'countries-50m.geojson',
                                    'countries-110m.geojson',
