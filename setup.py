@@ -47,13 +47,11 @@ setup(
     author='Cate Development Team',
     packages=packages,
     package_data={
-        'cate.ds': ['esa_cci_ftp.json'],
         'cate.ds.data.countries': ['countries-10m.geojson',
                                    'countries-50m.geojson',
                                    'countries-110m.geojson',
                                    'README.md'],
-        'cate.ds.data': ['dataset_states.json',
-                         'stores.yml'],
+        'cate.ds.data': ['stores.yml'],
         'cate.util.im.ds.NaturalEarth2': ['*/*/*.jpg'],
     },
     entry_points={

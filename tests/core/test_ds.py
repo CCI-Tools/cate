@@ -70,16 +70,37 @@ class IOTest(StoreTest):
             spatial_res=20.,
             time_range=('2017-06-05', '2017-06-27'),
             time_period='daily',
+            coords={
+                'lon': xcube_store.VariableDescriptor(
+                    name='lon',
+                    dtype='float32',
+                    dims=('lon',),
+                    attrs=dict(units='degrees',
+                               long_name='longitude',
+                               standard_name='longitude')),
+                'lat': xcube_store.VariableDescriptor(
+                    name='lat',
+                    dtype='float32',
+                    dims=('lat',),
+                    attrs=dict(units='degrees',
+                               long_name='latitude',
+                               standard_name='latitude')),
+                'time': xcube_store.VariableDescriptor(
+                    name='time',
+                    dtype='datetime64[ms]',
+                    dims=('time',),
+                    attrs=dict(units='milliseconds since 1970-01-01T00:00:00',
+                               long_name='time',
+                               standard_name='time'))
+            },
             data_vars={
                 'surface_pressure': xcube_store.VariableDescriptor(
                     name='surface_pressure',
-                    dtype='rj',
-                    dims=('dfjhrt', 'sg'),
+                    dtype='float32',
+                    dims=('time', 'lat', 'lon'),
                     attrs=dict(units='hPa',
-                               long_name='dgfrf',
-                               standard_name='dhgydf'
-                               )
-                )
+                               long_name='surface_pressure',
+                               standard_name='surface_pressure'))
             },
             attrs=dict(
                 title='ESA Ozone Climate Change Initiative (Ozone CCI): '
@@ -152,13 +173,34 @@ class IOTest(StoreTest):
             product_string='MERGED',
             data_type='NP',
             file_formats=['.nc', '.txt'],
-            variables=[
-                dict(name='surface_pressure',
-                     units='hPa',
-                     long_name='dgfrf',
-                     standard_name='dhgydf'
-                     )
-            ]
+            data_vars=[
+                {'name': 'surface_pressure',
+                 'dtype': 'float32',
+                 'dims': ('time', 'lat', 'lon'),
+                 'long_name': 'surface_pressure',
+                 'standard_name': 'surface_pressure',
+                 'units': 'hPa'}
+            ],
+            coords=[
+                {'name': 'lon',
+                 'dtype': 'float32',
+                 'dims': ('lon',),
+                 'long_name': 'longitude',
+                 'standard_name': 'longitude',
+                 'units': 'degrees'},
+                {'name': 'lat',
+                 'dtype': 'float32',
+                 'dims': ('lat',),
+                 'long_name': 'latitude',
+                 'standard_name': 'latitude',
+                 'units': 'degrees'},
+                {'name': 'time',
+                 'dtype': 'datetime64[ms]',
+                 'dims': ('time',),
+                 'long_name': 'time',
+                 'standard_name': 'time',
+                 'units': 'milliseconds since 1970-01-01T00:00:00'}
+            ],
         )
         self.assertEqual(expected_metadata, descriptor_metadata)
 
@@ -184,8 +226,8 @@ class IOTest(StoreTest):
         with self.assertRaises(DataStoreError) as cm:
             open_dataset('20000302-ESACCI-L3C_AEROSOL-AER_PRODUCTS-ATSR2-ERS2-ADV_DAILY-v2.30.nc',
                          data_store_id='unknown_store')
-        self.assertEqual(('Configured data store instance "unknown_store" not found.',), 
-        cm.exception.args)
+        self.assertEqual(('Configured data store instance "unknown_store" not found.',),
+                         cm.exception.args)
 
         aerosol_dataset, aerosol_dataset_name = \
             open_dataset('20000302-ESACCI-L3C_AEROSOL-AER_PRODUCTS-ATSR2-ERS2-ADV_DAILY-v2.30.nc',

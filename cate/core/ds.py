@@ -87,13 +87,14 @@ import geopandas as gpd
 import glob
 import logging
 import re
-from typing import Sequence, Optional, Union, Any, Dict, Set, List, Tuple
+from typing import Sequence, Optional, Union, Any, Dict, Set, Tuple
 
 import xarray as xr
 import xcube.core.store as xcube_store
 from xcube.core.select import select_subset
 from xcube.util.progress import ProgressObserver
 from xcube.util.progress import ProgressState
+from xcube.core.store import MutableDataStore
 
 from .cdm import get_lon_dim_name, get_lat_dim_name
 from .types import PolygonLike, TimeRangeLike, VarNamesLike, ValidationError
@@ -207,7 +208,8 @@ class XcubeProgressObserver(ProgressObserver):
 
     def on_update(self, state_stack: Sequence[ProgressState]):
         if state_stack[0].completed_work > self._latest_completed_work:
-            self._monitor.progress(state_stack[0].completed_work - self._latest_completed_work,
+            self._monitor.progress(state_stack[0].completed_work
+                                   - self._latest_completed_work,
                                    state_stack[-1].label)
             self._latest_completed_work = state_stack[0].completed_work
 
@@ -266,7 +268,8 @@ def get_metadata_from_descriptor(descriptor: xcube_store.DataDescriptor) -> Dict
         metadata['time_range'] = descriptor.time_range
     if descriptor.time_period:
         metadata['time_period'] = descriptor.time_period
-    if hasattr(descriptor, 'attrs') and descriptor.attrs is not None:
+    if hasattr(descriptor, 'attrs') \
+            and isinstance(getattr(descriptor, 'attrs'), dict):
         for name in INFO_FIELD_NAMES:
             value = descriptor.attrs.get(name, None)
             # Many values are one-element lists: turn them into scalars
@@ -274,16 +277,22 @@ def get_metadata_from_descriptor(descriptor: xcube_store.DataDescriptor) -> Dict
                 value = value[0]
             if value is not None:
                 metadata[name] = value
-    if hasattr(descriptor, 'data_vars') and descriptor.data_vars is not None:
-        metadata['variables'] = []
-        var_attrs = ['units', 'long_name', 'standard_name']
-        for var_name, var_descriptor in descriptor.data_vars.items():
-            var_dict = dict(name=var_name)
-            if var_descriptor.attrs:
-                for var_attr in var_attrs:
-                    if var_attr in var_descriptor.attrs:
-                        var_dict[var_attr] = var_descriptor.attrs.get(var_attr)
-            metadata['variables'].append(var_dict)
+    for vars_key in ('data_vars', 'coords'):
+        if hasattr(descriptor, vars_key) \
+                and isinstance(getattr(descriptor, vars_key), dict):
+            metadata[vars_key] = []
+            var_attrs = ['units', 'long_name', 'standard_name']
+            for var_name, var_descriptor in getattr(descriptor, vars_key).items():
+                var_dict = dict(name=var_name,
+                                dtype=var_descriptor.dtype,
+                                dims=var_descriptor.dims)
+                if var_descriptor.chunks is not None:
+                    var_dict['chunks'] = var_descriptor.chunks
+                if var_descriptor.attrs:
+                    for var_attr in var_attrs:
+                        if var_attr in var_descriptor.attrs:
+                            var_dict[var_attr] = var_descriptor.attrs.get(var_attr)
+                metadata[vars_key].append(var_dict)
     return metadata
 
 
@@ -296,8 +305,10 @@ def get_info_string_from_data_descriptor(descriptor: xcube_store.DataDescriptor)
 
     info_lines = []
     for name, value in meta_info.items():
-        if name != 'variables':
-            info_lines.append('%s:%s %s' % (name, (1 + max_len - len(name)) * ' ', value))
+        if name not in ('data_vars', 'coords'):
+            info_lines.append('%s:%s %s' % (name,
+                                            (1 + max_len - len(name)) * ' ',
+                                            value))
 
     return '\n'.join(info_lines)
 
@@ -406,8 +417,11 @@ def open_dataset(dataset_id: str,
             open_args['variable_names'] = var_names_list
         elif 'drop_variables' in open_schema.properties:
             data_desc = data_store.describe_data(dataset_id, type_spec)
-            open_args['drop_variables'] = [var_name for var_name in data_desc.data_vars.keys()
-                                           if var_name not in var_names_list]
+            if hasattr(data_desc, 'data_vars') \
+                    and isinstance(getattr(data_desc, 'data_vars'), dict):
+                open_args['drop_variables'] = [var_name
+                                               for var_name in data_desc.data_vars.keys()
+                                               if var_name not in var_names_list]
         else:
             subset_args['var_names'] = var_names_list
             total_amount_of_work += 1
@@ -452,9 +466,12 @@ def make_local(data: Any,
                *,
                local_name: Optional[str] = None,
                orig_dataset_name: Optional[str] = None) -> Tuple[Any, str]:
-    local_store = DATA_STORE_POOL.get_store('local')
-    if not local_store:
-        raise ValueError('Cannot initialize `local` DataStore')
+    local_data_store_id = 'local'
+    local_store = DATA_STORE_POOL.get_store(local_data_store_id)
+    if local_store is None:
+        raise ValueError(f'Cannot find data store {local_data_store_id!r}')
+    if not isinstance(local_store, MutableDataStore):
+        raise ValueError(f'Data store {local_data_store_id!r} is not writable')
     if isinstance(data, xr.Dataset):
         extension = '.zarr'
     elif isinstance(data, gpd.GeoDataFrame):
@@ -561,11 +578,11 @@ def format_variables_info_string(descriptor: xcube_store.DataDescriptor):
     """
     Return some textual information about the variables described by this DataDescriptor.
     Useful for CLI / REPL applications.
-    :param variables:
-    :return:
+    :param descriptor: data descriptor
+    :return: a string describing the variables in the dataset
     """
     meta_info = get_metadata_from_descriptor(descriptor)
-    variables = meta_info.get('variables', [])
+    variables = meta_info.get('data_vars', [])
     if len(variables) == 0:
         return 'No variables information available.'
 
