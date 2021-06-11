@@ -52,8 +52,7 @@ setup(
                                    'countries-50m.geojson',
                                    'countries-110m.geojson',
                                    'README.md'],
-        'cate.ds.data': ['dataset_states.json',
-                         'stores.yml'],
+        'cate.ds.data': ['stores.yml'],
         'cate.util.im.ds.NaturalEarth2': ['*/*/*.jpg'],
     },
     entry_points={
