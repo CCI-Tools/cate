@@ -83,19 +83,20 @@ Components
 """
 
 import datetime
-import geopandas as gpd
 import glob
 import logging
 import re
 from typing import Sequence, Optional, Union, Any, Dict, Set, Tuple
 
+import geopandas as gpd
 import xarray as xr
+
 import xcube.core.store as xcube_store
 from xcube.core.select import select_subset
+from xcube.core.store import MutableDataStore
 from xcube.util.progress import ProgressObserver
 from xcube.util.progress import ProgressState
-from xcube.core.store import MutableDataStore
-
+from xcube.util.progress import add_progress_observers
 from .cdm import get_lon_dim_name, get_lat_dim_name
 from .types import PolygonLike, TimeRangeLike, VarNamesLike, ValidationError
 from ..util.monitor import ChildMonitor
@@ -406,10 +407,13 @@ def open_dataset(dataset_id: str,
         raise DataAccessError(f'Could not find an opener for "{dataset_id}".')
     opener_id = openers[0]
 
-    total_amount_of_work = 20 if force_local else 10
+    open_work = 10
+    cache_work = 10 if force_local else 0
+    subset_work = 0
 
     open_schema = data_store.get_open_data_params_schema(dataset_id, opener_id)
     open_args = {}
+
     subset_args = {}
     if var_names:
         var_names_list = VarNamesLike.convert(var_names)
@@ -424,7 +428,8 @@ def open_dataset(dataset_id: str,
                                                if var_name not in var_names_list]
         else:
             subset_args['var_names'] = var_names_list
-            total_amount_of_work += 1
+            subset_work += 1
+
     if time_range:
         time_range = TimeRangeLike.convert(time_range)
         time_range = [datetime.datetime.strftime(time_range[0], '%Y-%m-%d'),
@@ -433,32 +438,32 @@ def open_dataset(dataset_id: str,
             open_args['time_range'] = time_range
         else:
             subset_args['time_range'] = time_range
-            total_amount_of_work += 1
+            subset_work += 1
+
     if region:
         bbox = list(PolygonLike.convert(region).bounds)
         if 'bbox' in open_schema.properties:
             open_args['bbox'] = bbox
         else:
             subset_args['bbox'] = bbox
-            total_amount_of_work += 1
+            subset_work += 1
+
     if 'consolidated' in open_schema.properties:
         open_args['consolidated'] = True
 
-    monitor.start('Open dataset', total_amount_of_work)
-    observer = XcubeProgressObserver(ChildMonitor(monitor, 10))
-    observer.activate()
-    dataset = data_store.open_data(data_id=dataset_id, opener_id=opener_id, **open_args)
-    observer.deactivate()
-    dataset = select_subset(dataset, **subset_args)
-    monitor.progress(len(subset_args))
-    if force_local:
-        observer2 = XcubeProgressObserver(ChildMonitor(monitor, 10))
-        observer2.activate()
-        dataset, dataset_id = make_local(data=dataset,
-                                         local_name=local_ds_id,
-                                         orig_dataset_name=dataset_id)
-        observer2.deactivate()
-    monitor.done()
+    with monitor.starting('Open dataset', open_work + subset_work + cache_work):
+        with add_progress_observers(XcubeProgressObserver(ChildMonitor(monitor, open_work))):
+            dataset = data_store.open_data(data_id=dataset_id, opener_id=opener_id, **open_args)
+
+        dataset = select_subset(dataset, **subset_args)
+        monitor.progress(subset_work)
+
+        if force_local:
+            with add_progress_observers(XcubeProgressObserver(ChildMonitor(monitor, cache_work))):
+                dataset, dataset_id = make_local(data=dataset,
+                                                 local_name=local_ds_id,
+                                                 orig_dataset_name=dataset_id)
+
     return dataset, dataset_id
 
 
