@@ -17,17 +17,25 @@ WORKDIR /tmp
 
 USER ${CATE_USER_NAME}
 
-ADD . ./
+COPY environment.yml ./
 RUN mamba env create
 RUN conda info --envs
 RUN source activate cate-env && conda list
 
 # STAGE INSTALL CATE
 
-ADD --chown=1000:1000 . cate
-RUN source activate cate-env && cd cate && pip install .
+COPY --chown=1000:1000 . ./
+RUN source activate cate-env && pip install .
 
-RUN bash ./docker/install_xcube_cci.sh
+# Install xcube-cci
+
+RUN wget https://github.com/dcs4cop/xcube-cci/archive/v"${XCUBE_CCI_VERSION}".tar.gz
+RUN tar xvzf v"${XCUBE_CCI_VERSION}".tar.gz
+
+WORKDIR xcube-cci-"${XCUBE_CCI_VERSION}"
+RUN mamba env update -n cate-env
+RUN source activate cate-env
+RUN python setup.py install
 
 WORKDIR /home/${CATE_USER_NAME}
 

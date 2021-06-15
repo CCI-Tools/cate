@@ -15,7 +15,7 @@ setup-util.py
 .github
 .flake8
 .idea
-docker/Dockerfile
+Dockerfile
 .dockerignore
 cate.egg-info
 

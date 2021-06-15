@@ -1,6 +1,6 @@
 name: Unittest Cate
 
-on: workflow_dispatch
+on: push
 
 jobs:
   unittest:
