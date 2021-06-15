@@ -13,13 +13,13 @@ jobs:
           channels: conda-forge
           activate-environment: cate-env
           environment-file: environment.yml
-      - name: setup cate
+      - name: setup-cate
         shell: bash -l {0}
         run: |
           conda info
           conda list
           python setup.py develop
-      - name: unittest cate
+      - name: unittest-cate
         shell: bash -l {0}
         run: |
           # For the unit-tests, disable Numba JIT, otherwise Coverage wont reach the actual Python code
