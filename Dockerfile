@@ -3,13 +3,18 @@ FROM quay.io/ccitools/cate-base:2.1.0
 LABEL maintainer="helge.dzierzon@brockmann-consult.de"
 LABEL name=cate
 
-# STAGE LINUX/CONDA BASICS
-SHELL ["/bin/bash", "-c"]
-
-
 ARG CATE_USER_NAME=cate
 ENV XCUBE_CCI_INSTALL_MODE=github
 ENV XCUBE_CCI_VERSION=0.8.0
+
+USER root
+
+RUN apt-get update -y && apt-get upgrade -y
+
+USER ${CATE_USER_NAME}
+
+# STAGE LINUX/CONDA BASICS
+SHELL ["/bin/bash", "-c"]
 
 WORKDIR /tmp
 
