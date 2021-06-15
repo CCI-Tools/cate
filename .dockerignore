@@ -1,10 +1,11 @@
+.cate
+.conda
 docs
 CHANGES.md
 notebooks
 appveyor.yml
 tests
 .pytest_cache
-pkgs
 scripts
 .travis.yml
 .gitignore

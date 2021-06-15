@@ -1,24 +1,26 @@
 name: Unittest Cate
 
-on: workflow_dispatch
+on: push
 
 jobs:
   unittest:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v1
-      - name: Install mamba
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          mamba-version: "*"
+          channels: conda-forge
+          activate-environment: cate-env
+          environment-file: environment.yml
+      - name: setup-cate
+        shell: bash -l {0}
         run: |
-          conda --version
-          conda install -n base -c conda-forge mamba
-      - name: install cate
-        run: |
-          mamba env create
-          source activate cate-env
+          conda info
+          conda list
           python setup.py develop
-      - name: unittest cate
+      - name: unittest-cate
+        shell: bash -l {0}
         run: |
           # For the unit-tests, disable Numba JIT, otherwise Coverage wont reach the actual Python code
           export NUMBA_DISABLE_JIT=1
