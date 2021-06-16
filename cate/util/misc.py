@@ -29,7 +29,8 @@ from collections import OrderedDict
 from contextlib import contextmanager
 from datetime import datetime, date, timedelta
 from io import StringIO
-from typing import Union, Tuple, Sequence, Optional, Iterable, Any
+from typing import Union, Tuple, Sequence, Optional, Iterable, Any, Dict
+
 import numpy as np
 
 from .sround import sround
@@ -499,3 +500,52 @@ def to_scalar(value: Any, nchars=None, ndigits=None, stringify=False) -> Any:
         return value
 
     return UNDEFINED
+
+
+def get_dependencies() -> Dict[str, str]:
+    """
+    Get a mapping from package names to package versions.
+    Only Cate's core dependencies are listed.
+    """
+    # Idea stolen from xarray.print_versions
+    dependencies = [
+        # (MODULE_NAME, f(mod) -> mod version)
+        ("cartopy", lambda mod: mod.__version__),
+        ("conda", lambda mod: mod.__version__),
+        ("dask", lambda mod: mod.__version__),
+        ("distributed", lambda mod: mod.__version__),
+        ("geopandas", lambda mod: mod.__version__),
+        ("matplotlib", lambda mod: mod.__version__),
+        ("numba", lambda mod: mod.__version__),
+        ("numpy", lambda mod: mod.__version__),
+        ("pandas", lambda mod: mod.__version__),
+        ("rasterio", lambda mod: mod.__version__),
+        ("scipy", lambda mod: mod.__version__),
+        ("xarray", lambda mod: mod.__version__),
+        ("xcube.version", lambda mod: mod.version),
+        ("xcube_cci.version", lambda mod: mod.version),
+        ("zarr", lambda mod: mod.__version__),
+    ]
+
+    import importlib
+
+    dependencies_dict = {}
+    for (module_name, module_version) in dependencies:
+        module_key = module_name.split('.')[0]
+        # noinspection PyBroadException
+        try:
+            if module_name in sys.modules:
+                module = sys.modules[module_name]
+            else:
+                module = importlib.import_module(module_name)
+        except Exception:
+            pass
+        else:
+            # noinspection PyBroadException
+            try:
+                dependencies_dict[module_key] = module_version(module)
+            except Exception as e:
+                print(e)
+                dependencies_dict[module_key] = "installed"
+
+    return dependencies_dict

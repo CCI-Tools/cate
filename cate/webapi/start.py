@@ -45,25 +45,26 @@ Components
 # warnings.filterwarnings("ignore")  # never print any warnings to users
 
 import os
-import sys
 import platform
+import sys
 from datetime import date
 
-from tornado.web import Application, StaticFileHandler
 from matplotlib.backends.backend_webagg_core import FigureManagerWebAgg
+from tornado.web import Application, StaticFileHandler
 
 from cate.conf.defaults import WEBAPI_LOG_FILE_PREFIX, WEBAPI_PROGRESS_DEFER_PERIOD
 from cate.core.types import ValidationError
 from cate.core.wsmanag import FSWorkspaceManager
+from cate.util.misc import get_dependencies
 from cate.util.web import JsonRpcWebSocketHandler
 from cate.util.web.webapi import run_start, url_pattern, WebAPIRequestHandler, WebAPIExitHandler
 from cate.version import __version__
+from cate.webapi.mpl import MplJavaScriptHandler, MplDownloadHandler, MplWebSocketHandler
 from cate.webapi.rest import ResourcePlotHandler, CountriesGeoJSONHandler, ResVarTileHandler, \
     ResFeatureCollectionHandler, ResFeatureHandler, ResVarCsvHandler, ResVarHtmlHandler, NE2Handler, \
     FilesUploadHandler, FilesDownloadHandler
-from cate.webapi.mpl import MplJavaScriptHandler, MplDownloadHandler, MplWebSocketHandler
-from cate.webapi.websocket import WebSocketService
 from cate.webapi.service import SERVICE_NAME, SERVICE_TITLE
+from cate.webapi.websocket import WebSocketService
 
 # Explicitly load Cate-internal plugins.
 __import__('cate.ds')
@@ -80,11 +81,14 @@ class WebAPIInfoHandler(WebAPIRequestHandler):
         user_root_mode = isinstance(self.application.workspace_manager, FSWorkspaceManager) \
                          and self.application.workspace_manager.root_path is not None
 
-        self.write_status_ok(content={'name': SERVICE_NAME,
-                                      'version': __version__,
-                                      'timestamp': date.today().isoformat(),
-                                      'user_root_mode': user_root_mode,
-                                      'host_os': platform.system()})
+        self.write_status_ok(content={
+            'name': SERVICE_NAME,
+            'version': __version__,
+            'timestamp': date.today().isoformat(),
+            'user_root_mode': user_root_mode,
+            'host_os': platform.system(),
+            'dependencies': get_dependencies()
+        })
 
         self.finish()
 

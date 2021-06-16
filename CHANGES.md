@@ -21,8 +21,13 @@
     now `dtype` and `dims` fields. 
 * Fixed environment not building with matplotlib version `<3.3.0`. (#929)
 * Fixed the operation `animate_map` that stopped working with xarray version 0.18.0.
-* Added a github action for running unittests
-* Changed Dockerfile to install xcube-cci from GitHub releases
+* Other:
+  * The info handler of Cate Web API (at API root "/") now returns 
+    Cate's core package dependencies.
+  * Added a GitHub Actions workflow for running unittests.
+  * Changed `Dockerfile` to install `xcube` and `xcube-cci` 
+    from GitHub releases.
+
 
 ## Version 2.1.5
 
