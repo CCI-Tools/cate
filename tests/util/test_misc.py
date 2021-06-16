@@ -1,3 +1,4 @@
+import unittest
 from collections import OrderedDict
 from datetime import datetime, date
 from unittest import TestCase
@@ -5,12 +6,16 @@ from xml.etree.ElementTree import ElementTree
 
 import numpy as np
 
-from cate.util.misc import encode_url_path, to_json, to_scalar
-from cate.util.misc import object_to_qualified_name, qualified_name_to_object
-from cate.util.misc import to_datetime, to_datetime_range
-from cate.util.misc import to_list
-from cate.util.misc import to_str_constant, is_str_constant
+from cate.util.misc import encode_url_path
+from cate.util.misc import get_dependencies
 from cate.util.misc import new_indexed_name
+from cate.util.misc import object_to_qualified_name
+from cate.util.misc import qualified_name_to_object
+from cate.util.misc import to_datetime, to_datetime_range
+from cate.util.misc import to_json
+from cate.util.misc import to_list
+from cate.util.misc import to_scalar
+from cate.util.misc import to_str_constant, is_str_constant
 from cate.util.undefined import UNDEFINED
 
 
@@ -325,3 +330,14 @@ class ToScalarTest(TestCase):
             self.assertIs(to_scalar(pd.Series([True, False])), UNDEFINED)
         except ImportError:
             pass
+
+
+class DependenciesTest(unittest.TestCase):
+    def test_get_dependencies(self):
+        dependencies = get_dependencies()
+        self.assertIsInstance(dependencies, dict)
+        for module in ('xcube', 'xcube_cci', 'xarray', 'geopandas', 'dask'):
+            msg = f'for module {module!r}'
+            self.assertIn(module, dependencies, msg=msg)
+            self.assertIsInstance(dependencies[module], str, msg=msg)
+            self.assertNotEqual('installed', dependencies[module], msg=msg)
