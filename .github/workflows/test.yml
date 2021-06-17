@@ -7,6 +7,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: strip-xcube
+        run: sed -i 's/- xcube/# -xcube/g' environment.yml
       - uses: conda-incubator/setup-miniconda@v2
         with:
           mamba-version: "*"
@@ -19,6 +21,24 @@ jobs:
           conda info
           conda list
           python setup.py develop
+      - name: setup-xcube
+        run: |
+          wget https://github.com/dcs4cop/xcube/archive/v"${XCUBE_VERSION}".tar.gz
+          tar xvzf v"${XCUBE_VERSION}".tar.gz
+          cd xcube-"${XCUBE_VERSION}"
+
+          mamba env update -n cate-env
+
+          source activate cate-env
+          python setup.py install
+      - name: setup-xcube-cci
+        run: |
+          wget https://github.com/dcs4cop/xcube/archive/v"${XCUBE_CCI_VERSION}".tar.gz
+          tar xvzf v"${XCUBE_CCI_VERSION}".tar.gz
+          cd xcube-"${XCUBE_CCI_VERSION}"
+          source activate cate-env
+          python setup.py install
+          mamba install -y -c conda-forge aiohttp nest-asyncio lxml pydap
       - name: unittest-cate
         shell: bash -l {0}
         run: |
