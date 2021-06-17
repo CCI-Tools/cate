@@ -25,6 +25,7 @@ jobs:
           conda list
           python setup.py develop
       - name: setup-xcube
+        shell: bash -l {0}
         run: |
           wget https://github.com/dcs4cop/xcube/archive/v"${XCUBE_VERSION}".tar.gz
           tar xvzf v"${XCUBE_VERSION}".tar.gz
@@ -33,6 +34,7 @@ jobs:
           mamba env update -n cate-env
           python setup.py install
       - name: setup-xcube-cci
+        shell: bash -l {0}
         run: |
           wget https://github.com/dcs4cop/xcube/archive/v"${XCUBE_CCI_VERSION}".tar.gz
           tar xvzf v"${XCUBE_CCI_VERSION}".tar.gz
