@@ -6,7 +6,7 @@ jobs:
   unittest:
     env:
       XCUBE_VERSION: 0.8.2.dev0
-      XCUBE_CCI_VERSION: 0.8.1.dev1
+      XCUBE_CCI_VERSION: 0.8.1.dev2
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -48,8 +48,8 @@ jobs:
           export NUMBA_DISABLE_JIT=1
           # Uncomment following line if web testing on travis breaks our build
           export CATE_DISABLE_WEB_TESTS=1
-          # geopandas in tests break the build on appveyor (maybe the problem of gdal)
+          # geopandas in tests break the build on appveyor (maybe the problem of gdal?)
           export CATE_DISABLE_GEOPANDAS_TESTS=1
-          export CATE_DISABLE_PLOT_TESTS=
+          export CATE_DISABLE_PLOT_TESTS=1
           export CATE_DISABLE_CLI_UPDATE_TESTS=1
           py.test -v --cov=cate tests
