@@ -36,9 +36,9 @@ jobs:
       - name: setup-xcube-cci
         shell: bash -l {0}
         run: |
-          wget https://github.com/dcs4cop/xcube/archive/v"${XCUBE_CCI_VERSION}".tar.gz
+          wget https://github.com/dcs4cop/xcube-cci/archive/v"${XCUBE_CCI_VERSION}".tar.gz
           tar xvzf v"${XCUBE_CCI_VERSION}".tar.gz
-          cd xcube-"${XCUBE_CCI_VERSION}"
+          cd xcube-cci-"${XCUBE_CCI_VERSION}"
           python setup.py install
           mamba install -y -c conda-forge aiohttp nest-asyncio lxml pydap
       - name: unittest-cate
