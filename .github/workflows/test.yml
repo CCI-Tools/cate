@@ -31,15 +31,12 @@ jobs:
           cd xcube-"${XCUBE_VERSION}"
 
           mamba env update -n cate-env
-
-          conda activate cate-env
           python setup.py install
       - name: setup-xcube-cci
         run: |
           wget https://github.com/dcs4cop/xcube/archive/v"${XCUBE_CCI_VERSION}".tar.gz
           tar xvzf v"${XCUBE_CCI_VERSION}".tar.gz
           cd xcube-"${XCUBE_CCI_VERSION}"
-          conda activate cate-env
           python setup.py install
           mamba install -y -c conda-forge aiohttp nest-asyncio lxml pydap
       - name: unittest-cate
