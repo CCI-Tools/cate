@@ -26,9 +26,7 @@
     Cate's core package dependencies.
   * Added a GitHub Actions workflow for running unittests.
   * Changed `Dockerfile` to install `xcube` and `xcube-cci` 
-    from GitHub releases.
-* Updated Dockerfile. The docker image now uses a cate environment that is stripped free of any xcube deps allowing 
-  to configure the versions of xcube/xcube-cci. These versions are now installed from their respective GitHub release.
+    from GitHub releases. 
 
 ## Version 2.1.5
 
