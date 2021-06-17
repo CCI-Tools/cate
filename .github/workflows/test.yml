@@ -4,6 +4,9 @@ on: push
 
 jobs:
   unittest:
+    env:
+      XCUBE_VERSION: 0.8.2.dev0
+      XCUBE_CCI_VERSION: 0.8.1.dev1
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
