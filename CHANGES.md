@@ -27,6 +27,7 @@
   * Added a GitHub Actions workflow for running unittests.
   * Changed `Dockerfile` to install `xcube` and `xcube-cci` 
     from GitHub releases
+  * Added missing progress monitors to some backend methods.
 
 ## Version 2.1.5
 

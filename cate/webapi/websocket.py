@@ -22,7 +22,6 @@
 import datetime
 import os
 import platform
-from collections import OrderedDict
 from typing import List, Sequence, Optional, Any, Tuple, Dict
 
 import xarray as xr
@@ -165,18 +164,18 @@ class WebSocketService:
         data_store = DATA_STORE_POOL.get_store(data_store_id)
         if data_store is None:
             raise ValueError('Unknown data store: "%s"' % data_store_id)
-        data_ids_generator = data_store.get_data_ids(include_attrs=['title',
-                                                                    'verification_flags',
-                                                                    'type_specifier'])
+        data_ids = list(data_store.get_data_ids(include_attrs=['title',
+                                                               'verification_flags',
+                                                               'type_specifier']))
         data_sources = []
-        monitor.start(f'Retrieving data sources for data store {data_store_id}')
-        for data_id, attrs in data_ids_generator:
-            data_sources.append(dict(id=data_id,
-                                     title=attrs.get('title', data_id),
-                                     verification_flags=attrs.get('verification_flags'),
-                                     type_specifier=attrs.get('type_specifier')))
-            monitor.progress(1)
-        monitor.done()
+        with monitor.starting(f'Retrieving data sources for data store {data_store_id}',
+                              total_work=len(data_ids)):
+            for data_id, attrs in data_ids:
+                data_sources.append(dict(id=data_id,
+                                         title=attrs.get('title', data_id),
+                                         verification_flags=attrs.get('verification_flags'),
+                                         type_specifier=attrs.get('type_specifier')))
+                monitor.progress(1)
         return data_sources
 
     def get_data_source_meta_info(self,
@@ -194,8 +193,9 @@ class WebSocketService:
         data_store = DATA_STORE_POOL.get_store(data_store_id)
         if data_store is None:
             raise ValueError('Unknown data store: "%s"' % data_store_id)
-        data_source_descriptor = data_store.describe_data(data_source_id)
-        return get_metadata_from_descriptor(data_source_descriptor)
+        with monitor.starting(f'Retrieving metadata for data source {data_source_id}'):
+            data_source_descriptor = data_store.describe_data(data_source_id)
+            return get_metadata_from_descriptor(data_source_descriptor)
 
     def add_local_data_source(self, data_source_id: str, file_path_pattern: str, monitor: Monitor):
         """
