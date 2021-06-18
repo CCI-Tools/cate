@@ -18,12 +18,6 @@ jobs:
           channels: conda-forge
           activate-environment: cate-env
           environment-file: environment.yml
-      - name: setup-cate
-        shell: bash -l {0}
-        run: |
-          conda info
-          conda list
-          python setup.py develop
       - name: setup-xcube
         shell: bash -l {0}
         run: |
@@ -41,6 +35,12 @@ jobs:
           cd xcube-cci-"${XCUBE_CCI_VERSION}"
           python setup.py install
           mamba install -y -c conda-forge aiohttp nest-asyncio lxml pydap
+      - name: setup-cate
+        shell: bash -l {0}
+        run: |
+          conda info
+          conda list
+          python setup.py develop
       - name: unittest-cate
         shell: bash -l {0}
         run: |
