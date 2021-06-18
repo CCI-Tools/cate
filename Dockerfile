@@ -22,15 +22,20 @@ WORKDIR /tmp
 
 USER ${CATE_USER_NAME}
 
-# INSTALL cate
+# Prepare Python conda env
 
-COPY --chown=1000:1000 . ./
+# cate
+
+COPY --chown=1000:1000 . ./cate
+WORKDIR /tmp/cate
+
 # Removed xcube dependencies. Will be manually installed
 RUN sed -i 's/- xcube/# -xcube/g' environment.yml
 RUN mamba env create
-RUN source activate cate-env && python setup.py install
 
-# INSTALL xcube
+# xcube
+
+WORKDIR /tmp
 
 RUN wget https://github.com/dcs4cop/xcube/archive/v"${XCUBE_VERSION}".tar.gz
 RUN tar xvzf v"${XCUBE_VERSION}".tar.gz
@@ -38,19 +43,33 @@ RUN tar xvzf v"${XCUBE_VERSION}".tar.gz
 WORKDIR /tmp/xcube-"${XCUBE_VERSION}"
 
 RUN mamba env update -n cate-env
-RUN source activate cate-env && python setup.py install
 
-# Install xcube-cci
+# xcube-cci
 
 WORKDIR /tmp
 
+RUN source activate cate-env && mamba install -y -c conda-forge aiohttp nest-asyncio lxml pydap
+
+# INSTALL software
+
+# cate
+
+WORKDIR /tmp/cate
+RUN source activate cate-env && python setup.py install
+
+# xcube
+
+WORKDIR /tmp/xcube-"${XCUBE_VERSION}"
+RUN source activate cate-env && python setup.py install
+
+# xcube-cci
+
+WORKDIR /tmp
 RUN wget https://github.com/dcs4cop/xcube-cci/archive/v"${XCUBE_CCI_VERSION}".tar.gz
 RUN tar xvzf v"${XCUBE_CCI_VERSION}".tar.gz
 
 WORKDIR /tmp/xcube-cci-"${XCUBE_CCI_VERSION}"
 RUN source activate cate-env && python setup.py install
-
-RUN source activate cate-env && mamba install -y -c conda-forge aiohttp nest-asyncio lxml pydap
 
 WORKDIR /home/${CATE_USER_NAME}
 
