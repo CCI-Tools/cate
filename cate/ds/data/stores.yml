@@ -9,17 +9,8 @@ cci-store:
     through the *File Data Sources*.
 
 cci-zarr-store:
-  store_id: "s3"
+  store_id: "ccizarr"
   title: "CCI Zarr Store (experimental)"
-  store_params:
-    endpoint_url: "http://cci-ke-o.s3-ext.jc.rl.ac.uk"
-    bucket_name: "esacci"
-    # bucket "esacci" is publicly readable
-    anon: True
-    # For another protected bucket you can use you ~/.aws/credentials,
-    # AWS environment variables, or you may provide:
-    # aws_access_key_id: ""
-    # aws_secret_access_key: ""
   description: >
     A data store that contains selected datasets from the CCI Open Data Portal
     which have been converted to [Zarr format](https://zarr.readthedocs.io/)
