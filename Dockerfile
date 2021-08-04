@@ -1,17 +1,17 @@
-FROM quay.io/ccitools/cate-base:2.1.0
+FROM quay.io/bcdev/xcube-python-base:0.8.1
 
 LABEL maintainer="helge.dzierzon@brockmann-consult.de"
 LABEL name=cate
 
-ARG CATE_USER_NAME=cate
+ARG XCUBE_USER_NAME=xcube
 ENV XCUBE_VERSION=0.8.2.dev0
-ENV XCUBE_CCI_VERSION=0.8.1.dev3
+ENV XCUBE_CCI_VERSION=0.8.1.dev6
 
 USER root
 
 RUN apt-get update -y && apt-get upgrade -y
 
-USER ${CATE_USER_NAME}
+USER ${XCUBE_USER_NAME}
 
 # STAGE LINUX/CONDA BASICS
 SHELL ["/bin/bash", "-c"]
@@ -20,18 +20,7 @@ WORKDIR /tmp
 
 # STAGE INSTALL CATE DEPENDENCIES
 
-USER ${CATE_USER_NAME}
-
 # Prepare Python conda env
-
-# cate
-
-COPY --chown=1000:1000 . ./cate
-WORKDIR /tmp/cate
-
-# Removed xcube dependencies. Will be manually installed
-RUN sed -i 's/- xcube/# -xcube/g' environment.yml
-RUN mamba env create
 
 # xcube
 
@@ -42,19 +31,22 @@ RUN tar xvzf v"${XCUBE_VERSION}".tar.gz
 
 WORKDIR /tmp/xcube-"${XCUBE_VERSION}"
 
-RUN mamba env update -n cate-env
+RUN mamba env create -n cate-env
 
 # xcube-cci
 
 WORKDIR /tmp
 
-RUN source activate cate-env && mamba install -y -c conda-forge aiohttp nest-asyncio lxml pydap
+RUN source activate cate-env && mamba install -y -c conda-forge aiohttp nest-asyncio lxml pydap cartopy
 
 # INSTALL software
 
-# cate
+# cate# Start bash, so we can invoke xcube CLI.
 
+
+COPY  . ./cate
 WORKDIR /tmp/cate
+
 RUN source activate cate-env && python setup.py install
 
 # xcube
