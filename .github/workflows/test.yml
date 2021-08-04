@@ -6,7 +6,7 @@ jobs:
   unittest:
     env:
       XCUBE_VERSION: 0.8.2.dev0
-      XCUBE_CCI_VERSION: 0.8.1.dev2
+      XCUBE_CCI_VERSION: 0.8.1.dev6
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2

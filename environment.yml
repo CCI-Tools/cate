@@ -12,7 +12,8 @@ dependencies:
   - cftime>=1.4.1
   - conda>=4.8
   - cython>=0.29.2
-  - dask=2021.03.1
+  # Memory leak in dask > 2021.3.1
+  - dask=2021.3.1
   - fiona>=1.8.6
   - geopandas>=0.6.3
   - geos>=3.7.1
@@ -39,7 +40,7 @@ dependencies:
   - python=3.7
   - python-dateutil>=2.8.1
   - requests-file>=1.5
-  - s3fs >=2021.6
+  - s3fs>=2021.6
   - s3transfer>=0.3.3
   - scipy>=1.4.1
   - setuptools
