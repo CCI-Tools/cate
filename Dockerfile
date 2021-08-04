@@ -45,6 +45,7 @@ RUN source activate cate-env && mamba install -y -c conda-forge aiohttp nest-asy
 
 
 COPY  . ./cate
+RUN chown -R 1000.1000 /tmp/cate
 WORKDIR /tmp/cate
 
 RUN source activate cate-env && python setup.py install
