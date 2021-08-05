@@ -1,8 +1,14 @@
+## Version 3.0.0.dev8 (in development)
+
+* Fixed memory leak introduced by dask version > 2021.3.1 
+  (see https://github.com/dask/dask/issues/7583).
+  Pinned it to 2021.3.1.
+
 ## Version 3.0.0 (in development)
 
 * Cate's implementations of the CCI ODP data store and the local data store 
-  have been replaced by [xcube]() equivalents which are faster and more 
-  robust.
+  have been replaced by [xcube](https://github.com/dcs4cop/xcube) equivalents 
+  which are faster and more robust.
 * Added a new experimental "Zarr data store" that provides fast 
   access to selected CCI datasets in JASMIN object storage. 
 * Added a Web API function `keep_alive` that is periodically used by Cate App  
