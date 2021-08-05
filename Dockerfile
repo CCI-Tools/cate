@@ -41,12 +41,10 @@ RUN source activate cate-env && mamba install -y -c conda-forge aiohttp nest-asy
 
 # INSTALL software
 
-# cate# Start bash, so we can invoke xcube CLI.
+# cate
 
-USER roor
-COPY  . ./cate
-USER xcube
-RUN chown -R 1000.1000 /tmp/cate
+COPY --chown=1000:1000 . ./cate
+
 WORKDIR /tmp/cate
 
 RUN source activate cate-env && python setup.py install
