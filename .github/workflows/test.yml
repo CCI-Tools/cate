@@ -5,7 +5,7 @@ on: push
 jobs:
   unittest:
     env:
-      XCUBE_VERSION: 0.8.2.dev0
+      XCUBE_VERSION: 0.8.2.dev1
       XCUBE_CCI_VERSION: 0.8.1.dev6
     runs-on: ubuntu-latest
     steps:
@@ -27,7 +27,6 @@ jobs:
         shell: bash -l {0}
         run: |
           cd xcube
-
           python setup.py install
           cd ..
       - name: setup-xcube-cci
