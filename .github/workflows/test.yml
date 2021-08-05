@@ -20,7 +20,7 @@ jobs:
           mamba-version: "*"
           channels: conda-forge
           activate-environment: xcube
-          environment-file: cd xcube-"${XCUBE_VERSION}"/environment.yml
+          environment-file: xcube-"${XCUBE_VERSION}"/environment.yml
       - name: setup-xcube
         shell: bash -l {0}
         run: |
