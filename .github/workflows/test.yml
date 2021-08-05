@@ -5,7 +5,7 @@ on: push
 jobs:
   unittest:
     env:
-      XCUBE_VERSION: 0.8.2.dev3
+      XCUBE_VERSION: 0.8.2.dev4
       XCUBE_CCI_VERSION: 0.8.1.dev6
     runs-on: ubuntu-latest
     steps:
