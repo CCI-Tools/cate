@@ -15,12 +15,14 @@ jobs:
         run: |
           wget https://github.com/dcs4cop/xcube/archive/v"${XCUBE_VERSION}".tar.gz
           tar xvzf v"${XCUBE_VERSION}".tar.gz
+          mv xcube-"${XCUBE_VERSION}" xcube
+          ls -al
       - uses: conda-incubator/setup-miniconda@v2
         with:
           mamba-version: "*"
           channels: conda-forge
           activate-environment: xcube
-          environment-file: xcube-"${XCUBE_VERSION}"/environment.yml
+          environment-file: xcube/environment.yml
       - name: setup-xcube
         shell: bash -l {0}
         run: |
