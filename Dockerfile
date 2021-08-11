@@ -4,8 +4,8 @@ LABEL maintainer="helge.dzierzon@brockmann-consult.de"
 LABEL name=cate
 
 ARG XCUBE_USER_NAME=xcube
-ENV XCUBE_VERSION=0.8.2.dev4
-ENV XCUBE_CCI_VERSION=0.8.1.dev6
+ENV XCUBE_VERSION=0.8.2
+ENV XCUBE_CCI_VERSION=0.8.1
 
 USER root
 

@@ -1,10 +1,4 @@
-## Version 3.0.0.dev8 (in development)
-
-* Fixed memory leak introduced by dask version > 2021.3.1 
-  (see https://github.com/dask/dask/issues/7583).
-  Pinned it to 2021.3.1.
-
-## Version 3.0.0 (in development)
+## Version 3.0.0 
 
 * Cate's implementations of the CCI ODP data store and the local data store 
   have been replaced by [xcube](https://github.com/dcs4cop/xcube) equivalents 
@@ -34,6 +28,10 @@
   * Changed `Dockerfile` to install `xcube` and `xcube-cci` 
     from GitHub releases
   * Added missing progress monitors to some backend methods.
+* Fixed memory leak introduced by dask version > 2021.3.1 
+  (see https://github.com/dask/dask/issues/7583).
+  Pinned it to 2021.3.1.
+
 
 ## Version 2.1.5
 
