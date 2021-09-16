@@ -1,5 +1,6 @@
 ## Version 3.0.1 (in development) 
-* Fixed bug that would cause that no local zarr datasets could be opened. 
+* Fixed bug that would cause that data that was downloaded and cached locally
+  could not be opened. 
 
 ## Version 3.0.0 
 
