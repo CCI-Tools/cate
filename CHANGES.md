@@ -1,3 +1,6 @@
+## Version 3.0.1 (in development) 
+* Fixed bug that would cause that no local zarr datasets could be opened. 
+
 ## Version 3.0.0 
 
 * Cate's implementations of the CCI ODP data store and the local data store 

@@ -448,7 +448,10 @@ def open_dataset(dataset_id: str,
             subset_args['bbox'] = bbox
             subset_work += 1
 
-    if 'consolidated' in open_schema.properties:
+    #TODO remove when xcube 0.9 is available
+    if 'consolidated' in open_schema.properties and not \
+            isinstance(data_store,
+                       xcube_store.stores.directory.DirectoryDataStore):
         open_args['consolidated'] = True
 
     with monitor.starting('Open dataset', open_work + subset_work + cache_work):
