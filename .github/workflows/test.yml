@@ -17,6 +17,7 @@ jobs:
           tar xvzf v"${XCUBE_VERSION}".tar.gz
           mv xcube-"${XCUBE_VERSION}" xcube
           ls -al
+          rm v"${XCUBE_VERSION}".tar.gz
       - uses: conda-incubator/setup-miniconda@v2
         with:
           mamba-version: "*"
