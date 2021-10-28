@@ -93,7 +93,7 @@ import xarray as xr
 
 import xcube.core.store as xcube_store
 from xcube.core.select import select_subset
-from xcube.core.store import MutableDataStore
+from xcube.core.store import MutableDataStore, DATASET_TYPE
 from xcube.util.progress import ProgressObserver
 from xcube.util.progress import ProgressState
 from xcube.util.progress import add_progress_observers
@@ -258,7 +258,7 @@ INFO_FIELD_NAMES = sorted(["abstract",
 
 def get_metadata_from_descriptor(descriptor: xcube_store.DataDescriptor) -> Dict:
     metadata = dict(data_id=descriptor.data_id,
-                    type_specifier=str(descriptor.type_specifier))
+                    type_specifier=str(descriptor.data_type))
     if descriptor.crs:
         metadata['crs'] = descriptor.crs
     if descriptor.bbox:
@@ -390,15 +390,15 @@ def open_dataset(dataset_id: str,
             raise ValidationError(f"No data store found that contains the ID '{dataset_id}'")
 
     type_spec = None
-    potential_type_specs = data_store.get_type_specifiers_for_data(dataset_id)
-    for potential_type_spec in potential_type_specs:
-        if xcube_store.TYPE_SPECIFIER_CUBE.is_satisfied_by(potential_type_spec):
-            type_spec = potential_type_spec
+    potential_data_types = data_store.get_data_types_for_data(dataset_id)
+    for potential_data_type in potential_data_types:
+        if DATASET_TYPE.is_super_type_of(potential_data_type):
+            type_spec = potential_data_type
             break
     if type_spec is None:
-        for potential_type_spec in potential_type_specs:
-            if xcube_store.TYPE_SPECIFIER_DATASET.is_satisfied_by(potential_type_spec):
-                type_spec = potential_type_spec
+        for potential_data_type in potential_data_types:
+            if DATASET_TYPE.is_super_type_of(potential_data_type):
+                type_spec = potential_data_type
                 break
     if type_spec is None:
         raise ValidationError(f"Could not open '{dataset_id}' as dataset.")
@@ -447,12 +447,6 @@ def open_dataset(dataset_id: str,
         else:
             subset_args['bbox'] = bbox
             subset_work += 1
-
-    #TODO remove when xcube 0.9 is available
-    if 'consolidated' in open_schema.properties and not \
-            isinstance(data_store,
-                       xcube_store.stores.directory.DirectoryDataStore):
-        open_args['consolidated'] = True
 
     with monitor.starting('Open dataset', open_work + subset_work + cache_work):
         with add_progress_observers(XcubeProgressObserver(ChildMonitor(monitor, open_work))):

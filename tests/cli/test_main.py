@@ -3,6 +3,7 @@ import os.path
 import shutil
 import sys
 import unittest
+import warnings
 from collections import OrderedDict
 from time import sleep
 from typing import Union, List, Optional
@@ -316,6 +317,10 @@ class OperationCommandTest(CliTestCase):
 
 
 class DataSourceCommandTest(CliTestCase):
+    def setUp(self) -> None:
+        # Added this because test_ds_info failed due to a DeprecationWarning from jsonschema that's been
+        # printed.
+        warnings.simplefilter('ignore', category=DeprecationWarning)
 
     def test_ds_info(self):
         self.assert_main(

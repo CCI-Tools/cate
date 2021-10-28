@@ -9,9 +9,9 @@ def _create_test_data_store_config(name: str):
     local_test_store_path = \
         os.path.join(os.path.dirname(__file__), 'ds', 'resources', 'datasources', name)
     local_test_store_dict = {
-        "store_id": "directory",
+        "store_id": "file",
         "store_params": {
-            "base_dir": local_test_store_path,
+            "root": local_test_store_path
         },
         "title": f"Local Test Store '{name}'"
     }
