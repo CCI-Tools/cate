@@ -22,6 +22,7 @@ dependencies:
   - hdf4>=4.2.13
   - hdf5>=1.10.4
   - jdcal>=1.4.1
+  - jsonschema<4.0.0
   - lxml>=4.5
   - matplotlib-base>=3.3
   - numba>=0.48.0
