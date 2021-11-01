@@ -6,7 +6,9 @@
   * `get_type_specifiers_for_data` replaced with `get_data_types_for_data`
   * Changed xcube `directory` configurations to `file`.  
 * Changed Dockerfile. Is now completely based on quay.io/bcdev/xcube.
- 
+* Increased xcube dependency to version 0.9.1+ 
+* Unpinned xarray version (now 0.19.0+)
+* Increased xcube-cci dependency to version 0.9.1+
 
 ## Version 3.0.0 
 

@@ -178,6 +178,7 @@ def _lta_general(ds: xr.Dataset, monitor: Monitor):
 
     # Get 'representative year'
     c = 0
+    rep_year = 0
     for group in ds.time.groupby('time.year'):
         c = c + 1
         if c == 1:
@@ -198,7 +199,7 @@ def _lta_general(ds: xr.Dataset, monitor: Monitor):
 
     # Turn month, day coordinates to time
     retset = retset.reset_index('time')
-    retset = retset.drop(['month', 'day'])
+    retset = retset.drop_vars(['month', 'day'])
     retset['time'] = rep_year.time
 
     climatology_bounds = xr.DataArray(data=np.tile([time_min, time_max],
@@ -226,6 +227,8 @@ def _is_seasonal(time: xr.DataArray):
     """
     c = 0
     test = None
+    first_days = 0
+    first_months = 0
     for group in time.groupby('time.year'):
         # Test (month, day) dates of all years against
         # (month, day) dates of the first year, or second
@@ -241,6 +244,7 @@ def _is_seasonal(time: xr.DataArray):
         elif c == 2:
             second_months = months
             second_days = days
+
             if len(second_months) > len(first_months):
                 test = list(zip(second_months, second_days))
                 for date in zip(first_months, first_days):
@@ -332,7 +336,7 @@ def temporal_aggregation(ds: DatasetLike.TYPE,
         raise ValidationError(f'Provided aggregation method {method} is not valid.')
 
     with monitor.observing("Resample dataset"):
-        dataset = agg_function(ds.resample(keep_attrs=True, time=period))
+        dataset = agg_function(ds.resample(time=period))
 
     return adjust_temporal_attrs(dataset)
 
