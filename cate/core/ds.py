@@ -93,7 +93,8 @@ import xarray as xr
 
 import xcube.core.store as xcube_store
 from xcube.core.select import select_subset
-from xcube.core.store import MutableDataStore, DATASET_TYPE
+from xcube.core.store import DATASET_TYPE
+from xcube.core.store import MutableDataStore
 from xcube.util.progress import ProgressObserver
 from xcube.util.progress import ProgressState
 from xcube.util.progress import add_progress_observers
