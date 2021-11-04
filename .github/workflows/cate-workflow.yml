@@ -5,7 +5,7 @@ on: push
 jobs:
   unittest:
     env:
-      XCUBE_VERSION: 0.9.0
+      XCUBE_VERSION: 0.9.1
       XCUBE_CCI_VERSION: 0.9.0
     runs-on: ubuntu-latest
     steps:
@@ -37,7 +37,7 @@ jobs:
           tar xvzf v"${XCUBE_CCI_VERSION}".tar.gz
           cd xcube-cci-"${XCUBE_CCI_VERSION}"
           python setup.py install
-          mamba install -y -c conda-forge aiohttp nest-asyncio lxml pydap cartopy jsonschema=
+          mamba install -y -c conda-forge aiohttp nest-asyncio lxml pydap cartopy jsonschema
       - name: setup-cate
         shell: bash -l {0}
         run: |
