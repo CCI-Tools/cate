@@ -26,7 +26,7 @@ WORKDIR /tmp/cate
 
 RUN source activate xcube && python setup.py install
 
-# Install missing deoendencies
+# Install missing dependencies
 
 RUN source activate xcube && mamba install -c conda-forge cartopy
 

@@ -1,14 +1,13 @@
 ## Version 3.0.1 (in development) 
 * Fixed bug that would cause that data that was downloaded and cached locally
   could not be opened. 
-* Increased xcube >=0.9.1 and xcube-cci version to >=0.9.0 and fixed issues that arose from that change: 
+* Increased xcube >=0.9.1 and xcube-cci version to >=0.9.0 and fixed issues 
+  that arose from that change: 
   * `TYPE_SPECIFIER_CUBE` replaced with `DATASET_TYPE` 
   * `get_type_specifiers_for_data` replaced with `get_data_types_for_data`
   * Changed xcube `directory` configurations to `file`.  
 * Changed Dockerfile. Is now completely based on quay.io/bcdev/xcube.
-* Increased xcube dependency to version 0.9.1+ 
 * Unpinned xarray version (now 0.19.0+)
-* Increased xcube-cci dependency to version 0.9.0+
 
 ## Version 3.0.0 
 
