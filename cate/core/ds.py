@@ -390,20 +390,15 @@ def open_dataset(dataset_id: str,
         if not data_store:
             raise ValidationError(f"No data store found that contains the ID '{dataset_id}'")
 
-    type_spec = None
+    data_type = None
     potential_data_types = data_store.get_data_types_for_data(dataset_id)
     for potential_data_type in potential_data_types:
         if DATASET_TYPE.is_super_type_of(potential_data_type):
-            type_spec = potential_data_type
+            data_type = potential_data_type
             break
-    if type_spec is None:
-        for potential_data_type in potential_data_types:
-            if DATASET_TYPE.is_super_type_of(potential_data_type):
-                type_spec = potential_data_type
-                break
-    if type_spec is None:
+    if data_type is None:
         raise ValidationError(f"Could not open '{dataset_id}' as dataset.")
-    openers = data_store.get_data_opener_ids(dataset_id, type_spec)
+    openers = data_store.get_data_opener_ids(dataset_id, data_type)
     if len(openers) == 0:
         raise DataAccessError(f'Could not find an opener for "{dataset_id}".')
     opener_id = openers[0]
@@ -421,7 +416,7 @@ def open_dataset(dataset_id: str,
         if 'variable_names' in open_schema.properties:
             open_args['variable_names'] = var_names_list
         elif 'drop_variables' in open_schema.properties:
-            data_desc = data_store.describe_data(dataset_id, type_spec)
+            data_desc = data_store.describe_data(dataset_id, data_type)
             if hasattr(data_desc, 'data_vars') \
                     and isinstance(getattr(data_desc, 'data_vars'), dict):
                 open_args['drop_variables'] = [var_name

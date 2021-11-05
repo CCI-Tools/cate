@@ -3,11 +3,12 @@
   could not be opened. 
 * Increased xcube >=0.9.1 and xcube-cci version to >=0.9.0 and fixed issues 
   that arose from that change: 
-  * `TYPE_SPECIFIER_CUBE` replaced with `DATASET_TYPE` 
+  * Type specifiers replaced with data types (`DATASET_TYPE`) and removed 
+    `TYPE_SPECIFIER_CUBE` and `TYPE_SPECIFIER_DATASET`
   * `get_type_specifiers_for_data` replaced with `get_data_types_for_data`
   * Changed xcube `directory` configurations to `file`.  
 * Changed Dockerfile. Is now completely based on quay.io/bcdev/xcube.
-* Unpinned xarray version (now 0.19.0+)
+* Unpinned xarray version (now 0.19.0+), unpinned pandas version (now 1.3+)
 
 ## Version 3.0.0 
 
