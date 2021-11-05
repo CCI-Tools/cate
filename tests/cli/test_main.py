@@ -316,7 +316,6 @@ class OperationCommandTest(CliTestCase):
 
 
 class DataSourceCommandTest(CliTestCase):
-
     def test_ds_info(self):
         self.assert_main(
             ['ds', 'info',

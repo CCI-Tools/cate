@@ -93,6 +93,7 @@ import xarray as xr
 
 import xcube.core.store as xcube_store
 from xcube.core.select import select_subset
+from xcube.core.store import DATASET_TYPE
 from xcube.core.store import MutableDataStore
 from xcube.util.progress import ProgressObserver
 from xcube.util.progress import ProgressState
@@ -258,7 +259,7 @@ INFO_FIELD_NAMES = sorted(["abstract",
 
 def get_metadata_from_descriptor(descriptor: xcube_store.DataDescriptor) -> Dict:
     metadata = dict(data_id=descriptor.data_id,
-                    type_specifier=str(descriptor.type_specifier))
+                    type_specifier=str(descriptor.data_type))
     if descriptor.crs:
         metadata['crs'] = descriptor.crs
     if descriptor.bbox:
@@ -389,20 +390,15 @@ def open_dataset(dataset_id: str,
         if not data_store:
             raise ValidationError(f"No data store found that contains the ID '{dataset_id}'")
 
-    type_spec = None
-    potential_type_specs = data_store.get_type_specifiers_for_data(dataset_id)
-    for potential_type_spec in potential_type_specs:
-        if xcube_store.TYPE_SPECIFIER_CUBE.is_satisfied_by(potential_type_spec):
-            type_spec = potential_type_spec
+    data_type = None
+    potential_data_types = data_store.get_data_types_for_data(dataset_id)
+    for potential_data_type in potential_data_types:
+        if DATASET_TYPE.is_super_type_of(potential_data_type):
+            data_type = potential_data_type
             break
-    if type_spec is None:
-        for potential_type_spec in potential_type_specs:
-            if xcube_store.TYPE_SPECIFIER_DATASET.is_satisfied_by(potential_type_spec):
-                type_spec = potential_type_spec
-                break
-    if type_spec is None:
+    if data_type is None:
         raise ValidationError(f"Could not open '{dataset_id}' as dataset.")
-    openers = data_store.get_data_opener_ids(dataset_id, type_spec)
+    openers = data_store.get_data_opener_ids(dataset_id, data_type)
     if len(openers) == 0:
         raise DataAccessError(f'Could not find an opener for "{dataset_id}".')
     opener_id = openers[0]
@@ -420,7 +416,7 @@ def open_dataset(dataset_id: str,
         if 'variable_names' in open_schema.properties:
             open_args['variable_names'] = var_names_list
         elif 'drop_variables' in open_schema.properties:
-            data_desc = data_store.describe_data(dataset_id, type_spec)
+            data_desc = data_store.describe_data(dataset_id, data_type)
             if hasattr(data_desc, 'data_vars') \
                     and isinstance(getattr(data_desc, 'data_vars'), dict):
                 open_args['drop_variables'] = [var_name
@@ -447,12 +443,6 @@ def open_dataset(dataset_id: str,
         else:
             subset_args['bbox'] = bbox
             subset_work += 1
-
-    #TODO remove when xcube 0.9 is available
-    if 'consolidated' in open_schema.properties and not \
-            isinstance(data_store,
-                       xcube_store.stores.directory.DirectoryDataStore):
-        open_args['consolidated'] = True
 
     with monitor.starting('Open dataset', open_work + subset_work + cache_work):
         with add_progress_observers(XcubeProgressObserver(ChildMonitor(monitor, open_work))):

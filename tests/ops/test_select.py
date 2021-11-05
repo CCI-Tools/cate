@@ -20,7 +20,7 @@ class TestSelect(TestCase):
         # Test that everything is dropped if the desired name does not exist in
         # the dataset
         expected = xr.Dataset({'abc': ('x', [1, 2, 3])})
-        expected = expected.drop('abc')
+        expected = expected.drop_vars(['abc', ])
         actual = select_var(dataset, var='xyz')
         self.assertDatasetEqual(expected, actual)
 

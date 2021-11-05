@@ -142,7 +142,7 @@ class TestDiff(TestCase):
         actual = arithmetics.diff(ds, ds1)
         assert_dataset_equal(actual, expected)
 
-        actual = arithmetics.diff(ds, ds1.drop('time'))
+        actual = arithmetics.diff(ds, ds1.drop_vars(['time', ]))
         expected['time'] = [datetime(2000, x, 1) for x in range(1, 13)]
         assert_dataset_equal(actual, expected)
 

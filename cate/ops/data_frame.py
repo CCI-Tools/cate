@@ -180,7 +180,6 @@ def data_frame_query(df: DataFrameLike.TYPE, query_expr: str) -> pd.DataFrame:
 
     # noinspection PyTypeChecker
     subset_data_frame = data_frame.query(query_expr,
-                                         truediv=True,
                                          local_dict=local_dict,
                                          global_dict={})
 
