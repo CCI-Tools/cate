@@ -1,4 +1,8 @@
 ## Version 3.0.1 (in development) 
+
+* The `--auto-stop-after <seconds>` option now works correctly with 
+  Cate service CLI `cate-webapi-start` command. It will be used to 
+  automatically stop inactivate Cate Cloud Service instances.
 * Fixed bug that would cause that data that was downloaded and cached locally
   could not be opened. 
 * Increased xcube >=0.9.1 and xcube-cci version to >=0.9.0 and fixed issues 
