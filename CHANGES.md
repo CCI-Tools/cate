@@ -1,5 +1,8 @@
 ## Version 3.1.0 (in development) 
 
+* Increased version number to 3.1 because the Cate Web API changed in an 
+  incompatible way. Dataset descriptors now have a `data_type` 
+  field instead of a `type_specifier` field in 3.0.x.
 * The `--auto-stop-after <seconds>` option now works correctly with 
   Cate service CLI `cate-webapi-start` command. It will be used to 
   automatically stop inactivate Cate Cloud Service instances.
