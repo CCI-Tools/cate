@@ -57,7 +57,7 @@ class WebSocketServiceTest(unittest.TestCase):
             ('title', str),
             ('metaInfo', dict),
             ("verificationFlags", list),
-            ("typeSpecifier", str)
+            ("dataType", str)
         ]
         for ds in data_stores:
             self.assertIn('id', ds)
