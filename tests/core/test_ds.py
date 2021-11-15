@@ -150,14 +150,13 @@ class IOTest(StoreTest):
                 institute='Royal Netherlands Meteorological Institute',
                 processing_level='L3',
                 product_string='MERGED',
-                data_type='NP',
                 file_formats=['.nc', '.txt']
             )
         )
         descriptor_metadata = get_metadata_from_descriptor(descriptor)
         expected_metadata = dict(
             data_id='xyz',
-            type_specifier='dataset',
+            data_type='dataset',
             crs='EPSG:9346',
             bbox=(10., 20., 30., 40.),
             spatial_res=20.,
@@ -171,7 +170,6 @@ class IOTest(StoreTest):
             institute='Royal Netherlands Meteorological Institute',
             processing_level='L3',
             product_string='MERGED',
-            data_type='NP',
             file_formats=['.nc', '.txt'],
             data_vars=[
                 {'name': 'surface_pressure',
