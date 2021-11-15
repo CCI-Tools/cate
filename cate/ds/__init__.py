@@ -38,6 +38,7 @@ information.
 Components
 ==========
 """
+from xcube.util.assertions import assert_given
 
 
 def cate_init():
@@ -63,19 +64,24 @@ def cate_init():
             store_configs = yaml.safe_load(fp)
 
     for store_name, store_config in store_configs.items():
-        if store_config.get('store_id', '') == 'file' \
+        store_id = store_config.get('store_id')
+        assert_given(store_id, name='store_id', exception_type=RuntimeError)
+
+        if store_id == 'file' \
                 and 'store_params' in store_config \
                 and store_config.get('store_params', {}).get('root') is None:
-            base_dir = os.environ.get('CATE_LOCAL_DATA_STORE_PATH',
-                                      os.path.join(get_data_stores_path(),
-                                                   store_name))
-            store_config['store_params']['root'] = base_dir
-        store_params_schema = get_data_store_params_schema(
-            store_config.get('store_id')
-        )
+            root = os.environ.get('CATE_LOCAL_DATA_STORE_PATH',
+                                  os.path.join(get_data_stores_path(),
+                                               store_name))
+            # Note: even if the root directory doesn't exist yet,
+            # the xcube "file" data store will create it for us.
+            store_config['store_params']['root'] = root
+
+        store_params_schema = get_data_store_params_schema(store_id)
         if 'user_agent' in store_params_schema.properties:
             if 'store_params' not in store_config:
                 store_config['store_params'] = {}
             store_config['store_params']['user_agent'] = default_user_agent()
+
         store_config = DataStoreConfig.from_dict(store_config)
         DATA_STORE_POOL.add_store_config(store_name, store_config)

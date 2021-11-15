@@ -1,5 +1,8 @@
-## Version 3.0.1 (in development) 
+## Version 3.1.0 (in development) 
 
+* Increased version number to 3.1 because the Cate Web API changed in an 
+  incompatible way. Dataset descriptors now have a `data_type` 
+  field instead of a `type_specifier` field in 3.0.x.
 * The `--auto-stop-after <seconds>` option now works correctly with 
   Cate service CLI `cate-webapi-start` command. It will be used to 
   automatically stop inactivate Cate Cloud Service instances.
@@ -11,7 +14,7 @@
     `TYPE_SPECIFIER_CUBE` and `TYPE_SPECIFIER_DATASET`
   * `get_type_specifiers_for_data` replaced with `get_data_types_for_data`
   * Changed xcube `directory` configurations to `file`.  
-* Changed Dockerfile. Is now completely based on quay.io/bcdev/xcube.
+* Changed Dockerfile. Is now completely based on `quay.io/bcdev/xcube`.
 * Unpinned xarray version (now 0.19.0+), unpinned pandas version (now 1.3+)
 
 ## Version 3.0.0 
