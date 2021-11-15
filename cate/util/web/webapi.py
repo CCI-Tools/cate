@@ -265,7 +265,7 @@ class WebAPI:
         # noinspection PyArgumentList
         application = application_factory(user_root_path=user_root_path)
         application.webapi = self
-        application.time_of_last_activity = time.process_time()
+        application.time_of_last_activity = time.perf_counter()
         self.application = application
 
         print(f'{name}: started service, listening on {join_address_and_port(address, port)}')
@@ -411,7 +411,7 @@ class WebAPI:
     def _check_inactivity(self):
         # noinspection PyUnresolvedReferences
         time_of_last_activity = self.application.time_of_last_activity
-        inactivity_time = time.process_time() - time_of_last_activity
+        inactivity_time = time.perf_counter() - time_of_last_activity
         if inactivity_time > self.auto_stop_after:
             _LOG.info('stopping %s service after %.1f seconds of inactivity' % (self.name, inactivity_time))
             self.shut_down()
@@ -617,7 +617,7 @@ class WebAPIRequestHandler(RequestHandler):
         """
         Store time of last activity so we can measure time of inactivity and then optionally auto-exit.
         """
-        self.application.time_of_last_activity = time.process_time()
+        self.application.time_of_last_activity = time.perf_counter()
 
     def write_status_ok(self, content: object = None):
         self.write(dict(status='ok', content=content))
