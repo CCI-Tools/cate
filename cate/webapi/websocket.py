@@ -164,17 +164,21 @@ class WebSocketService:
         data_store = DATA_STORE_POOL.get_store(data_store_id)
         if data_store is None:
             raise ValueError('Unknown data store: "%s"' % data_store_id)
-        data_ids = list(data_store.get_data_ids(include_attrs=['title',
-                                                               'verification_flags',
-                                                               'type_specifier']))
+        data_ids = list(data_store.get_data_ids(
+            include_attrs=['title',
+                           'verification_flags',
+                           'data_type'])
+        )
         data_sources = []
         with monitor.starting(f'Retrieving data sources for data store {data_store_id}',
                               total_work=len(data_ids)):
             for data_id, attrs in data_ids:
-                data_sources.append(dict(id=data_id,
-                                         title=attrs.get('title', data_id),
-                                         verification_flags=attrs.get('verification_flags'),
-                                         type_specifier=attrs.get('type_specifier')))
+                data_sources.append(dict(
+                    id=data_id,
+                    title=attrs.get('title', data_id),
+                    verification_flags=attrs.get('verification_flags'),
+                    data_type=attrs.get('data_type'))
+                )
                 monitor.progress(1)
         return data_sources
 
@@ -210,7 +214,7 @@ class WebSocketService:
         data_source = dict(id=data_id, title=data_id)
         descriptor = get_data_descriptor(data_id)
         if descriptor:
-            data_source['type_specifier'] = descriptor.type_specifier
+            data_source['data_type'] = descriptor.data_type
         return [data_source]
 
     def remove_local_data_source(self,

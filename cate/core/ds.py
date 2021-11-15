@@ -259,7 +259,7 @@ INFO_FIELD_NAMES = sorted(["abstract",
 
 def get_metadata_from_descriptor(descriptor: xcube_store.DataDescriptor) -> Dict:
     metadata = dict(data_id=descriptor.data_id,
-                    type_specifier=str(descriptor.data_type))
+                    data_type=str(descriptor.data_type))
     if descriptor.crs:
         metadata['crs'] = descriptor.crs
     if descriptor.bbox:
