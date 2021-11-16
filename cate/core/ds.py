@@ -273,11 +273,12 @@ def get_metadata_from_descriptor(descriptor: xcube_store.DataDescriptor) -> Dict
     if hasattr(descriptor, 'attrs') \
             and isinstance(getattr(descriptor, 'attrs'), dict):
         for name in INFO_FIELD_NAMES:
-            value = descriptor.attrs.get(name, None)
-            # Many values are one-element lists: turn them into scalars
-            if isinstance(value, list) and len(value) == 1:
-                value = value[0]
+            value = descriptor.attrs.get(name)
             if value is not None:
+                # Many values are one-element lists: turn them into scalars
+                if isinstance(value, list) and len(value) == 1:
+                    value = value[0]
+                name = f'{name}_attribute' if name in metadata else name
                 metadata[name] = value
     for vars_key in ('data_vars', 'coords'):
         if hasattr(descriptor, vars_key) \
