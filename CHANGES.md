@@ -8,7 +8,7 @@
   automatically stop inactivate Cate Cloud Service instances.
 * Fixed bug that would cause that data that was downloaded and cached locally
   could not be opened. 
-* Increased xcube >=0.9.1 and xcube-cci version to >=0.9.0 and fixed issues 
+* Increased xcube and xcube-cci version to >=0.9.1 and fixed issues 
   that arose from that change: 
   * Type specifiers replaced with data types (`DATASET_TYPE`) and removed 
     `TYPE_SPECIFIER_CUBE` and `TYPE_SPECIFIER_DATASET`
