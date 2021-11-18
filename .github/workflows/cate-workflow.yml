@@ -1,6 +1,9 @@
 name: Unittest Cate
 
-on: push
+on:
+  push:
+  release:
+    types: [published]
 
 jobs:
   unittest:
