@@ -1,3 +1,5 @@
+## Version 3.1.1 (in development)
+
 ## Version 3.1.0
 
 * Increased version number to 3.1 because the Cate Web API changed in an 
