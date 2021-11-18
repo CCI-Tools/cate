@@ -73,7 +73,8 @@ def cate_init():
             root = os.environ.get('CATE_LOCAL_DATA_STORE_PATH',
                                   os.path.join(get_data_stores_path(),
                                                store_name))
-            os.makedirs(root, exist_ok=True)
+            # Note: even if the root directory doesn't exist yet,
+            # the xcube "file" data store will create it for us.
             store_config['store_params']['root'] = root
 
         store_params_schema = get_data_store_params_schema(store_id)
