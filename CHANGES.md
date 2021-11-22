@@ -1,4 +1,6 @@
-## Version 3.1.1 (in development)
+## Version 3.1.1
+
+* Use xcube-cci version 0.9.3 in docker files  
 
 ## Version 3.1.0
 
