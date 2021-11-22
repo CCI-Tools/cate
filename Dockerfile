@@ -1,4 +1,4 @@
-FROM quay.io/bcdev/xcube:latest
+FROM quay.io/bcdev/xcube:v0.9.2.cci093
 
 LABEL maintainer="helge.dzierzon@brockmann-consult.de"
 LABEL name=cate
