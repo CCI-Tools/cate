@@ -201,7 +201,9 @@ class WebSocketService:
             data_source_descriptor = data_store.describe_data(data_source_id)
             return get_metadata_from_descriptor(data_source_descriptor)
 
-    def add_local_data_source(self, data_source_id: str, file_path_pattern: str, monitor: Monitor):
+    def add_local_data_source(self, data_source_id: str,
+                              file_path_pattern: str,
+                              monitor: Monitor):
         """
         Adds a local data source made up of the specified files.
 
@@ -210,7 +212,9 @@ class WebSocketService:
         :param monitor: a progress monitor.
         :return: JSON-serializable list with the newly added local data source
         """
-        data, data_id = add_as_local(data_source_id=data_source_id, paths=file_path_pattern)
+        resolved_pattern = self._resolve_path(file_path_pattern)
+        data, data_id = add_as_local(data_source_id=data_source_id,
+                                     paths=resolved_pattern)
         data_source = dict(id=data_id, title=data_id)
         descriptor = get_data_descriptor(data_id)
         if descriptor:

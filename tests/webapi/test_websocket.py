@@ -76,6 +76,41 @@ class WebSocketServiceTest(unittest.TestCase):
                     if k in data_source and data_source[k] is not None:
                         self.assertIsInstance(data_source[k], t)
 
+    def test_add_and_remove_local_data_source(self):
+
+        data_source_id = 'locally_added_data_source_for_testing.zarr'
+
+        lds = self.service.get_data_sources(data_store_id='local',
+                                            monitor=Monitor.NONE)
+        self.assertNotIn(data_source_id,
+                         [ds['id'] for ds in lds if ds['id'] == data_source_id])
+
+        file_path_pattern = 'data/precip_and_temp*.nc'
+        new_lds = self.service.add_local_data_source(
+            data_source_id=data_source_id,
+            file_path_pattern=file_path_pattern,
+            monitor=Monitor.NONE)
+
+        self.assertEqual(1, len(new_lds))
+        self.assertEqual(new_lds[0]['id'], data_source_id)
+        self.assertEqual(new_lds[0]['title'], data_source_id)
+        self.assertEqual(str(new_lds[0]['data_type']), 'dataset')
+
+        lds = self.service.get_data_sources(data_store_id='local',
+                                            monitor=Monitor.NONE)
+        self.assertIn(data_source_id,
+                         [ds['id'] for ds in lds if ds['id'] == data_source_id])
+
+        self.service.remove_local_data_source(data_source_id=data_source_id,
+                                              remove_files=True,
+                                              monitor=Monitor.NONE)
+
+        lds = self.service.get_data_sources(data_store_id='local',
+                                            monitor=Monitor.NONE)
+        self.assertNotIn(data_source_id,
+                         [ds['id'] for ds in lds if ds['id'] == data_source_id])
+
+
     def test_get_operations(self):
         ops = self.service.get_operations()
         self.assertIsInstance(ops, list)

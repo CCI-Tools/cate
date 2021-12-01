@@ -1,5 +1,7 @@
 ## Version 3.1.2 (in development)
-
+* Fixed bug which made it impossible to add data to a writable (local) 
+  data store using the Web API (
+  [#1022](https://github.com/CCI-Tools/cate/issues/1022))
 
 ## Version 3.1.1
 
