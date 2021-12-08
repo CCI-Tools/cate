@@ -14,7 +14,7 @@
 
 ## Version 3.1.1
 
-* Use xcube-cci version 0.9.3 in docker files  
+* Now using package `xcube-cci 0.9.3` in Docker files.
 
 ## Version 3.1.0
 
