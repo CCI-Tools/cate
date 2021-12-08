@@ -269,7 +269,7 @@ class TestIO(TestCase):
                                  '2,3,51.2,11.8,-1,0.3\n')
 
 
-ENDPOINT_PORT = 3000
+ENDPOINT_PORT = 3020
 ENDPOINT_URL = f'http://127.0.0.1:{ENDPOINT_PORT}'
 
 MOTOSERVER_PATH = moto.server.__file__
