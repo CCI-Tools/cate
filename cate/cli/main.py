@@ -109,8 +109,8 @@ import warnings
 from collections import OrderedDict
 from typing import Tuple, Union, List, Dict, Any, Optional
 
-from cate.version import __version__
 from cate.util.cli import run_main, Command, SubCommandCommand, CommandError
+from cate.version import __version__
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH)"
@@ -147,7 +147,9 @@ NullableStr = Union[str, None]
 
 
 def _default_workspace_manager_factory() -> Any:
-    from cate.conf.defaults import WEBAPI_INFO_FILE, WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER
+    from cate.conf.defaults import WEBAPI_LOG_FILE
+    from cate.conf.defaults import WEBAPI_INFO_FILE
+    from cate.conf.defaults import WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER
     from cate.webapi.wsmanag import WebAPIWorkspaceManager
     from cate.util.web.webapi import read_service_info, is_service_running, WebAPI
 
@@ -158,6 +160,7 @@ def _default_workspace_manager_factory() -> Any:
                                                   service_info.get('address'), timeout=5.):
         WebAPI.start_subprocess(CATE_WEBAPI_START_MODULE,
                                 caller=CLI_NAME,
+                                log_file=WEBAPI_LOG_FILE,
                                 service_info_file=WEBAPI_INFO_FILE,
                                 auto_stop_after=WEBAPI_ON_INACTIVITY_AUTO_STOP_AFTER)
         # Read new '.cate/webapi.json'
