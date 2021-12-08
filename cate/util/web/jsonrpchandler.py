@@ -31,8 +31,8 @@ from tornado.ioloop import IOLoop
 from tornado.web import Application
 from tornado.websocket import WebSocketHandler
 
-from .jsonrpcmonitor import JsonRpcWebSocketMonitor
 from .common import exception_to_json, log_debug
+from .jsonrpcmonitor import JsonRpcWebSocketMonitor
 from ..monitor import Cancellation
 from ..opmetainf import OpMetaInfo
 
@@ -94,7 +94,7 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
         self._active_futures = {}
 
     def open(self):
-        log_debug("open")
+        _LOG.info("open")
         self._service = self._service_factory(self._application)
         self._service_method_meta_infos = {}
 
@@ -107,7 +107,7 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
             pass
 
     def on_close(self):
-        log_debug("on_close")
+        _LOG.info("on_close")
         self._thread_pool.shutdown(wait=False)
         self._service = None
         self._service_method_meta_infos = None
@@ -117,11 +117,14 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
     #   Error during WebSocket handshake:
     #   Unexpected response code: 403 (forbidden)
     def check_origin(self, origin):
-        log_debug('check_origin:', repr(origin))
+        _LOG.info('check_origin: %s', repr(origin))
         return True
 
     def on_message(self, message: str):
-        _LOG.debug('JSON RPC message: %s', message)
+
+        if message and '"method":"keep_alive"' not in message:
+            _LOG.info('on_message: %s', message)
+            self._application.time_of_last_activity = time.time()
 
         # Note, the following error cases 1-4 cannot be communicated to client as we
         # haven't got a valid method "id" which is required for a JSON-RPC response

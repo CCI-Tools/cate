@@ -34,6 +34,7 @@ from typing import List, Callable, Optional, Tuple
 
 import requests
 # from tornado.platform.asyncio import AnyThreadEventLoopPolicy
+import tornado.log
 from tornado.ioloop import IOLoop
 from tornado.web import RequestHandler, Application
 
@@ -247,17 +248,7 @@ class WebAPI:
                 print(f'{name}: service info file exists:{service_info_file}, removing it')
                 os.remove(service_info_file)
 
-        logging_config = dict(
-            format='%(asctime)s - %(levelname)s - %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S',
-            level=logging.DEBUG if verbose else logging.INFO,
-            force=True
-        )
-        if log_file:
-            logging_config.update(
-                filename=f'{log_file}/cate-webapi.log'
-            )
-        logging.basicConfig(**logging_config)
+        self._configure_logging(log_file, verbose)
 
         port = port or find_free_port()
 
@@ -275,7 +266,7 @@ class WebAPI:
         # noinspection PyArgumentList
         application = application_factory(user_root_path=user_root_path)
         application.webapi = self
-        application.time_of_last_activity = time.perf_counter()
+        application.time_of_last_activity = time.time()
         self.application = application
 
         _LOG.info(f'{name}: started service,'
@@ -405,7 +396,7 @@ class WebAPI:
     def _check_inactivity(self):
         # noinspection PyUnresolvedReferences
         time_of_last_activity = self.application.time_of_last_activity
-        inactivity_time = time.perf_counter() - time_of_last_activity
+        inactivity_time = time.time() - time_of_last_activity
         if inactivity_time > self.auto_stop_after:
             self._handle_auto_shut_down(inactivity_time)
         else:
@@ -492,20 +483,26 @@ class WebAPI:
         :param service_info_file: optional path to a (JSON) file, where service info will be stored
         :param timeout: timeout in seconds
         """
-        command = cls._join_subprocess_command(module, port, address, caller, service_info_file, None)
+        command = cls._join_subprocess_command(
+            module=module,
+            port=port,
+            address=address,
+            caller=caller,
+            service_info_file=service_info_file,
+        )
         exit_code = subprocess.call(command, shell=True, timeout=timeout)
         if exit_code != 0:
             raise ValueError('WebAPI service terminated with exit code %d' % exit_code)
 
     @classmethod
     def _join_subprocess_command(cls,
-                                 module,
-                                 port,
-                                 address,
-                                 caller,
-                                 log_file,
-                                 service_info_file,
-                                 auto_stop_after):
+                                 module=None,
+                                 port=None,
+                                 address=None,
+                                 caller=None,
+                                 log_file=None,
+                                 service_info_file=None,
+                                 auto_stop_after=None):
         command = '"%s" -m %s' % (sys.executable, module)
         if port:
             command += ' -p %d' % port
@@ -520,6 +517,28 @@ class WebAPI:
         if auto_stop_after:
             command += ' -s %s' % auto_stop_after
         return command
+
+    @classmethod
+    def _configure_logging(cls, log_file, verbose):
+        tornado.log.enable_pretty_logging(logger=logging.getLogger('tornado'))
+        # tornado.log.enable_pretty_logging(logger=_LOG)
+        log_formatter = logging.Formatter(
+            '%(asctime)s'
+            ' - %(levelname)s'
+            ' - %(module)s(%(lineno)s)'
+            ' - %(message)s',
+            '%Y-%m-%d %H:%M:%S',
+        )
+        if log_file:
+            log_handler = logging.FileHandler(log_file)
+        else:
+            log_handler = logging.StreamHandler()
+        log_handler.setFormatter(log_formatter)
+        for h in _LOG.handlers[:]:
+            _LOG.removeHandler(h)
+            h.close()
+        _LOG.setLevel(logging.DEBUG if verbose else logging.INFO)
+        _LOG.addHandler(log_handler)
 
 
 # noinspection PyAbstractClass
@@ -629,7 +648,7 @@ class WebAPIRequestHandler(RequestHandler):
         """
         Store time of last activity so we can measure time of inactivity and then optionally auto-exit.
         """
-        self.application.time_of_last_activity = time.perf_counter()
+        self.application.time_of_last_activity = time.time()
 
     def write_status_ok(self, content: object = None):
         self.write(dict(status='ok', content=content))
