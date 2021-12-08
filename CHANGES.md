@@ -1,7 +1,6 @@
 ## Version 3.1.2 (in development)
 
-* Improved logging for `cate-webapi-start` to allow for 
-  improved error analysis:
+* Enhanced logging for `cate-webapi-start` CLI tool to ease error analysis:
   - Added new option `--logfile`.
   - Changed meaning of option `--verbose`. Using this flag now 
     sets log level to `DEBUG`. Warning: this setting affects all
@@ -11,6 +10,13 @@
     This affects WebSocket communication, image tile computations,
     and image tile caching. Output will always be streamed 
     to stdout.
+
+* Changed behavior of option `--auto-stop-after` of `cate-webapi-start` 
+  CLI tool: 
+  - WebSocket messages will now reset the auto-stop timer too. 
+  - Using `time.time()` instead of `time.perf_counter()` to compute
+    idle time
+
 
 ## Version 3.1.1
 
