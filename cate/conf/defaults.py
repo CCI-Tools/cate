@@ -69,8 +69,8 @@ WEBAPI_WORKSPACE_MEM_TILE_CACHE_CAPACITY = 256 * _ONE_MIB
 #: where the information about a running WebAPI service is stored
 WEBAPI_INFO_FILE = os.path.join(DEFAULT_VERSION_DATA_PATH, 'webapi.json')
 
-#: where a running WebAPI service logs to
-WEBAPI_LOG_FILE_PREFIX = os.path.join(DEFAULT_VERSION_DATA_PATH, 'webapi.log')
+#: where a running WebAPI service logs to (used for CLI only)
+WEBAPI_LOG_FILE = os.path.join(DEFAULT_VERSION_DATA_PATH, 'webapi.log')
 
 #: allow a 100 ms period between two progress messages sent to the client
 WEBAPI_PROGRESS_DEFER_PERIOD = 0.5
