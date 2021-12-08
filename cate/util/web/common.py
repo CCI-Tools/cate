@@ -23,7 +23,7 @@ import os
 import traceback
 from typing import Optional
 
-_DEBUG_MODE = bool(os.getenv('CATE_DEBUG', False))
+_DEBUG_MODE = bool(int(os.getenv('CATE_DEBUG', '0')))
 
 
 def is_debug_mode() -> bool:
