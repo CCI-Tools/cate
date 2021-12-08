@@ -121,7 +121,7 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
         return True
 
     def on_message(self, message: str):
-        _LOG.debug('JSON RPC message: %s' % message)
+        _LOG.debug('JSON RPC message: %s', message)
 
         # Note, the following error cases 1-4 cannot be communicated to client as we
         # haven't got a valid method "id" which is required for a JSON-RPC response
