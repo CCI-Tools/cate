@@ -57,7 +57,7 @@ from ..util.im import ImagePyramid, TransformArrayImage, ColorMappedRgbaImage
 from ..util.im.ds import NaturalEarth2Image
 from ..util.misc import cwd
 from ..util.monitor import Monitor, ConsoleMonitor
-from ..util.web.webapi import WebAPIRequestHandler, check_for_auto_stop
+from ..util.web.webapi import WebAPIRequestHandler
 from ..version import __version__
 
 # TODO (forman): We must keep a MemoryCacheStore Cache for each workspace.
@@ -634,13 +634,6 @@ class FilesDownloadHandler(WebAPIRequestHandler):
 
 def _new_monitor() -> Monitor:
     return ConsoleMonitor(stay_in_line=True, progress_bar_size=30)
-
-
-def _on_workspace_closed(application: tornado.web.Application):
-    # noinspection PyUnresolvedReferences
-    workspace_manager = application.workspace_manager
-    num_open_workspaces = workspace_manager.num_open_workspaces()
-    check_for_auto_stop(application, num_open_workspaces == 0, interval=WEBAPI_ON_ALL_CLOSED_AUTO_STOP_AFTER)
 
 
 def _level_to_conservation_ratio(level: int, num_levels: int):
