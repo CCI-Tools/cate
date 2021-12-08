@@ -415,8 +415,8 @@ class WebAPI:
         """
         Automatically stop the Tornado web server.
         """
-        _LOG.info('%s: stopping service after %.1f seconds of'
-                  ' inactivity' % (self.name, inactivity_time))
+        _LOG.warning('%s: stopping service after %.1f seconds of'
+                     ' inactivity' % (self.name, inactivity_time))
         self.shut_down()
 
     @classmethod
