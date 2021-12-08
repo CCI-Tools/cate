@@ -19,11 +19,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import os
 import traceback
 from typing import Optional
 
-_DEBUG_MODE = bool(int(os.getenv('CATE_DEBUG', '0')))
+from ..misc import is_debug_mode
+
+_DEBUG_MODE = is_debug_mode()
 
 
 def is_debug_mode() -> bool:

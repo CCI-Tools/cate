@@ -1,5 +1,16 @@
 ## Version 3.1.2 (in development)
 
+* Improved logging for `cate-webapi-start` to allow for 
+  improved error analysis:
+  - Added new option `--logfile`.
+  - Changed meaning of option `--verbose`. Using this flag now 
+    sets log level to `DEBUG`. Warning: this setting affects all
+    loggers, so expect vast output.
+  - Cate now outputs extra debugging information, if 
+    environment variable `CATE_DEBUG` is set to `1`. 
+    This affects WebSocket communication, image tile computations,
+    and image tile caching. Output will always be streamed 
+    to stdout.
 
 ## Version 3.1.1
 
