@@ -17,6 +17,7 @@ import moto.server
 import s3fs
 import shapely.wkt
 import xarray as xr
+
 from cate.core.types import ValidationError
 from cate.ops.io import open_dataset, save_dataset, read_zarr, read_csv, read_geo_data_frame, write_csv, \
     write_geo_data_frame
@@ -182,7 +183,7 @@ class TestIO(TestCase):
         lon = [10.2, 11.4]
         ds = xr.Dataset(
             data_vars=dict(
-                delta=xr.DataArray(np.linspace(-12, 13, 3 * 2 * 2,).astype(int).reshape((3, 2, 2)),
+                delta=xr.DataArray(np.linspace(-12, 13, 3 * 2 * 2, ).astype(int).reshape((3, 2, 2)),
                                    dims=['time', 'lat', 'lon']),
                 mean=xr.DataArray(np.linspace(2, 13, 3 * 2 * 2).astype(int).reshape((3, 2, 2)),
                                   dims=['time', 'lat', 'lon'])),
@@ -269,11 +270,11 @@ class TestIO(TestCase):
                                  '2,3,51.2,11.8,-1,0.3\n')
 
 
-ENDPOINT_PORT = 3020
-ENDPOINT_URL = f'http://127.0.0.1:{ENDPOINT_PORT}'
+MOTOSERVER_ENDPOINT_PORT = 3020
+MOTOSERVER_ENDPOINT_URL = f'http://127.0.0.1:{MOTOSERVER_ENDPOINT_PORT}'
 
 MOTOSERVER_PATH = moto.server.__file__
-MOTOSERVER_ARGS = [sys.executable, MOTOSERVER_PATH, 's3', f'-p{ENDPOINT_PORT}']
+MOTOSERVER_ARGS = [sys.executable, MOTOSERVER_PATH, 's3', f'-p{MOTOSERVER_ENDPOINT_PORT}']
 
 
 class S3IOTest(TestCase):
@@ -285,12 +286,13 @@ class S3IOTest(TestCase):
         t0 = time.perf_counter()
         for i in range(60):
             try:
-                with urllib.request.urlopen(ENDPOINT_URL, timeout=1):
+                with urllib.request.urlopen(MOTOSERVER_ENDPOINT_URL, timeout=1):
                     print(f'moto_server started after {round(1000 * (time.perf_counter() - t0))} ms')
                     break
             except urllib.error.URLError:
                 pass
-        s3_fs = s3fs.S3FileSystem(key='humpty', secret='dumpty', client_kwargs=dict(endpoint_url=ENDPOINT_URL))
+        s3_fs = s3fs.S3FileSystem(key='humpty', secret='dumpty',
+                                  client_kwargs=dict(endpoint_url=MOTOSERVER_ENDPOINT_URL))
         if s3_fs.exists('eurodatacube/test.zarr'):
             s3_fs.rm('eurodatacube/test.zarr', recursive=True)
         store = s3fs.S3Map('eurodatacube/test.zarr', s3_fs, create=True)
@@ -302,20 +304,23 @@ class S3IOTest(TestCase):
 
     @moto.mock_s3
     def test_read_zarr(self):
-        ds = read_zarr('http://127.0.0.1:3000/eurodatacube/test.zarr', key='humpty', secret='dumpty')
+        ds = read_zarr(f'{MOTOSERVER_ENDPOINT_URL}/eurodatacube/test.zarr',
+                       key='humpty', secret='dumpty')
         self.assertIsInstance(ds, xr.Dataset)
         self.assertIn('SST', ds)
 
     @moto.mock_s3
     def test_read_zarr_normalize(self):
-        ds = read_zarr('http://127.0.0.1:3000/eurodatacube/test.zarr', key='humpty', secret='dumpty',
+        ds = read_zarr(f'{MOTOSERVER_ENDPOINT_URL}/eurodatacube/test.zarr',
+                       key='humpty', secret='dumpty',
                        normalize=True)
         self.assertIsInstance(ds, xr.Dataset)
         self.assertIn('SST', ds)
 
     @moto.mock_s3
     def test_read_zarr_drop_vars(self):
-        ds = read_zarr('http://127.0.0.1:3000/eurodatacube/test.zarr', key='humpty', secret='dumpty',
+        ds = read_zarr(f'{MOTOSERVER_ENDPOINT_URL}/eurodatacube/test.zarr',
+                       key='humpty', secret='dumpty',
                        drop_variables=['SST'])
         self.assertIsInstance(ds, xr.Dataset)
         self.assertNotIn('SST', ds)
