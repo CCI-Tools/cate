@@ -38,8 +38,8 @@ import geopandas as gpd
 import numpy as np
 import tornado.gen
 import tornado.web
-from tornado import escape
 import xarray as xr
+from tornado import escape
 
 from .geojson import write_feature_collection, write_feature
 from ..conf import get_config
@@ -47,7 +47,6 @@ from ..conf.defaults import \
     WORKSPACE_CACHE_DIR_NAME, \
     WEBAPI_WORKSPACE_FILE_TILE_CACHE_CAPACITY, \
     WEBAPI_WORKSPACE_MEM_TILE_CACHE_CAPACITY, \
-    WEBAPI_ON_ALL_CLOSED_AUTO_STOP_AFTER, \
     WEBAPI_USE_WORKSPACE_IMAGERY_CACHE
 from ..core.cdm import get_tiling_scheme
 from ..core.types import GeoDataFrame
@@ -56,8 +55,9 @@ from ..util.cache import Cache, MemoryCacheStore, FileCacheStore
 from ..util.im import ImagePyramid, TransformArrayImage, ColorMappedRgbaImage
 from ..util.im.ds import NaturalEarth2Image
 from ..util.misc import cwd
+from ..util.misc import is_debug_mode
 from ..util.monitor import Monitor, ConsoleMonitor
-from ..util.web.webapi import WebAPIRequestHandler, check_for_auto_stop
+from ..util.web.webapi import WebAPIRequestHandler
 from ..version import __version__
 
 # TODO (forman): We must keep a MemoryCacheStore Cache for each workspace.
@@ -71,7 +71,7 @@ MEM_TILE_CACHE = Cache(MemoryCacheStore(),
 # Note, the following "get_config()" call in the code will make sure "~/.cate/<version>" is created
 USE_WORKSPACE_IMAGERY_CACHE = get_config().get('use_workspace_imagery_cache', WEBAPI_USE_WORKSPACE_IMAGERY_CACHE)
 
-TRACE_PERF = True
+TRACE_PERF = is_debug_mode()
 
 THREAD_POOL = concurrent.futures.ThreadPoolExecutor()
 
@@ -582,7 +582,7 @@ class FilesUploadHandler(WebAPIRequestHandler):
                                       len(self.meta['boundary'])
 
         self.truncate_fp()
-        megabytes = int(self.meta['content_length'] / 2**20)
+        megabytes = int(self.meta['content_length'] / 2 ** 20)
         self.finish(json.dumps({'status': 'success', 'message': str(megabytes) + 'MBs uploaded.'}))
 
 
@@ -634,13 +634,6 @@ class FilesDownloadHandler(WebAPIRequestHandler):
 
 def _new_monitor() -> Monitor:
     return ConsoleMonitor(stay_in_line=True, progress_bar_size=30)
-
-
-def _on_workspace_closed(application: tornado.web.Application):
-    # noinspection PyUnresolvedReferences
-    workspace_manager = application.workspace_manager
-    num_open_workspaces = workspace_manager.num_open_workspaces()
-    check_for_auto_stop(application, num_open_workspaces == 0, interval=WEBAPI_ON_ALL_CLOSED_AUTO_STOP_AFTER)
 
 
 def _level_to_conservation_ratio(level: int, num_levels: int):

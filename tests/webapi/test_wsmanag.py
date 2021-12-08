@@ -9,6 +9,7 @@ from cate.util.web.webapi import find_free_port, WebAPI
 from cate.webapi.wsmanag import WebAPIWorkspaceManager
 from tests.core.test_wsmanag import WorkspaceManagerTestMixin
 
+_SERVICE_LOG_FILE = 'pytest-log.txt'
 _SERVICE_INFO_FILE = 'pytest-service-info.json'
 
 
@@ -22,6 +23,7 @@ class WebAPIWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
         WebAPI.start_subprocess('cate.webapi.start',
                                 port=self.port,
                                 caller='pytest',
+                                log_file=_SERVICE_LOG_FILE,
                                 service_info_file=_SERVICE_INFO_FILE)
 
     def tearDown(self):

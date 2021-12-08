@@ -44,6 +44,7 @@ Components
 # import warnings
 # warnings.filterwarnings("ignore")  # never print any warnings to users
 
+import logging
 import os
 import platform
 import sys
@@ -52,7 +53,7 @@ from datetime import date
 from matplotlib.backends.backend_webagg_core import FigureManagerWebAgg
 from tornado.web import Application, StaticFileHandler
 
-from cate.conf.defaults import WEBAPI_LOG_FILE_PREFIX, WEBAPI_PROGRESS_DEFER_PERIOD
+from cate.conf.defaults import WEBAPI_PROGRESS_DEFER_PERIOD
 from cate.core.types import ValidationError
 from cate.core.wsmanag import FSWorkspaceManager
 from cate.util.misc import get_dependencies
@@ -72,6 +73,8 @@ __import__('cate.ops')
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH)"
+
+_LOG = logging.getLogger('cate')
 
 
 # noinspection PyAbstractClass
@@ -110,8 +113,9 @@ def create_application(user_root_path: str = None):
     # replace default url_root with /user/username/ if running in Cate Hub context.
     url_root = os.environ.get("JUPYTERHUB_SERVICE_PREFIX", default_url_root)
     if url_root is not default_url_root:
-        print(f"warning: detected jupyterhub environment variable JUPYTERHUB_SERVICE_PREFIX "
-              f"using {url_root} as default root url for the api.")
+        _LOG.warning(f"detected environment variable"
+                     f" JUPYTERHUB_SERVICE_PREFIX using {url_root}"
+                     f" as default root URL for the API.")
 
     application = Application([
         (url_root + '_static/(.*)', StaticFileHandler, {'path': FigureManagerWebAgg.get_static_file_path()}),
@@ -141,7 +145,8 @@ def create_application(user_root_path: str = None):
     if user_root_path is None:
         user_root_path = default_user_root_path
     elif default_user_root_path:
-        print(f"warning: user root path given by environment variable CATE_USER_ROOT superseded by {user_root_path}")
+        _LOG.warning(f"user root path given by environment variable"
+                     f" CATE_USER_ROOT superseded by {user_root_path}")
 
     application.workspace_manager = FSWorkspaceManager(user_root_path)
 
@@ -153,7 +158,6 @@ def main(args=None) -> int:
                      'Starts a new {}'.format(SERVICE_TITLE),
                      __version__,
                      application_factory=create_application,
-                     log_file_prefix=WEBAPI_LOG_FILE_PREFIX,
                      args=args)
 
 

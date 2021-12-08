@@ -549,3 +549,17 @@ def get_dependencies() -> Dict[str, str]:
                 dependencies_dict[module_key] = "installed"
 
     return dependencies_dict
+
+
+_DEBUG_MODE = None
+
+
+def is_debug_mode() -> bool:
+    global _DEBUG_MODE
+    if _DEBUG_MODE is None:
+        # noinspection PyBroadException
+        try:
+            _DEBUG_MODE = bool(int(os.getenv('CATE_DEBUG', '0')))
+        except Exception:
+            _DEBUG_MODE = False
+    return _DEBUG_MODE
