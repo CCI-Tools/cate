@@ -266,6 +266,7 @@ class WebAPI:
         # noinspection PyArgumentList
         application = application_factory(user_root_path=user_root_path)
         application.webapi = self
+        application.auto_stop_after = auto_stop_after
         application.time_of_last_activity = time.time()
         self.application = application
 

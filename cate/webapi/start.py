@@ -97,7 +97,8 @@ class WebAPIInfoHandler(WebAPIRequestHandler):
 
 
 def service_factory(application):
-    return WebSocketService(application.workspace_manager)
+    return WebSocketService(application.workspace_manager,
+                            application)
 
 
 # All JSON REST responses should have same structure, namely a dictionary as follows:
