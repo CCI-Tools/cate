@@ -1,5 +1,13 @@
 ## Version 3.1.2 (in development)
 
+* The "keep_alive" WebSocket JSON RPC method of the `cate-webapi-start` 
+  CLI tool will now return an object with auto-close info, if 
+  `cate-webapi-start` is started with the `--auto-stop-after` option.
+  Otherwise it returns `null` (#1026). The object comprises the fields:
+  - `available_time` - configured auto-stop time in seconds.
+  - `inactivity_time` - duration in seconds of service inactivity.
+  - `remaining_time` - duration in seconds remaining until service auto-stop.
+  
 * Enhanced logging for `cate-webapi-start` CLI tool to ease error analysis:
   - Added new option `--logfile`.
   - Changed meaning of option `--verbose`. Using this flag now 
