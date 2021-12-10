@@ -46,7 +46,6 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH)"
 
 
-
 # noinspection PyMethodMayBeStatic
 class WebSocketService:
     """
