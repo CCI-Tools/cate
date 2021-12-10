@@ -33,8 +33,8 @@ from datetime import datetime
 from typing import List, Callable, Optional, Tuple
 
 import requests
-# from tornado.platform.asyncio import AnyThreadEventLoopPolicy
 import tornado.log
+import tornado.routing
 from tornado.ioloop import IOLoop
 from tornado.web import RequestHandler, Application
 
@@ -233,22 +233,31 @@ class WebAPI:
                be written to *service_info_file*.
         :return: service information dictionary
         """
+        self._configure_logging(log_file, verbose)
+
+        title = f'Cate Web API, version {__version__}'
+        _LOG.info(len(title) * '=')
+        _LOG.info(title)
+        _LOG.info(len(title) * '=')
+
         if service_info_file and os.path.isfile(service_info_file):
             service_info = read_service_info(service_info_file)
             if is_service_compatible(port, address, caller, service_info):
                 port = service_info.get('port')
                 address = service_info.get('address') or address
                 if is_service_running(port, address):
-                    print(f'{name}: detected service running on {join_address_and_port(address, port)}')
+                    _LOG.warning(f'detected service running on'
+                                 f' {join_address_and_port(address, port)}')
                     return service_info
                 else:
                     # Try shutting down the service, even violently
-                    self.stop(name, service_info_file=service_info_file, kill_after=5.0, timeout=5.0)
+                    self.stop(name,
+                              service_info_file=service_info_file,
+                              kill_after=5.0, timeout=5.0)
             else:
-                print(f'{name}: service info file exists:{service_info_file}, removing it')
+                _LOG.info(f'service info file exists:{service_info_file},'
+                          f' removing it')
                 os.remove(service_info_file)
-
-        self._configure_logging(log_file, verbose)
 
         port = port or find_free_port()
 
@@ -270,7 +279,7 @@ class WebAPI:
         application.time_of_last_activity = time.time()
         self.application = application
 
-        _LOG.info(f'{name}: started service,'
+        _LOG.info(f'started service,'
                   f' listening on {join_address_and_port(address, port)}')
 
         self.server = application.listen(port, address='' if address == 'localhost' else address,
@@ -367,6 +376,7 @@ class WebAPI:
         """
         Stops the Tornado web server.
         """
+        _LOG.info('requesting service shut-down...')
         IOLoop.current().add_callback(self._on_shut_down)
 
     def _on_shut_down(self):
@@ -380,14 +390,16 @@ class WebAPI:
                 pass
 
         if self.server:
+            _LOG.info('stopping server...')
             self.server.stop()
             self.server = None
 
+        _LOG.info('stopping IO-loop...')
         IOLoop.current().stop()
 
     # noinspection PyUnusedLocal
     def _sig_handler(self, sig, frame):
-        _LOG.warning('Caught signal: %s', sig)
+        _LOG.warning('caught signal: %s', sig)
         IOLoop.current().add_callback_from_signal(self._on_shut_down)
 
     def _install_next_inactivity_check(self):
@@ -407,8 +419,8 @@ class WebAPI:
         """
         Automatically stop the Tornado web server.
         """
-        _LOG.warning('%s: stopping service after %.1f seconds of'
-                     ' inactivity' % (self.name, inactivity_time))
+        _LOG.warning('stopping service after %.1f seconds of'
+                     ' inactivity' % inactivity_time)
         self.shut_down()
 
     @classmethod

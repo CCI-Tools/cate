@@ -18,6 +18,7 @@
     This affects WebSocket communication, image tile computations,
     and image tile caching. Output will always be streamed 
     to stdout.
+  - On WebSocket close, now also outputting WS code and reason.
 
 * Changed behavior of option `--auto-stop-after` of `cate-webapi-start` 
   CLI tool: 
