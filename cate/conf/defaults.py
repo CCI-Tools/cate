@@ -72,7 +72,7 @@ WEBAPI_INFO_FILE = os.path.join(DEFAULT_VERSION_DATA_PATH, 'webapi.json')
 #: where a running WebAPI service logs to (used for CLI only)
 WEBAPI_LOG_FILE = os.path.join(DEFAULT_VERSION_DATA_PATH, 'webapi.log')
 
-#: allow a 100 ms period between two progress messages sent to the client
+#: allow a 500 ms period between two progress messages sent to the client
 WEBAPI_PROGRESS_DEFER_PERIOD = 0.5
 
 #: allow two minutes timeout for any synchronous workspace I/O

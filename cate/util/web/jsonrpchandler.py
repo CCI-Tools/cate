@@ -107,7 +107,9 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
             pass
 
     def on_close(self):
-        _LOG.info("on_close")
+        _LOG.info(f"on_close:"
+                  f" code={self.close_code},"
+                  f" reason={self.close_reason}")
         self._thread_pool.shutdown(wait=False)
         self._service = None
         self._service_method_meta_infos = None
