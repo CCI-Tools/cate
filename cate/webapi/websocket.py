@@ -20,6 +20,7 @@
 # SOFTWARE.
 
 import datetime
+import math
 import os
 import platform
 import time
@@ -100,7 +101,7 @@ class WebSocketService:
         time_of_last_activity = self.auto_stop_info.time_of_last_activity
         available_time = self.auto_stop_info.auto_stop_after
         inactivity_time = time.time() - time_of_last_activity
-        remaining_time = available_time - inactivity_time
+        remaining_time = max(available_time - inactivity_time, 0)
         return dict(
             available_time=available_time,
             inactivity_time=inactivity_time,

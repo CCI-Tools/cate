@@ -293,7 +293,7 @@ class WebAPI:
         if service_info_file:
             write_service_info(self.service_info, service_info_file)
         if self.auto_stop_enabled:
-            self._install_next_inactivity_check()
+            self._install_next_inactivity_check(auto_stop_after)
         IOLoop.current().start()
         return self.service_info
 
@@ -402,9 +402,8 @@ class WebAPI:
         _LOG.warning('caught signal: %s', sig)
         IOLoop.current().add_callback_from_signal(self._on_shut_down)
 
-    def _install_next_inactivity_check(self):
-        IOLoop.current().call_later(self.auto_stop_after,
-                                    self._check_inactivity)
+    def _install_next_inactivity_check(self, duration: float):
+        IOLoop.current().call_later(duration, self._check_inactivity)
 
     def _check_inactivity(self):
         # noinspection PyUnresolvedReferences
@@ -413,7 +412,7 @@ class WebAPI:
         if inactivity_time > self.auto_stop_after:
             self._handle_auto_shut_down(inactivity_time)
         else:
-            self._install_next_inactivity_check()
+            self._install_next_inactivity_check(10)
 
     def _handle_auto_shut_down(self, inactivity_time: float):
         """

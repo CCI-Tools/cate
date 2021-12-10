@@ -3,7 +3,7 @@
 * The "keep_alive" WebSocket JSON RPC method of the `cate-webapi-start` 
   CLI tool will now return an object with auto-close info, if 
   `cate-webapi-start` is started with the `--auto-stop-after` option.
-  Otherwise it returns `null` (#1026). The object comprises the fields:
+  Otherwise, it returns `null` (#1026). The object comprises the fields:
   - `available_time` - configured auto-stop time in seconds.
   - `inactivity_time` - duration in seconds of service inactivity.
   - `remaining_time` - duration in seconds remaining until service auto-stop.
@@ -25,7 +25,8 @@
   - WebSocket messages will now reset the auto-stop timer too. 
   - Using `time.time()` instead of `time.perf_counter()` to compute
     idle time
-
+  - We now check every 10 seconds for the auto-stop condition.
+    Previously, the value of `--auto-stop-after` was used.
 
 ## Version 3.1.1
 
