@@ -5,6 +5,9 @@ import shutil
 import unittest
 from typing import Dict
 
+from xcube.core.store import DataStoreConfig
+
+from cate.core.ds import DATA_STORE_POOL
 from cate.core.wsmanag import FSWorkspaceManager
 from cate.util.monitor import Monitor
 from cate.webapi.websocket import WebSocketService
@@ -23,10 +26,26 @@ class WebSocketServiceTest(unittest.TestCase):
         self._workspace_dir = manager.resolve_path(self.get_workspace_path())
         if os.path.exists(self._workspace_dir):
             shutil.rmtree(self._workspace_dir)
+        self._saved_store_pool = DATA_STORE_POOL.to_dict()
+        DATA_STORE_POOL.remove_all_store_configs()
+        self._store_root = './temp_local'
+        config = DataStoreConfig(store_id='file',
+                                 store_params=dict(root=self._store_root))
+        DATA_STORE_POOL.add_store_config(
+            store_instance_id='local',
+            store_config=config)
 
     def tearDown(self):
         if os.path.exists(self._workspace_dir):
             shutil.rmtree(self._workspace_dir)
+        if os.path.exists(self._store_root):
+            shutil.rmtree(self._store_root)
+        DATA_STORE_POOL.remove_all_store_configs()
+        for store_instance_id, store_config_dict in self._saved_store_pool.items():
+            DATA_STORE_POOL.add_store_config(
+                store_instance_id=store_instance_id,
+                store_config=DataStoreConfig.from_dict(store_config_dict)
+            )
 
     @unittest.skipIf(os.environ.get('CATE_DISABLE_WEB_TESTS', None) == '1', 'CATE_DISABLE_WEB_TESTS = 1')
     def test_keep_alive(self):
@@ -36,7 +55,7 @@ class WebSocketServiceTest(unittest.TestCase):
     def test_get_data_stores(self):
         data_stores = self.service.get_data_stores()
         self.assertIsInstance(data_stores, list)
-        self.assertGreater(len(data_stores), 1)
+        self.assertEqual(len(data_stores), 1)
         for ds in data_stores:
             self.assertIn('id', ds)
             self.assertIsInstance(ds['id'], str)
@@ -85,7 +104,7 @@ class WebSocketServiceTest(unittest.TestCase):
         self.assertNotIn(data_source_id,
                          [ds['id'] for ds in lds if ds['id'] == data_source_id])
 
-        file_path_pattern = 'data/precip_and_temp*.nc'
+        file_path_pattern = 'tests/data/precip_and_temp*.nc'
         new_lds = self.service.add_local_data_source(
             data_source_id=data_source_id,
             file_path_pattern=file_path_pattern,
@@ -109,7 +128,6 @@ class WebSocketServiceTest(unittest.TestCase):
                                             monitor=Monitor.NONE)
         self.assertNotIn(data_source_id,
                          [ds['id'] for ds in lds if ds['id'] == data_source_id])
-
 
     def test_get_operations(self):
         ops = self.service.get_operations()
