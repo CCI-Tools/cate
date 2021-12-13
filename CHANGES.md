@@ -1,4 +1,4 @@
-## Version 3.1.2 (in development)
+## Version 3.1.2
 
 * Fixed bug which made it impossible to add data to a writable (local) 
   data store using the Web API (#1022)
