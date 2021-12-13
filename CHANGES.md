@@ -1,11 +1,28 @@
 ## Version 3.1.2 (in development)
+
 * Fixed bug which made it impossible to add data to a writable (local) 
-  data store using the Web API (
-  [#1022](https://github.com/CCI-Tools/cate/issues/1022))
+  data store using the Web API (#1022)
+
+* Enhanced logging for `cate-webapi-start` CLI tool to ease error analysis:
+  - Added new option `--logfile`.
+  - Changed meaning of option `--verbose`. Using this flag now 
+    sets log level to `DEBUG`. Warning: this setting affects all
+    loggers, so expect vast output.
+  - Cate now outputs extra debugging information, if 
+    environment variable `CATE_DEBUG` is set to `1`. 
+    This affects WebSocket communication, image tile computations,
+    and image tile caching. Output will always be streamed 
+    to stdout.
+
+* Changed behavior of option `--auto-stop-after` of `cate-webapi-start` 
+  CLI tool: 
+  - WebSocket messages will now reset the auto-stop timer too. 
+  - Using `time.time()` instead of `time.perf_counter()` to compute
+    idle time
 
 ## Version 3.1.1
 
-* Use xcube-cci version 0.9.3 in docker files  
+* Now using package `xcube-cci 0.9.3` in Docker files.
 
 ## Version 3.1.0
 
