@@ -376,7 +376,7 @@ class WebAPI:
         """
         Stops the Tornado web server.
         """
-        _LOG.info('requesting service shut-down...')
+        _LOG.info('requesting service shutdown...')
         IOLoop.current().add_callback(self._on_shut_down)
 
     def _on_shut_down(self):
