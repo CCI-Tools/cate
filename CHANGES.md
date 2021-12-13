@@ -1,5 +1,8 @@
 ## Version 3.1.2 (in development)
 
+* Fixed bug which made it impossible to add data to a writable (local) 
+  data store using the Web API (#1022)
+  
 * The "keep_alive" WebSocket JSON RPC method of the `cate-webapi-start` 
   CLI tool will now return an object with auto-close info, if 
   `cate-webapi-start` is started with the `--auto-stop-after` option.
@@ -27,6 +30,7 @@
     idle time
   - We now check every 10 seconds for the auto-stop condition.
     Previously, the value of `--auto-stop-after` was used.
+
 
 ## Version 3.1.1
 
