@@ -20,8 +20,10 @@
 # SOFTWARE.
 
 import datetime
+import math
 import os
 import platform
+import time
 from typing import List, Sequence, Optional, Any, Tuple, Dict
 
 import xarray as xr
@@ -53,11 +55,22 @@ class WebSocketService:
     All methods receive inputs deserialized from JSON-RPC requests and must
     return JSON-serializable outputs.
 
+    If *auto_stop_info* given, it is expected to provide two attributes:
+
+    * time_of_last_activity (float): time stamp in seconds of last activity.
+    * auto_stop_after (float): time period of inactivity in seconds
+      after auto-close occurs.
+
     :param: workspace_manager The current workspace manager.
+    :param: auto_stop_info Optional object that provides current
+        auto-stop information.
     """
 
-    def __init__(self, workspace_manager: WorkspaceManager):
+    def __init__(self,
+                 workspace_manager: WorkspaceManager,
+                 auto_stop_info=None):
         self.workspace_manager = workspace_manager
+        self.auto_stop_info = auto_stop_info
 
     def _resolve_path(self, path: str) -> str:
         """Resolve incoming path against workspace manager's root path."""
@@ -82,7 +95,18 @@ class WebSocketService:
 
     def keep_alive(self):
         """This operation is used to keep the WebSocket connection alive."""
-        pass
+        if not self.auto_stop_info:
+            return None
+        # Send auto-stop info (issue #1026)
+        time_of_last_activity = self.auto_stop_info.time_of_last_activity
+        available_time = self.auto_stop_info.auto_stop_after
+        inactivity_time = time.time() - time_of_last_activity
+        remaining_time = max(available_time - inactivity_time, 0)
+        return dict(
+            available_time=available_time,
+            inactivity_time=inactivity_time,
+            remaining_time=remaining_time
+        )
 
     def get_config(self) -> dict:
         return dict(data_stores_path=conf.get_data_stores_path(),

@@ -44,7 +44,10 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 class WebAPIWorkspaceManager(WorkspaceManager):
     """
-    Implementation of the WorkspaceManager interface against a WebSocket using a JSON RPC protocol.
+    Implementation of the WorkspaceManager interface against
+    a WebSocket using a JSON RPC protocol.
+
+    It is currently used for the Cate CLI only.
     """
 
     def __init__(self, service_info: dict, conn_timeout: float = 5, rpc_timeout: float = 120):
