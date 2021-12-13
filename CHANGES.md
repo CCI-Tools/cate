@@ -1,5 +1,8 @@
 ## Version 3.1.2 (in development)
 
+* Fixed bug which made it impossible to add data to a writable (local) 
+  data store using the Web API (#1022)
+
 * Enhanced logging for `cate-webapi-start` CLI tool to ease error analysis:
   - Added new option `--logfile`.
   - Changed meaning of option `--verbose`. Using this flag now 
@@ -17,7 +20,6 @@
   - WebSocket messages will now reset the auto-stop timer too. 
   - Using `time.time()` instead of `time.perf_counter()` to compute
     idle time
-
 
 ## Version 3.1.1
 
