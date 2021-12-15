@@ -1,3 +1,6 @@
+## Version 3.1.3 (in development)
+
+
 ## Version 3.1.2
 
 * Fixed bug which made it impossible to add data to a writable (local) 
