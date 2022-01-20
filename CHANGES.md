@@ -1,5 +1,6 @@
 ## Version 3.1.3 (in development)
 
+* It is now possible to re-use identifiers to cache data (#1030)
 
 ## Version 3.1.2
 
