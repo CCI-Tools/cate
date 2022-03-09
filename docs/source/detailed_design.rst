@@ -33,6 +33,7 @@ Module ``cate.core.op``
 
 .. automodule:: cate.core.op
     :members:
+    :noindex:
 
 Module ``cate.core.workflow``
 =============================
@@ -63,6 +64,7 @@ Module ``cate.ops``
 
 .. automodule:: cate.ops
     :members:
+    :noindex:
 
 Module ``cate.cli.main``
 ========================
