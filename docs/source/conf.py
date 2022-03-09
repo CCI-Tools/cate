@@ -57,7 +57,8 @@ autodoc_mock_imports = ['aiofiles',
                         'scipy',
                         'shapely',
                         'tornado',
-                        'xarray']
+                        'xarray',
+                        'xcube']
 
 # -- General configuration ------------------------------------------------
 
