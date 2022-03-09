@@ -19,8 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
-
 """
 Description
 ===========
@@ -39,5 +37,7 @@ The module's unit-tests are located in
 Components
 ==========
 """
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 from .conf import *
