@@ -5,7 +5,7 @@ API Reference
 Datasets
 ========
 
-.. autofunction:: cate.core.find_data_sources
+.. autofunction:: cate.core.find_data_store
 
 .. autofunction:: cate.core.open_dataset
 
@@ -34,6 +34,7 @@ Averaging
 
 .. autofunction:: cate.ops.temporal_aggregation
 
+.. autofunction:: cate.ops.reduce
 
 Coregistration
 --------------
@@ -96,7 +97,13 @@ Data visualization
 
 .. autofunction:: cate.ops.plot
 
-.. autofunction:: cate.ops.plot_data_frame
+.. autofunction:: cate.ops.plot_contour
+
+.. autofunction:: cate.ops.plot_scatter
+
+.. autofunction:: cate.ops.plot_hist
+
+.. autofunction:: cate.ops.plot_hovmoeller
 
 
 Resampling
@@ -136,23 +143,11 @@ Misc
 
 .. autofunction:: cate.ops.sel
 
-.. autofunction:: cate.ops.from_dataframe
-
 .. autofunction:: cate.ops.identity
 
 .. autofunction:: cate.ops.literal
 
 .. autofunction:: cate.ops.pandas_fillna
-
-
-Data Stores and Data Sources API
-================================
-
-.. autoclass:: cate.core.DataStore
-    :members:
-
-.. autoclass:: cate.core.DataSource
-    :members:
 
 
 Operation Registration API
@@ -212,5 +207,8 @@ Task Monitoring API
     :members:
 
 .. autoclass:: cate.core.ConsoleMonitor
+    :members:
+
+.. autoclass:: cate.core.ChildMonitor
     :members:
 
