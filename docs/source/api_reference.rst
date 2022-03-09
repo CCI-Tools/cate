@@ -160,6 +160,7 @@ Operation Registration API
     :members:
 
 .. autofunction:: cate.core.op
+    :noindex:
 
 .. autofunction:: cate.core.op_input
 
