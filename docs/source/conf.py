@@ -41,6 +41,7 @@ import mock
 autodoc_mock_imports = ['aiofiles',
                         'aiohttp',
                         'cartopy',
+                        'cftime',
                         'dask',
                         'dateutil',
                         'fiona',
