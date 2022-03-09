@@ -59,7 +59,8 @@ autodoc_mock_imports = ['aiofiles',
                         'shapely',
                         'tornado',
                         'xarray',
-                        'xcube']
+                        'xcube',
+                        'yaml']
 
 # -- General configuration ------------------------------------------------
 
