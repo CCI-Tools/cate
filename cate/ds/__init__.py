@@ -19,25 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-"""
-Description
-===========
-
-The ``ds`` package comprises all specific data source implementations.
-
-This is a plugin package automatically imported by the installation script's entry point ``cate_ds``
-(see the projects ``setup.py`` file).
-
-Verification
-============
-
-The module's unit-tests are located in `test/ds <https://github.com/CCI-Tools/cate/blob/master/test/ds>`_ and may
-be executed using ``$ py.test test/ops/test_<MODULE>.py --cov=cate/ops/<MODULE>.py`` for extra code coverage
-information.
-
-Components
-==========
-"""
 from xcube.util.assertions import assert_given
 
 
