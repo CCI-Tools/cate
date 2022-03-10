@@ -133,10 +133,3 @@ If the data is located on your local drive:
     )
 
 Also consider the API reference :ref:`api_reference`.
-
-
-- Refer to installation
-- Shortly explain main packages
-- Basic API usage example, use store to open dataset, apply operation, store data
-- Refer to API reference
-
