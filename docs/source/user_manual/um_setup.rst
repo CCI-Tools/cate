@@ -180,6 +180,6 @@ If you are a developer you may wish to build and install Cate from Python source
 In this case, please follow the instructions given in the
 `Cate README <https://github.com/CCI-Tools/cate/blob/master/README.md>`_ on GitHub.
 
-After building and installing the Cate Python package from sources you can build an run
+After building and installing the Cate Python package from sources you can build and run
 Cate Desktop from sources by following the instructions given in the
 `Cate Desktop README <https://github.com/CCI-Tools/cate-desktop/blob/master/README.md>`_ on GitHub.
