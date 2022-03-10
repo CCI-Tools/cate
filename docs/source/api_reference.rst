@@ -13,6 +13,12 @@ Datasets
 Operations
 ==========
 
+Animation
+---------
+
+.. autofunction:: cate.ops.animate_map
+
+
 Anomaly calculation
 -------------------
 
@@ -58,6 +64,16 @@ Data Frame
 .. autofunction:: cate.ops.data_frame_max
 
 .. autofunction:: cate.ops.data_frame_query
+
+
+Indexing
+--------
+
+.. autofunction:: cate.ops.enso
+
+.. autofunction:: cate.ops.enso_nino34
+
+.. autofunction:: cate.ops.oni
 
 
 Input / Output
@@ -149,6 +165,8 @@ Misc
 
 .. autofunction:: cate.ops.pandas_fillna
 
+.. autofunction:: cate.ops.detect_outliers
+
 
 Operation Registration API
 ==========================
@@ -167,6 +185,10 @@ Operation Registration API
 .. autofunction:: cate.core.op_output
 
 .. autofunction:: cate.core.op_return
+
+.. autofunction:: cate.core.new_expression_op
+
+.. autofunction:: cate.core.new_subprocess_op
 
 
 Workflow API
@@ -198,6 +220,8 @@ Workflow API
 
 .. autoclass:: cate.core.NodePort
     :members:
+
+.. autofunction:: cate.core.new_workflow_op
 
 .. _api-monitoring:
 
