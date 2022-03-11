@@ -50,23 +50,18 @@ Module ``cate.core.plugin``
 .. automodule:: cate.core.plugin
     :members:
 
-Module ``cate.conf``
+Package ``cate.conf``
 ====================
 
 .. automodule:: cate.conf
     :members:
 
-Module ``cate.ds``
-==================
-
-.. automodule:: cate.ds
-    :members:
-
-Module ``cate.ops``
+Package ``cate.ops``
 ===================
 
 .. automodule:: cate.ops
     :members:
+    :noindex:
 
 Module ``cate.cli.main``
 ========================
@@ -74,13 +69,13 @@ Module ``cate.cli.main``
 .. automodule:: cate.cli.main
     :members:
 
-Module ``cate.webapi``
+Package ``cate.webapi``
 ======================
 
 .. automodule:: cate.webapi
     :members:
 
-Module ``cate.util``
+Package ``cate.util``
 ====================
 
 .. automodule:: cate.util
@@ -98,13 +93,13 @@ Module ``cate.util.cli``
 .. automodule:: cate.util.cli
     :members:
 
-Module ``cate.util.im``
+Package ``cate.util.im``
 =======================
 
 .. automodule:: cate.util.im
     :members:
 
-Module ``cate.util.web``
+Package ``cate.util.web``
 ========================
 
 .. automodule:: cate.util.web
