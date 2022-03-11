@@ -1,6 +1,8 @@
 .. _docstrings: https://en.wikipedia.org/wiki/Docstring
 .. _verifying unit-tests: https://github.com/CCI-Tools/cate/tree/master/test
 
+.. _detailed-design:
+
 ===============
 Detailed Design
 ===============
@@ -39,6 +41,8 @@ Module ``cate.core.workflow``
 
 .. automodule:: cate.core.workflow
     :members:
+
+.. _core_plugin:
 
 Module ``cate.core.plugin``
 ===========================
