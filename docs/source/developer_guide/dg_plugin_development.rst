@@ -9,8 +9,8 @@ contribute to cate or to customize cate to their needs.
 
 Before you start, make sure that you have installed the cate sources
 (see here: :ref:`install_sources`).
-You may also find the chapter on API usage useful: :ref:`api_reference`
-and in particular this section: :ref:`core_plugin`
+You may also find the chapter on API usage useful (:ref:`api_reference`)
+and in particular this section: :ref:`core_plugin`.
 
 Plugin Entry Point
 ==================
@@ -42,7 +42,7 @@ operations.
 Let's say you have a simple operation to compute a variable's z-score.
 The operation requires cate's dedicated operation decorators to be recognized
 as operation.
-You can read about them here: :ref:`dd-cate-core-op`
+You can read about them here: :ref:`dd-cate-core-op`.
 
 .. code-block:: python
 
