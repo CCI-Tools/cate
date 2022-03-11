@@ -1,3 +1,9 @@
+.. _conda: https://conda.io/docs/intro.html
+.. _Anaconda: https://conda.io/docs/intro.html
+.. _Miniconda: https://conda.io/docs/intro.html
+.. _running tests: https://facebook.github.io/create-react-app/docs/running-tests
+.. _deployment: https://facebook.github.io/create-react-app/docs/deployment
+
 =====
 Setup
 =====
@@ -10,9 +16,8 @@ For *Cate Desktop*, we provide an installer for the Windows, Mac OS X, and Linux
 The Cate Desktop installer will also ensure the Cate Python package is installed. If it can't find an existing
 or compatible Cate Python package, it will install a new or update an existing one.
 
-If you only want the Cate CLI or API, you can install just the Python package into a dedicated
-`Miniconda <https://conda.io/miniconda.html>`_ or `Anaconda <https://www.anaconda.com/download/>`_ Python 3
-environment. In this case, please read :ref:`setup_install_cate`.
+If you only want the Cate CLI or API, you can install just the Python package into a dedicated Miniconda_
+or Anaconda_ Python 3 environment. In this case, please read :ref:`setup_install_cate`.
 
 System Requirements
 ===================
@@ -172,14 +177,119 @@ Or you use Conda to install the latest version:
 
     $ conda update -c conda-forge -c ccitools cate-cli
 
-
 Installing from Sources
 =======================
 
-If you are a developer you may wish to build and install Cate from Python sources.
-In this case, please follow the instructions given in the
-`Cate README <https://github.com/CCI-Tools/cate/blob/master/README.md>`_ on GitHub.
+.. _install_cate_from_sources:
 
-After building and installing the Cate Python package from sources you can build and run
-Cate Desktop from sources by following the instructions given in the
-`Cate Desktop README <https://github.com/CCI-Tools/cate-desktop/blob/master/README.md>`_ on GitHub.
+Installing Cate from Sources
+----------------------------
+
+If you are a developer you may wish to build and install Cate from Python sources.
+Cate's sources are organised as follows:
+
+* `setup.py` - main build script to be run with Python 3.6+
+* `cate/` - main package and production code
+* `test/` - test package and test code
+* `doc/` - documentation in Sphinx/RST format
+
+We recommend installing Cate into an isolated Python 3 environment, because this
+approach avoids clashes with existing versions of Cate's 3rd-party Python package
+requirements.
+Using Miniconda_ or Anaconda_ will usually prevent platform-specific issues
+caused by module native binaries.
+
+The first step is to clone the latest Cate code and step into the checked out
+directory:
+
+.. code-block:: console
+
+    $ git clone https://github.com/CCI-Tools/cate.git
+    $ cd cate
+
+
+### Using Conda
+
+Conda_ is the package manager used by the Miniconda or Anaconda Python distributions.
+
+Creating a new Python environment for Cate will require around 2.2 GB disk space on
+Linux/Darwin and and 1.2 GB on Windows.
+To create a new Conda environment `cate-env` in your Anaconda/Miniconda installation directory, type:
+
+.. code-block:: console
+
+    $ conda env create
+
+If you want the environment to be installed in another location, e.g. due to disk space limitations, type:
+
+.. code-block:: console
+
+    $ conda env create --prefix some/other/location/for/cate
+
+Next step is to activate the new environment.
+
+.. code-block:: console
+
+    $ conda activate cate-env
+
+You can now safely install Cate sources into the new `cate-env` environment.
+
+.. code-block:: console
+
+    (cate-env) $ python setup.py install
+
+You can find more information about this in the
+`Cate README <https://github.com/CCI-Tools/cate/blob/master/README.md`_
+on GitHub.
+
+.. _install_cate_app_from_sources:
+
+Installing Cate-App from Sources
+--------------------------------
+
+To install Cate App, you need to check out Cate-App like Cate above and
+step into the project directory:
+
+.. code-block:: console
+
+    $ git clone https://github.com/CCI-Tools/cate-app.git
+    $ cd cate
+
+There you can run:
+
+.. code-block:: console
+
+    $ yarn
+
+to initially install or update all project dependencies.
+
+.. code-block:: console
+
+    $ yarn start
+
+Runs the app in the development mode.
+Open [http://localhost:3000](http://localhost:3000) to view it in a browser.
+
+The page will reload if you make edits.
+You will also see any lint errors in the console.
+
+.. code-block:: console
+
+    yarn test
+
+Launches the test runner in the interactive watch mode.
+
+See the section about `running tests`_ for more information.
+
+.. code-block:: console
+
+    $ yarn build
+
+Builds the app for production to the `build` folder.
+It correctly bundles React in production mode and optimizes the build for the best performance.
+
+The build is minified, and the filenames include the hashes.
+
+See the section about deployment_ and the `Cate App README
+<https://github.com/CCI-Tools/cate-app/blob/master/README.md`_
+on GitHub for more information.
