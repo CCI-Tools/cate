@@ -4,6 +4,8 @@
 API Usage
 =========
 
+.. _install_sources:
+
 Installing Sources
 ==================
 

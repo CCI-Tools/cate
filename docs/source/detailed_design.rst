@@ -42,6 +42,8 @@ Module ``cate.core.workflow``
 .. automodule:: cate.core.workflow
     :members:
 
+.. _core_plugin:
+
 Module ``cate.core.plugin``
 ===========================
 
