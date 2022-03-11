@@ -1,8 +1,11 @@
 .. _conda: https://conda.io/docs/intro.html
-.. _Anaconda: https://conda.io/docs/intro.html
-.. _Miniconda: https://conda.io/docs/intro.html
+.. _Anaconda: https://www.anaconda.com/download/
+.. _Miniconda: https://conda.io/miniconda.html
 .. _running tests: https://facebook.github.io/create-react-app/docs/running-tests
 .. _deployment: https://facebook.github.io/create-react-app/docs/deployment
+.. _Cate README: https://github.com/CCI-Tools/cate/blob/master/README.md
+.. _Cate App README: https://github.com/CCI-Tools/cate-app/blob/master/README.md
+
 
 =====
 Setup
@@ -238,9 +241,7 @@ You can now safely install Cate sources into the new `cate-env` environment.
 
     (cate-env) $ python setup.py install
 
-You can find more information about this in the
-`Cate README <https://github.com/CCI-Tools/cate/blob/master/README.md`_
-on GitHub.
+You can find more information about this in the `Cate README`_ on GitHub.
 
 .. _install_cate_app_from_sources:
 
@@ -253,7 +254,7 @@ step into the project directory:
 .. code-block:: console
 
     $ git clone https://github.com/CCI-Tools/cate-app.git
-    $ cd cate
+    $ cd cate-app
 
 There you can run:
 
@@ -268,7 +269,7 @@ to initially install or update all project dependencies.
     $ yarn start
 
 Runs the app in the development mode.
-Open [http://localhost:3000](http://localhost:3000) to view it in a browser.
+Open http://localhost:3000 to view it in a browser.
 
 The page will reload if you make edits.
 You will also see any lint errors in the console.
@@ -290,6 +291,4 @@ It correctly bundles React in production mode and optimizes the build for the be
 
 The build is minified, and the filenames include the hashes.
 
-See the section about deployment_ and the `Cate App README
-<https://github.com/CCI-Tools/cate-app/blob/master/README.md`_
-on GitHub for more information.
+See the section about deployment_ and the `Cate App README`_ on GitHub for more information.

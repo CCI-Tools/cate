@@ -38,7 +38,7 @@ To access the Web API Service, you can simply select it from the
 start screen of `cate.climate.esa.int`.
 
 .. figure:: ../_static/figures/dev_guide/select-cate-service.png
-   :width: 1024px
+   :scale: 100 %
    :align: center
 
 However, in some cases you may want to run your own local instance of Cate App,
