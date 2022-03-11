@@ -49,7 +49,7 @@ All Cate Desktop installers are quite light-weight and executed by double clicki
 They don't require any extra user input up to the point where no existing or compatible Cate Python package is found.
 In this case, Cate's *Setup process* is run:
 
-.. figure:: ../_static/figures/user_manual/gui_setup_screen_1.png
+.. figure:: ../_static/figures/user_manual/ui_setup_screen_1.png
    :scale: 100 %
    :align: center
 
@@ -59,7 +59,7 @@ You can just click **Next** button to use *Automatic setup* with default setting
 To see what these settings are, you could select **User-defined setup** and press **Next** in which case the
 default settings are shown:
 
-.. figure:: ../_static/figures/user_manual/gui_setup_screen_2.png
+.. figure:: ../_static/figures/user_manual/ui_setup_screen_2.png
    :scale: 100 %
    :align: center
 
@@ -75,7 +75,7 @@ Pressing **Next** will perform the following setup steps for a new Cate Python p
 For an existing, outdated Cate Python package it will just update it to the required version and also update all
 required 3rd-party Python packages.
 
-.. figure:: ../_static/figures/user_manual/gui_setup_screen_3.png
+.. figure:: ../_static/figures/user_manual/ui_setup_screen_3.png
    :scale: 100 %
    :align: center
 
@@ -84,7 +84,7 @@ required 3rd-party Python packages.
 
 After successful installation, press **End** to start Cate Desktop:
 
-.. figure:: ../_static/figures/user_manual/gui_setup_screen_4.png
+.. figure:: ../_static/figures/user_manual/ui_setup_screen_4.png
    :scale: 100 %
    :align: center
 
@@ -107,7 +107,7 @@ for your operating system and install again.
 
 The auto-update feature of Cate Desktop can be disabled in the **Preferences**:
 
-.. figure:: ../_static/figures/user_manual/gui_dialog_preferences.png
+.. figure:: ../_static/figures/user_manual/ui_dialog_preferences.png
    :scale: 100 %
    :align: center
 

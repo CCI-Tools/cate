@@ -23,7 +23,7 @@ The Cate Desktop user interface basically comprises *panels*, *views*, and a *me
 
 .. _gui_initial:
 
-.. figure:: ../_static/figures/user_manual/gui_initial.png
+.. figure:: ../_static/figures/user_manual/ui_initial.png
    :width: 1024px
    :align: center
 
@@ -531,7 +531,7 @@ and restored for every Cate Desktop session.
 To copy the selected placemark to clipboard, click the right-most button. There are three options how the selected
 placemark can be represented in three different formats: CSV, WKT, and GeoJSON.
 
-.. figure:: ../_static/figures/user_manual/gui_panel_placemarks_copy.png
+.. figure:: ../_static/figures/user_manual/ui_panel_placemarks_copy.png
    :scale: 100 %
    :align: center
 
@@ -551,13 +551,13 @@ image or a vector layer is selected. Here are the available settings for a vecto
 * *Marker* controls the colour, size, and caption of the placemark. The symbol can be either a single digit of number,
   a letter, or any valid **Maki** identifier (more information `here <https://www.mapbox.com/maki-icons/>`_)
 
-.. figure:: ../_static/figures/user_manual/gui_panel_styles_placemark.png
+.. figure:: ../_static/figures/user_manual/ui_panel_styles_placemark.png
    :width: 1024px
    :align: center
 
    Styles Panel for styling a placemark
 
-.. figure:: ../_static/figures/user_manual/gui_panel_styles_vector.png
+.. figure:: ../_static/figures/user_manual/ui_panel_styles_vector.png
    :width: 1024px
    :align: center
 
@@ -598,7 +598,7 @@ change plot styles and size.
 *Table Views* also don't provide any special settings yet. However, in future releases, you will be able to specify
 the subset of the data ypou want to see in the table.
 
-.. figure:: ../_static/figures/user_manual/gui_panel_view.png
+.. figure:: ../_static/figures/user_manual/ui_panel_view.png
    :scale: 100 %
    :align: center
 
@@ -616,7 +616,7 @@ The **TASKS** panel shows all active tasks. Long running tasks are usually origi
 from downloading datasets or performing operations on datasets. Some running
 tasks may be cancelled, others not.
 
-.. figure:: ../_static/figures/user_manual/gui_panel_tasks.png
+.. figure:: ../_static/figures/user_manual/ui_panel_tasks.png
    :scale: 100 %
    :align: center
 
@@ -640,7 +640,7 @@ On the **General** tab you can specify the following settings:
   Therefore the background satellite imagery used for the 2D/3D maps falls back to a static, low resolution
   map.
 
-.. figure:: ../_static/figures/user_manual/gui_dialog_preferences.png
+.. figure:: ../_static/figures/user_manual/ui_dialog_preferences.png
    :scale: 100 %
    :align: center
 
@@ -658,7 +658,7 @@ On the **Data Management** tab you can specify the following settings:
 * The *resource name prefix* which will be used by default for new resources
   originating from opening datasets or executing operations.
 
-.. figure:: ../_static/figures/user_manual/gui_dialog_preferences_2.png
+.. figure:: ../_static/figures/user_manual/ui_dialog_preferences_2.png
    :scale: 100 %
    :align: center
 
@@ -666,7 +666,7 @@ On the **Data Management** tab you can specify the following settings:
 
 On the **Proxy Configuration** tab you can specify the proxy URL if required.
 
-.. figure:: ../_static/figures/user_manual/gui_dialog_preferences_3.png
+.. figure:: ../_static/figures/user_manual/ui_dialog_preferences_3.png
    :scale: 100 %
    :align: center
 
