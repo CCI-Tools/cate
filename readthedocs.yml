@@ -26,6 +26,3 @@ python:
         - requirements: docs/source/requirements.txt
         - method: setuptools
           path: .
-# Optionally build your docs in additional formats such as PDF and ePub
-formats: html
-
