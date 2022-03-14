@@ -9,6 +9,11 @@ version: 2
 sphinx:
     configuration: docs/source/conf.py
 
+build:
+  os: ubuntu-20.04
+  tools:
+    python: "3.9"
+
 # The path to the Conda environment file, relative to the root of the project.
 # conda installation currently creates insufficient memory issue on RTD.
 #conda:
@@ -21,6 +26,3 @@ python:
         - requirements: docs/source/requirements.txt
         - method: setuptools
           path: .
-# Optionally build your docs in additional formats such as PDF and ePub
-formats: all
-

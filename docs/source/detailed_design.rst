@@ -51,13 +51,13 @@ Module ``cate.core.plugin``
     :members:
 
 Package ``cate.conf``
-====================
+=====================
 
 .. automodule:: cate.conf
     :members:
 
 Package ``cate.ops``
-===================
+====================
 
 .. automodule:: cate.ops
     :members:
@@ -70,13 +70,13 @@ Module ``cate.cli.main``
     :members:
 
 Package ``cate.webapi``
-======================
+=======================
 
 .. automodule:: cate.webapi
     :members:
 
 Package ``cate.util``
-====================
+=====================
 
 .. automodule:: cate.util
     :members:
@@ -94,13 +94,13 @@ Module ``cate.util.cli``
     :members:
 
 Package ``cate.util.im``
-=======================
+========================
 
 .. automodule:: cate.util.im
     :members:
 
 Package ``cate.util.web``
-========================
+=========================
 
 .. automodule:: cate.util.web
     :members:
