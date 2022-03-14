@@ -23,7 +23,6 @@ build:
 # Optionally set the version of Python and requirements required to build your docs
 python:
     install:
-        - setuptools > 58.2.0
         - requirements: docs/source/requirements.txt
         - method: setuptools
           path: .
