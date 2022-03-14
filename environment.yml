@@ -35,8 +35,7 @@ dependencies:
   - pyepsg>=0.4.0
   - pyproj>=3.0
   - pyshp>=2.1.0
-  # avoid using python 3.10 as long as there are incompatibilities with transitive dependencies
-  - python>=3.8,<3.10
+  - python>=3.8
   - python-dateutil>=2.8.1
   - requests-file>=1.5
   # needed because of fix https://s3fs.readthedocs.io/en/latest/changelog.html#id5
@@ -53,6 +52,6 @@ dependencies:
   - zarr>=2.4
   # Test libs
   - flake8
-  - moto
+  - moto>=3.1.0
   - pytest
   - pytest-cov
