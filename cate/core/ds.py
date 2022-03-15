@@ -485,7 +485,9 @@ def make_local(data: Any,
         while local_store.has_data(local_name):
             i += 1
             local_name = f'local.{orig_dataset_name}.{i}{extension}'
-    local_data_id = local_store.write_data(data=data, data_id=local_name)
+    local_data_id = local_store.write_data(data=data,
+                                           data_id=local_name,
+                                           replace=True)
     return local_store.open_data(data_id=local_data_id), local_data_id
 
 

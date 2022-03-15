@@ -2,6 +2,8 @@
 
 * Pinned Python version to < 3.10 to avoid ImportErrors caused by a third-party
   library.
+* It is now possible to re-use identifiers to cache data (#1030)
+
 
 ## Version 3.1.2
 
