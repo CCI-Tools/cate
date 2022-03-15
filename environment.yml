@@ -35,8 +35,7 @@ dependencies:
   - pyepsg>=0.4.0
   - pyproj>=3.0
   - pyshp>=2.1.0
-  # We require Python 3.7 as tornado 6.0.3 doesn't work with Python 3.8
-  - python>=3.8
+  - python>=3.8,<3.10
   - python-dateutil>=2.8.1
   - requests-file>=1.5
   # needed because of fix https://s3fs.readthedocs.io/en/latest/changelog.html#id5
@@ -47,12 +46,12 @@ dependencies:
   - shapely>=1.6.4
   - tornado>=6.0
   - xarray>=0.19.0
-  - xcube>=0.9.1
-  - xcube-cci>=0.9.1
+  - xcube>=0.10.0
+  - xcube-cci>=0.9.4
   - yaml>=0.2.2
   - zarr>=2.4
   # Test libs
   - flake8
-  - moto
+  - moto>=3.1.0
   - pytest
   - pytest-cov

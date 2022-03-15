@@ -1,5 +1,7 @@
 ## Version 3.1.3 (in development)
 
+* Pinned Python version to < 3.10 to avoid ImportErrors caused by a third-party
+  library.
 
 ## Version 3.1.2
 

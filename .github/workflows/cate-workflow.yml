@@ -8,8 +8,8 @@ on:
 jobs:
   unittest:
     env:
-      XCUBE_VERSION: 0.9.2
-      XCUBE_CCI_VERSION: 0.9.3
+      XCUBE_VERSION: 0.10.1
+      XCUBE_CCI_VERSION: 0.9.5
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
