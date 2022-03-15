@@ -46,8 +46,8 @@ dependencies:
   - shapely>=1.6.4
   - tornado>=6.0
   - xarray>=0.19.0
-  - xcube>=0.9.1
-  - xcube-cci>=0.9.1
+  - xcube>=0.10.0
+  - xcube-cci>=0.9.4
   - yaml>=0.2.2
   - zarr>=2.4
   # Test libs
