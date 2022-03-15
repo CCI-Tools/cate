@@ -4,7 +4,9 @@
   library.
 * It is now possible to re-use identifiers to cache data (#1030).
 * Parts of documentation that reference API are populated with content (again)
-  (#1034)
+  (#1034).
+* Allow reading of datasets that do not specify chunk sizes, e.g., FIRE,
+  (via updated version of xcube-cci) (#1033).
 
 ## Version 3.1.2
 
