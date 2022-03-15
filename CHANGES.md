@@ -1,9 +1,10 @@
-## Version 3.1.3 (in development)
+## Version 3.1.3
 
 * Pinned Python version to < 3.10 to avoid ImportErrors caused by a third-party
   library.
-* It is now possible to re-use identifiers to cache data (#1030)
-
+* It is now possible to re-use identifiers to cache data (#1030).
+* Parts of documentation that reference API are populated with content (again)
+  (#1034)
 
 ## Version 3.1.2
 
