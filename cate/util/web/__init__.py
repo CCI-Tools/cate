@@ -19,8 +19,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
-
 """
 Description
 ===========
@@ -44,3 +42,5 @@ Components
 
 from .jsonrpchandler import JsonRpcWebSocketHandler
 from .jsonrpcmonitor import JsonRpcWebSocketMonitor
+
+__author__ = "Norman Fomferra (Brockmann Consult GmbH)"

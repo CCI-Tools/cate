@@ -27,7 +27,3 @@ Operations
 
 :Operation name: 
 :Operation description: 
-
----------------------------------
-
-
