@@ -23,7 +23,7 @@ The Cate Desktop user interface basically comprises *panels*, *views*, and a *me
 
 .. _gui_initial:
 
-.. figure:: ../_static/figures/user_manual/gui_initial.png
+.. figure:: ../_static/figures/user_manual/ui_initial.png
    :width: 1024px
    :align: center
 
@@ -91,7 +91,7 @@ Cate's menu currently comprises the **File**, **View**, and **Help** menus. The 
 
 .. _gui_menu_file:
 
-.. figure:: ../_static/figures/user_manual/gui_menu_file.png
+.. figure:: ../_static/figures/user_manual/ui_menu_file.png
    :scale: 100 %
    :align: center
 
@@ -140,7 +140,7 @@ DATA SOURCES Panel
 
 .. _gui_panel_data_sources_odp:
 
-.. figure:: ../_static/figures/user_manual/gui_panel_data_sources_odp.png
+.. figure:: ../_static/figures/user_manual/ui_panel_data_sources_odp.png
    :scale: 100 %
    :align: left
 
@@ -174,7 +174,7 @@ in :numref:`gui_dialog_download_dataset` to use the first option.
 
 .. _gui_dialog_download_dataset:
 
-.. figure:: ../_static/figures/user_manual/gui_dialog_download_dataset.png
+.. figure:: ../_static/figures/user_manual/ui_dialog_download_dataset.png
    :scale: 100 %
    :align: center
 
@@ -205,7 +205,7 @@ then uncheck **Download and make local data source (allocates space on disk)** a
 
 .. _gui_dialog_open_remote_dataset:
 
-.. figure:: ../_static/figures/user_manual/gui_dialog_open_remote_dataset.png
+.. figure:: ../_static/figures/user_manual/ui_dialog_open_remote_dataset.png
    :scale: 100 %
    :align: center
 
@@ -217,7 +217,7 @@ a new dataset *resource* is available from the :ref:`workspace_panel`.
 
 .. _gui_panel_data_sources_local:
 
-.. figure:: ../_static/figures/user_manual/gui_panel_data_sources_local.png
+.. figure:: ../_static/figures/user_manual/ui_panel_data_sources_local.png
    :scale: 100 %
    :align: left
 
@@ -236,7 +236,7 @@ shown in :numref:`gui_dialog_open_local_dataset` below:
 
 .. _gui_dialog_open_local_dataset:
 
-.. figure:: ../_static/figures/user_manual/gui_dialog_open_local_dataset.png
+.. figure:: ../_static/figures/user_manual/ui_dialog_open_local_dataset.png
    :scale: 100 %
    :align: center
 
@@ -280,7 +280,7 @@ The **Details** section provides a description about the operation including its
 
 .. _gui_panel_operations:
 
-.. figure:: ../_static/figures/user_manual/gui_panel_operations.png
+.. figure:: ../_static/figures/user_manual/ui_panel_operations.png
    :scale: 100 %
    :align: left
 
@@ -302,7 +302,7 @@ This will exchange the input field by a resource selector.
 
 .. _gui_dialog_new_op_step:
 
-.. figure:: ../_static/figures/user_manual/gui_dialog_new_op_step.png
+.. figure:: ../_static/figures/user_manual/ui_dialog_new_op_step.png
    :scale: 100 %
    :align: center
 
@@ -316,7 +316,7 @@ The new *workflow step* and the new *resource*, if any, are shown in the **WORKS
 
 .. _gui_dialog_new_op_step_applied:
 
-.. figure:: ../_static/figures/user_manual/gui_dialog_new_op_step_applied.png
+.. figure:: ../_static/figures/user_manual/ui_dialog_new_op_step_applied.png
    :width: 1024px
    :align: center
 
@@ -355,7 +355,7 @@ order. The **Details** section displays the used parameter values of a selected 
 
 .. _gui_panel_workspace_steps:
 
-.. figure:: ../_static/figures/user_manual/gui_panel_workspace_steps.png
+.. figure:: ../_static/figures/user_manual/ui_panel_workspace_steps.png
    :scale: 100 %
    :align: left
 
@@ -373,7 +373,7 @@ A data resource may contain any number of *data variables*. This is usually the 
 
 .. _gui_panel_workspace_res:
 
-.. figure:: ../_static/figures/user_manual/gui_panel_workspace_res.png
+.. figure:: ../_static/figures/user_manual/ui_panel_workspace_res.png
    :scale: 100 %
    :align: right
 
@@ -419,7 +419,7 @@ The toolbar to the lower right of the list of variables offers the following fun
 
 .. _gui_panel_variables:
 
-.. figure:: ../_static/figures/user_manual/gui_panel_variables.png
+.. figure:: ../_static/figures/user_manual/ui_panel_variables.png
    :scale: 100 %
    :align: right
 
@@ -456,7 +456,7 @@ The **Details** of the **LAYERS** panel lists several layer settings:
   the selected layer and the other side showing only the globe.
 
 
-.. figure:: ../_static/figures/user_manual/gui_panel_layers.png
+.. figure:: ../_static/figures/user_manual/ui_panel_layers.png
    :scale: 100 %
    :align: center
 
@@ -488,7 +488,7 @@ To add a new marker, click **New marker** button (the left-most), and then click
 added to the list of placemarks in Placemarks Panel. When the Details toggle is enabled, you can modify the
 name and coordinates (in longitude and latitude) of this marker.
 
-.. figure:: ../_static/figures/user_manual/gui_panel_placemarks_marker.png
+.. figure:: ../_static/figures/user_manual/ui_panel_placemarks_marker.png
    :width: 1024px
    :align: center
 
@@ -498,7 +498,7 @@ To add a new polyline, click **New polyline** button (the second left-most). Cli
 line, and then click the next n-lines as you wish. To finish, double-click at your final point. When the Details toggle
 is enabled, you can modify the name of this polyline.
 
-.. figure:: ../_static/figures/user_manual/gui_panel_placemarks_line.png
+.. figure:: ../_static/figures/user_manual/ui_panel_placemarks_line.png
    :width: 1024px
    :align: center
 
@@ -508,7 +508,7 @@ To add a new polygon, click the **New polygon** button (the third left-most). As
 point in the Globe to start the line, and then click the next n-lines as you wish. To finish, double-click at your final
 point.  When the Details toggle is enabled, you can modify the name of this polygon.
 
-.. figure:: ../_static/figures/user_manual/gui_panel_placemarks_polygon.png
+.. figure:: ../_static/figures/user_manual/ui_panel_placemarks_polygon.png
    :width: 1024px
    :align: center
 
@@ -518,7 +518,7 @@ To add a new polygon, click the **New box** button (the fourth left-most). To st
 This will be one of the vertices of the box you are going to create. Drag it to satisfy the region you desire, and click
 once more to confirm the box selection.  When the Details toggle is enabled, you can modify the name of this box.
 
-.. figure:: ../_static/figures/user_manual/gui_panel_placemarks_box.png
+.. figure:: ../_static/figures/user_manual/ui_panel_placemarks_box.png
    :width: 1024px
    :align: center
 
@@ -531,7 +531,7 @@ and restored for every Cate Desktop session.
 To copy the selected placemark to clipboard, click the right-most button. There are three options how the selected
 placemark can be represented in three different formats: CSV, WKT, and GeoJSON.
 
-.. figure:: ../_static/figures/user_manual/gui_panel_placemarks_copy.png
+.. figure:: ../_static/figures/user_manual/ui_panel_placemarks_copy.png
    :scale: 100 %
    :align: center
 
@@ -551,13 +551,13 @@ image or a vector layer is selected. Here are the available settings for a vecto
 * *Marker* controls the colour, size, and caption of the placemark. The symbol can be either a single digit of number,
   a letter, or any valid **Maki** identifier (more information `here <https://www.mapbox.com/maki-icons/>`_)
 
-.. figure:: ../_static/figures/user_manual/gui_panel_styles_placemark.png
+.. figure:: ../_static/figures/user_manual/ui_panel_styles_placemark.png
    :width: 1024px
    :align: center
 
    Styles Panel for styling a placemark
 
-.. figure:: ../_static/figures/user_manual/gui_panel_styles_vector.png
+.. figure:: ../_static/figures/user_manual/ui_panel_styles_vector.png
    :width: 1024px
    :align: center
 
@@ -598,7 +598,7 @@ change plot styles and size.
 *Table Views* also don't provide any special settings yet. However, in future releases, you will be able to specify
 the subset of the data ypou want to see in the table.
 
-.. figure:: ../_static/figures/user_manual/gui_panel_view.png
+.. figure:: ../_static/figures/user_manual/ui_panel_view.png
    :scale: 100 %
    :align: center
 
@@ -616,7 +616,7 @@ The **TASKS** panel shows all active tasks. Long running tasks are usually origi
 from downloading datasets or performing operations on datasets. Some running
 tasks may be cancelled, others not.
 
-.. figure:: ../_static/figures/user_manual/gui_panel_tasks.png
+.. figure:: ../_static/figures/user_manual/ui_panel_tasks.png
    :scale: 100 %
    :align: center
 
@@ -640,7 +640,7 @@ On the **General** tab you can specify the following settings:
   Therefore the background satellite imagery used for the 2D/3D maps falls back to a static, low resolution
   map.
 
-.. figure:: ../_static/figures/user_manual/gui_dialog_preferences.png
+.. figure:: ../_static/figures/user_manual/ui_dialog_preferences.png
    :scale: 100 %
    :align: center
 
@@ -658,7 +658,7 @@ On the **Data Management** tab you can specify the following settings:
 * The *resource name prefix* which will be used by default for new resources
   originating from opening datasets or executing operations.
 
-.. figure:: ../_static/figures/user_manual/gui_dialog_preferences_2.png
+.. figure:: ../_static/figures/user_manual/ui_dialog_preferences_2.png
    :scale: 100 %
    :align: center
 
@@ -666,7 +666,7 @@ On the **Data Management** tab you can specify the following settings:
 
 On the **Proxy Configuration** tab you can specify the proxy URL if required.
 
-.. figure:: ../_static/figures/user_manual/gui_dialog_preferences_3.png
+.. figure:: ../_static/figures/user_manual/ui_dialog_preferences_3.png
    :scale: 100 %
    :align: center
 

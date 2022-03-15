@@ -27,5 +27,3 @@ Operations
 
 :Operation name: Index Calculation
 :Operation description: calculation of (pre-defined) indices involving spatial and temporal averaging, anomalies, standardization, filtering, etc
-
----------------------------------

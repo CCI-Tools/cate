@@ -325,7 +325,7 @@ def _is_scalar(value):
     """Whether to treat a value as a scalar.
     Any non-iterable, string, or 0-D array
     """
-    from collections import Iterable
+    from collections.abc import Iterable
 
     return (getattr(value, 'ndim', None) == 0
             or isinstance(value, (str, bytes))

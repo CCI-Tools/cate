@@ -113,7 +113,7 @@ def data_frame_query(df: DataFrameLike.TYPE, query_expr: str) -> pd.DataFrame:
     * ``@disjoint(geom)`` - does a feature's geometry not at all intersect the given ``geom``;
     * ``@intersects(geom)`` - does a feature's geometry intersect with given ``geom``;
     * ``@touches(geom)`` - does a feature's geometry have a point in common with given ``geom``
-        but does not intersect it;
+    but does not intersect it;
     * ``@within(geom)`` - is a feature's geometry contained within given ``geom``.
 
     The *geom* argument may be a point ``"<lon>, <lat>"`` text string,

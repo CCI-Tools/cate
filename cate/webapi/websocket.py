@@ -172,7 +172,7 @@ class WebSocketService:
             config = DATA_STORE_POOL.get_store_config(instance_id)
             data_stores.append(dict(id=instance_id,
                                     title=config.title,
-                                    isLocal=config.store_id == 'directory',
+                                    isLocal=config.store_id == 'file',
                                     description=config.description,
                                     notices=get_data_store_notices(instance_id)))
         return data_stores

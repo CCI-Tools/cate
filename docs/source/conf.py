@@ -41,6 +41,7 @@ import mock
 autodoc_mock_imports = ['aiofiles',
                         'aiohttp',
                         'cartopy',
+                        'cftime',
                         'dask',
                         'dateutil',
                         'fiona',
@@ -57,7 +58,9 @@ autodoc_mock_imports = ['aiofiles',
                         'scipy',
                         'shapely',
                         'tornado',
-                        'xarray']
+                        'xarray',
+                        'xcube',
+                        'yaml']
 
 # -- General configuration ------------------------------------------------
 
