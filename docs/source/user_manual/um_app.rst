@@ -30,37 +30,6 @@ data type.
    however service capacities might be throttled depending on the number of concurrent users logged
    into the system.
 
-Cate App may be also be installed as a desktop app by clicking on `Install App` in the upper right corner:
-
-.. _ui_install:
-
-.. figure:: ../_static/figures/user_manual/ui_install.png
-   :align: center
-
-   Cate App installation
-
-Once installed, it will open in a new browser window and added to the applications on the desktop,
-here an example for linux:
-
-.. _ui_on_desktop:
-
-.. figure:: ../_static/figures/user_manual/ui_on_desktop.png
-   :width: 1024px
-   :align: center
-
-   Cate App on Desktop
-
-
-In order to uninstall the Cate App from the machine, launch Cate and it can be removed via `Settings`:
-
-.. _ui_uninstall:
-
-.. figure:: ../_static/figures/user_manual/ui_uninstall.png
-   :width: 1024px
-   :align: center
-
-   Cate App uninstallation
-
 The Cate App user interface basically comprises *panels*, *views*, and a *menu bar*:
 
 .. _ui_initial:
@@ -710,4 +679,39 @@ On the **Proxy Configuration** tab you can specify the proxy URL if required.
    :align: center
 
    Preferences Dialog / Proxy Configuration
+
+--------------------
+Desktop Installation
+--------------------
+
+Cate App may be also be installed as a desktop app by clicking on `Install App` in the upper right corner:
+
+.. _ui_install:
+
+.. figure:: ../_static/figures/user_manual/ui_install.png
+   :align: center
+
+   Cate App desktop installation
+
+Once installed, it will open in a new browser window and added to the applications on the desktop,
+here an example for linux:
+
+.. _ui_on_desktop:
+
+.. figure:: ../_static/figures/user_manual/ui_on_desktop.png
+   :width: 1024px
+   :align: center
+
+   Cate App on Desktop
+
+
+In order to uninstall the Cate App from the machine, launch Cate and it can be removed via `Settings`:
+
+.. _ui_uninstall:
+
+.. figure:: ../_static/figures/user_manual/ui_uninstall.png
+   :width: 1024px
+   :align: center
+
+   Cate App uninstallation
 
