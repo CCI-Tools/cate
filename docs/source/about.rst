@@ -35,7 +35,7 @@ Cate comprises four major software interfaces:
 
 
 .. figure:: _static/figures/cate_app_desktop.png
-   :width: 1024px
+   :scale: 50 %
    :align: center
 
    Cate App - the GUI for the CCI Toolbox (desktop version)

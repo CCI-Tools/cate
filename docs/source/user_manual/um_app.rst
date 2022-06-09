@@ -1,8 +1,8 @@
-==================
+========
 Cate App
-==================
+========
 
-*Applies to Cate Webversion, version 2.0.0*
+*Applies to Cate App web application, version 2.0.0*
 
 Overview
 ========
@@ -29,11 +29,11 @@ The Cate App user interface basically comprises *panels*, *views*, and a *menu b
 
 .. _ui_initial:
 
-.. figure:: ../_static/figures/user_manual/ui_initial.png
-   :width: 1024px
+.. figure:: ../_static/figures/cate_app.png
+   :width: 1024
    :align: center
 
-   Cate App initial layout
+   Cate App
 
 ------
 Panels
@@ -693,7 +693,6 @@ by clicking on `Install App` in the upper right corner:
 .. _ui_install:
 
 .. figure:: ../_static/figures/user_manual/ui_install.png
-   :width: 1024px
    :align: center
 
    Cate App installation
@@ -704,7 +703,7 @@ here an example for linux:
 .. _ui_on_desktop:
 
 .. figure:: ../_static/figures/user_manual/ui_on_desktop.png
-   :width: 1024px
+   :scale: 50 %
    :align: center
 
    Cate App on Desktop
