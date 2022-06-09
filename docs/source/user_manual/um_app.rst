@@ -12,10 +12,9 @@ installation and configuration. Cate App also provides some computational resour
 however service capacities might be throttled depending on the number of concurrent users logged
 into the system. In the future, this will be the recommended way to use Cate for most users.
 
-.. warning::
-   The Cate App is still in development. A demo can be accessed at: https://cate.climate.esa.int .
-   Currently, users will need to apply for access.
-
+.. attention::
+   The latest version of Cate App is available at: https://cate.climate.esa.int
+   The Cate SaaS cloud service is free to use. User just need to register.
 
 It provides all the Cate CLI and almost all Cate Python API functionality through a interactive and user friendly
 interface and adds some unique imaging and visual data analysis features.
