@@ -5,7 +5,7 @@ Cate - The ESA CCI Toolbox
 ==========================
 
 .. figure:: _static/figures/cate_app.png
-   :scale: 50%
+   :width: 1024px
    :align: center
 
 
