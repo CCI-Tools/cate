@@ -1,6 +1,8 @@
 ## Version 3.1.4 (in development)
 
-
+* Updated documentation:
+  - Updated links to Cate SaaS.
+  - Removed all references to Cate Desktop, which is no longer supported.
 
 ## Version 3.1.3
 
