@@ -42,8 +42,8 @@ node "CCI_Toolbox_Core" {
 }
 
 node "CCI_Toolbox_GUI" {
-    package "cate.desktop" {
-        [desktop_main]
+    package "cate.app" {
+        [app_main]
     }
 }
 
@@ -57,7 +57,7 @@ node "CCI_Open_Data_Portal" #eeeeee {
 }
 
 [cli_main] ..> [webapi_main]
-[desktop_main] ..> [webapi_main]
+[app_main] ..> [webapi_main]
 
 [workspace] ..> [workflow]
 [workflow] ..> [op]

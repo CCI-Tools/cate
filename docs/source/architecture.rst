@@ -44,11 +44,9 @@ programming interface (API), and a web API interface (WebAPI), and also implemen
 visualisation, processing, and analysis functions. It defines a common climate data model and provides a common
 framework to register, lookup and invoke operations and workflows on data represented in the common data model.
 
-The CCI Toolbox graphical user interface, the GUI, is based on web technologies, i.e. JavaScript and HTML-5, and
-communicates with the Python core via its WebAPI. The GUI is designed as a native desktop application (uses Electron_
-technology for the desktop operating system integration). It will us a Python (RESTful) web server running on the
-user's computer and providing the CCI Toolbox' WebAPI service to the GUI. This design allows for later
-extensions towards a web application with possibly multiple remote WebAPI services.
+The CCI Toolbox graphical user interface, Cate App, is a web application that
+communicates the Python core via its WebAPI. The WebAPI is either provided
+as a software-as-a-service in the cloud, or the user can run its own local server.
 
 The ESA `CCI Open Data Portal`_ is the central climate data provider for the CCI Toolbox. It provides time series of essential
 climate variables (ECVs) in various spatial and temporal resolutions in netCDF and Shapefile format. At the time of
@@ -155,7 +153,7 @@ Package ``cate.webapi``
 
 The package ``cate.webapi`` implements the CCI Toolbox' *WebAPI* which implements a web service that allows using the
 CCI Toolbox Python API from the
-* Desktop GUI as well as
+* Cate App GUI as well as
 * the interactive commands of the CLI.
 
 .. _cdm:
@@ -538,8 +536,8 @@ to users, so they do not need to install and configure the software on their own
 
 Cate SaaS does this by providing individual Cate service instances to logged-in users.
 These instances serve as backends for the Cate App.
-The Cate App can now be accessed via a dedicated URL in an internet browser or traditionally
-installed as a desktop application.
+The Cate App can now be accessed via a dedicated URL in an internet browser and
+then installed as a desktop application (it is a Progressive Web Application, PWA).
 
 The design of the Cate SaaS and the utilized software components makes it independent
 of the cloud providers. Cate SaaS tenants may be deployed on AWS, GCP, OTC,
@@ -576,12 +574,12 @@ CateHub
 CateHub exploits cloud environments to spawn Cate Docker to multiple users with attached computational resources and
 persistant storage. Such a design pattern is very similar to JupyterHub_. Hence, CateHub's architecture is derived
 from it. At its core is a so-called hub server that facilitates interaction with its sub-components that handle
-its house keeping tasks. The hub can be managed over its REST API. This REST API is used in Cate's GUI (web or desktop)
-to start Cate WebAPI services for each user. The relevant sub-components of CateHub are described here for
+its house keeping tasks. The hub can be managed over its REST API. This REST API is used in Cate App
+to start a dedicated Cate WebAPI service for each user. The relevant sub-components of CateHub are described here for
 illustrating their roles in Cate SaaS.
 
 - The spawner component of the hub, communicates with the Kubernetes Cluster via its Kubernetes API to spawn pods
-  containing Cate docker containers. A customisable configuration requests computational resources and persistant storage
+  containing Cate docker containers. A customisable configuration requests computational resources and persistent storage
   for each user. Each pod, once ready, exposes Cate WebAPI to the internal cluster network.
 
 - The proxy component, configurable-http-proxy, a nodejs application acts as front-end gateway to a CateHub instance
@@ -626,7 +624,7 @@ The source for Cate App is hosted at: https://github.com/CCI-Tools/cate-webui. T
 via the web-interface.
 
 This paragraph summarizes the flow of requests from perspective of Cate App. When a user submits a username
-and password in Cate App (or even Cate Desktop), Keycloak or authentication component of CateHub authenticates the
+and password in Cate App, Keycloak or authentication component of CateHub authenticates the
 credentials and returns an access token that permits further requests to CateHub. Cate App makes request to REST API of
 CateHub to spawn a WebAPI service with resources. The spawner component of CateHub facilitates this request to
 Kubernetes. Upon success, Hub component of CateHub makes changes to the proxy component to

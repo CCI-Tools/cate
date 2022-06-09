@@ -62,7 +62,7 @@ Given here is an overview of the possible configuration settings:
 
 :``variable_display_settings``:
     Configure / overwrite default variable display settings as used in various plot_<type>() operations
-    and in the Cate Desktop GUI.
+    and in the Cate App GUI.
     Each entry maps a variable name to a dictionary with the following entries:
     * ``color_map``   - name of a color map taken from from `Matplotlib Color Maps Reference`_
     * ``display_min`` - minimum variable value that corresponds to the lower end of the color map

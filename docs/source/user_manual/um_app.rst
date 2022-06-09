@@ -676,19 +676,19 @@ On the **Proxy Configuration** tab you can specify the proxy URL if required.
 
    Preferences Dialog / Proxy Configuration
 
-*Cate App* is a desktop application and is intended to serve as a graphical user interface (GUI)
+*Cate App* is a web application and is intended to serve as a graphical user interface (GUI)
 for the CCI Toolbox.
 
 It provides all the Cate CLI and almost all Cate Python API functionality through a interactive and user friendly
 interface and adds some unique imaging and visual data analysis features.
 
-The basic idea of Cate Desktop is to allow access all remote CCI data sources and calling all Cate operations
+The basic idea of Cate App is to allow access all remote CCI data sources and calling all Cate operations
 through a consistent interface. The results of opening a data source or applying an operations is usually
 an in-memory dataset representation - this is what Cate calls a *resource*. Usually, a resource refers to
 a (NetCDF/CF) dataset comprising one or more geo-physical variables, but a resource can virtually be of any (Python)
 data type.
 
-Cate App can be used locally as well and may be installed from the webinterface
+Cate App can be used locally as well and may be installed from the web interface
 by clicking on `Install App` in the upper right corner:
 
 .. _ui_install:

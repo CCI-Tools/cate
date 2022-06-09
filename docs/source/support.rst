@@ -39,7 +39,7 @@ Known Issues
 Data Access
 -----------
 
-1. When running Cate / Cate Desktop on Windows and accessing data from the ESA Open Data Portal,
+1. When running Cate on Windows and accessing data from the ESA Open Data Portal,
    you may receive a **SSL certificate verify failed** error.
    The workaround is to visit the `ESGF Portal at CEDA`_ web side using Edge, Chrome, or Firefox.
    This will cause your browser to register the website URL in question with your operating system's
