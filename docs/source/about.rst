@@ -25,20 +25,29 @@ Cate comprises four major software interfaces:
    however service capacities might be throttled depending on the number of concurrent users logged
    into the system. In the future, this will be the recommended way to use Cate for most users.
 
-.. warning::
-   The Cate cloud service is still in development. A demo can be accessed at: https://cate.climate.esa.int .
-   Currently, users will need to apply for access.
+
+2. **Cate App** is a web application that can either use
+   the remote Cate SaaS or a local server.
+
+.. attention::
+   The latest version of Cate App is available at: https://cate.climate.esa.int
+   The Cate SaaS cloud service is free to use. User just need to register.
 
 
-2. **Cate App** is a cross-platform web-application which may be used as a desktop app for users who wish to use Cate
-   predominantly with their local data sources. The application can also connect to the remote Cate services of Cate SaaS.
-
-
-.. figure:: _static/figures/about-ui.png
-   :width: 1024px
+.. figure:: _static/figures/cate_app_desktop.png
+   :scale: 50 %
    :align: center
 
-   Cate App (desktop or web browser) - the GUI for the CCI Toolbox
+   Cate App - the GUI for the CCI Toolbox (desktop version)
+
+   The Cate App can also be used with a local Cate WebAPI or any Cate
+   WebAPI service with known URL:
+
+.. figure:: _static/figures/cate_app_login.png
+   :align: center
+
+   Cate App Login Page
+
 
 
 3. The Cate **Command-Line Interface** (CLI) from a local Cate installation can be used to access and process data

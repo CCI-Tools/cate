@@ -151,7 +151,7 @@ Note, for maximum backward compatibility it is always a good idea to use keyword
 positional arguments.
 
 By default, deprecated operations and deprecated inputs/outputs will not be be shown to
-users in the Cate CLI and Cate Desktop GUI.
+users in the Cate CLI and Cate App GUI.
 
 To list all deprecated operations in the Cate CLI, type:::
 

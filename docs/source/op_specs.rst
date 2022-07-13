@@ -7,7 +7,7 @@ In this section, the non-trivial operations and data processors used in the ESA 
 The term *operation* used here first refers to CCI Toolbox functions that will become part of the API as usual Python
 functions. Secondly and at  the same time it refers to instances of such functions that are stored along
 with additional meta-data in the CCI Toolbox *operation registry* as described in :ref:`op`. The latter will be used to
-allow invocation of functions from the CCI Toolbox' command-line interface (CLI) and desktop application (GUI).
+allow invocation of functions from the Cate command-line interface (CLI) and Cate App (GUI) web application.
 
 The intended readership of this chapter are software end users wishing to understand the details of the algorithms
 and methods used in the CCI Toolbox.

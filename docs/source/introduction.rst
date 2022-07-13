@@ -2,6 +2,7 @@
 .. _Climate Change Initiative: http://cci.esa.int/
 .. _GCOS: http://www.wmo.int/pages/prog/gcos/index.php
 .. _UNFCCC: http://unfccc.int/2860.php
+.. _ECVs: https://climate.esa.int/en/projects/
 
 ============
 Introduction
@@ -15,7 +16,7 @@ In 2009, ESA_, the European Space Agency, has launched the `Climate Change Initi
 a programme to respond the need for climate-quality satellite data as expressed by GCOS_, the Global Climate Observing
 System that supports the UNFCCC_, the United Nations Framework Convention on Climate Change.
 
-In the ESA CCI programme **14 Essential Climate Variables** (ECV) are produced by individual expert teams,
+In the ESA CCI programme **Essential Climate Variables** (ECVs_) are produced by individual expert teams,
 and cross-cutting activities provide coordination, harmonisation and support. The **CCI Toolbox** and the
 **CCI Open Data Portal** are the two main technical support projects within the programme.
 The CCI Open Data Portal will provide a single point of harmonised access to a subset of mature and validated

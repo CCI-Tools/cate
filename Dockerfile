@@ -1,6 +1,6 @@
-FROM quay.io/bcdev/xcube:v0.10.1
+FROM quay.io/bcdev/xcube:v0.11.2
 
-LABEL maintainer="helge.dzierzon@brockmann-consult.de"
+LABEL maintainer="tonio.fincke@brockmann-consult.de"
 LABEL name=cate
 
 ARG XCUBE_USER_NAME=xcube

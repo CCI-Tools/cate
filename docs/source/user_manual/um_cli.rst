@@ -10,10 +10,6 @@ the CCI Toolbox on your computer. See section :doc:`um_setup` for more informati
 interface allows for accessing local and remote datasets as well as running virtually all CCI Toolbox
 operations on them.
 
-The most easy way to use ``cate`` is running the ``cate-cli`` script found in ``bin`` directory of your CCI Toolbox
-installation directory. Windows and Unix users will find a link to this script in their start menu or on their desktop.
-Opening the link will open a new console / terminal window configured to run ``cate``.
-
 **Developers only:** If you build and install the CCI Toolbox from Python sources into your current Python environment,
 ``cate`` will be registered as an executable script. It can be found as ``$PYTHON_PREFIX/bin/cate.sh`` on Unix systems
 and as ``%PYTHON_PREFIX%\\Scripts\\cate.exe`` on Windows systems where ``PYTHON_PREFIX`` is the path to the current

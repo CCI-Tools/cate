@@ -1,21 +1,18 @@
-==================
+========
 Cate App
-==================
+========
 
-*Applies to Cate Webversion, version 2.0.0*
+*Applies to Cate App web application, version 2.0.0 and higher.*
+
 
 Overview
 ========
 
-**Cate App** provides to users access to the Cate software without any
-installation and configuration. Cate App also provides some computational resources free of charge,
-however service capacities might be throttled depending on the number of concurrent users logged
-into the system. In the future, this will be the recommended way to use Cate for most users.
+*Cate App* is a web application and is intended to serve as a graphical user interface (GUI)
+for the CCI Toolbox.
 
-.. warning::
-   The Cate App is still in development. A demo can be accessed at: https://cate.climate.esa.int .
-   Currently, users will need to apply for access.
-
+It provides to users access to the Cate software without any
+installation and configuration.
 
 It provides all the Cate CLI and almost all Cate Python API functionality through a interactive and user friendly
 interface and adds some unique imaging and visual data analysis features.
@@ -26,15 +23,22 @@ an in-memory dataset representation - this is what Cate calls a *resource*. Usua
 a (NetCDF/CF) dataset comprising one or more geo-physical variables, but a resource can virtually be of any (Python)
 data type.
 
+.. attention::
+   The latest version of Cate App SaaS is available at: https://cate.climate.esa.int
+   The Cate SaaS cloud service is free to use. User just need to register.
+   Cate SaaS provides some computational resources free of charge,
+   however service capacities might be throttled depending on the number of concurrent users logged
+   into the system.
+
 The Cate App user interface basically comprises *panels*, *views*, and a *menu bar*:
 
 .. _ui_initial:
 
-.. figure:: ../_static/figures/user_manual/ui_initial.png
+.. figure:: ../_static/figures/cate_app.png
    :width: 1024px
    :align: center
 
-   Cate App initial layout
+   Cate App
 
 ------
 Panels
@@ -676,28 +680,18 @@ On the **Proxy Configuration** tab you can specify the proxy URL if required.
 
    Preferences Dialog / Proxy Configuration
 
-*Cate App* is a desktop application and is intended to serve as a graphical user interface (GUI)
-for the CCI Toolbox.
+--------------------
+Desktop Installation
+--------------------
 
-It provides all the Cate CLI and almost all Cate Python API functionality through a interactive and user friendly
-interface and adds some unique imaging and visual data analysis features.
-
-The basic idea of Cate Desktop is to allow access all remote CCI data sources and calling all Cate operations
-through a consistent interface. The results of opening a data source or applying an operations is usually
-an in-memory dataset representation - this is what Cate calls a *resource*. Usually, a resource refers to
-a (NetCDF/CF) dataset comprising one or more geo-physical variables, but a resource can virtually be of any (Python)
-data type.
-
-Cate App can be used locally as well and may be installed from the webinterface
-by clicking on `Install App` in the upper right corner:
+Cate App may be also be installed as a desktop app by clicking on `Install App` in the upper right corner:
 
 .. _ui_install:
 
 .. figure:: ../_static/figures/user_manual/ui_install.png
-   :width: 1024px
    :align: center
 
-   Cate App installation
+   Cate App desktop installation
 
 Once installed, it will open in a new browser window and added to the applications on the desktop,
 here an example for linux:
@@ -720,3 +714,4 @@ In order to uninstall the Cate App from the machine, launch Cate and it can be r
    :align: center
 
    Cate App uninstallation
+

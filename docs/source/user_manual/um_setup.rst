@@ -7,17 +7,16 @@
 .. _Cate App README: https://github.com/CCI-Tools/cate-app/blob/master/README.md
 
 
-=====
-Setup
-=====
+
+===========
+Local Setup
+===========
+
+This section describes how to setup Cate on a computer of your choice.
 
 Cate at its core is a Python package that provides Cate's command-line interface (CLI) and
 application programming interface (API). In addition, the Python package provides a visualisation and
-processing service for *Cate Desktop*, Cate's graphical user interface (GUI).
-
-For *Cate Desktop*, we provide an installer for the Windows, Mac OS X, and Linux operating systems.
-The Cate Desktop installer will also ensure the Cate Python package is installed. If it can't find an existing
-or compatible Cate Python package, it will install a new or update an existing one.
+processing service for *Cate App*, Cate's graphical user interface (GUI).
 
 If you only want the Cate CLI or API, you can install just the Python package into a dedicated Miniconda_
 or Anaconda_ Python 3 environment. In this case, please read :ref:`setup_install_cate`.
@@ -31,96 +30,7 @@ executing program, so it is advised to use fast solid state disks. Secondly, the
 speed matters, because Cate will frequently have to download data from remote services
 in order to cache it locally.
 
-**Operating Systems**: Cate is supposed to work on up-to-date Windows, Mac OS X, and Linux operating systems.
-
-
-.. _setup_install_cate_desktop:
-
-Installing Cate Desktop (GUI)
-=============================
-
-
-First time installs
--------------------
-
-The Cate Desktop installer for your platform is available from the `Cate website <https://climatetoolbox.io/>`_.
-
-Should the website be unavailable, you can get the installer directly from
-the `releases page <https://github.com/CCI-Tools/cate-desktop/releases>`_ in Cate Desktop's GitHub repository:
-
-* ``cate-desktop-2.x.y.dmg`` and for OS X;
-* ``cate-desktop-2.x.y-x86_64.AppImage`` for Linux;
-* ``cate-desktop-setup-2.x.y.exe`` for Windows.
-
-All Cate Desktop installers are quite light-weight and executed by double clicking them.
-
-They don't require any extra user input up to the point where no existing or compatible Cate Python package is found.
-In this case, Cate's *Setup process* is run:
-
-.. figure:: ../_static/figures/user_manual/ui_setup_screen_1.png
-   :scale: 100 %
-   :align: center
-
-   Setup dialog - start screen
-
-You can just click **Next** button to use *Automatic setup* with default settings.
-To see what these settings are, you could select **User-defined setup** and press **Next** in which case the
-default settings are shown:
-
-.. figure:: ../_static/figures/user_manual/ui_setup_screen_2.png
-   :scale: 100 %
-   :align: center
-
-   Setup dialog - user defined settings
-
-
-Pressing **Next** will perform the following setup steps for a new Cate Python package:
-
-1. Downloading a Miniconda installer;
-2. Running the Miniconda in installer in the background to install a dedicated Python environment;
-3. Installing the Python conda package ``cate-cli`` into that environment.
-
-For an existing, outdated Cate Python package it will just update it to the required version and also update all
-required 3rd-party Python packages.
-
-.. figure:: ../_static/figures/user_manual/ui_setup_screen_3.png
-   :scale: 100 %
-   :align: center
-
-   Setup dialog - setup in progress
-
-
-After successful installation, press **End** to start Cate Desktop:
-
-.. figure:: ../_static/figures/user_manual/ui_setup_screen_4.png
-   :scale: 100 %
-   :align: center
-
-   Setup dialog - setup successful
-
-Should you encounter any problems with the setup, please consider filing an error report in the
-`Cate issue tracker <https://github.com/CCI-Tools/cate/issues>`_.
-
-
-Updating
---------
-
-By default, Cate Desktop is supposed to keep itself up-to-date automatically. Once the update is installed,
-Cate Desktop might detect an outdated Cate Python package. In this case the *Setup process*
-described above is run again to update the Python package to the required version.
-
-In case the update procedure fails,
-uninstall Cate Desktop, then `download the latest version <https://github.com/CCI-Tools/cate-desktop/releases>`_
-for your operating system and install again.
-
-The auto-update feature of Cate Desktop can be disabled in the **Preferences**:
-
-.. figure:: ../_static/figures/user_manual/ui_dialog_preferences.png
-   :scale: 100 %
-   :align: center
-
-   Preferences Dialog / General
-
+**Operating Systems**: Cate is supposed to work on up-to-date Linux, Mac OS X, and Windows operating systems.
 
 .. _setup_install_cate:
 
@@ -245,7 +155,7 @@ You can find more information about this in the `Cate README`_ on GitHub.
 
 .. _install_cate_app_from_sources:
 
-Installing Cate-App from Sources
+Installing Cate App from Sources
 --------------------------------
 
 To install Cate App, you need to check out Cate-App like Cate above and
