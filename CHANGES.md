@@ -3,6 +3,12 @@
 * Updated documentation:
   - Updated links to Cate SaaS.
   - Removed all references to Cate Desktop, which is no longer supported.
+* Zarr Datastore reads data ids from json file if provided, thereby gaining a notable
+  performance improvement (via updated version of xcube-cci)
+* Extended support of datasets. Previously, datasets which had a chunking of 
+  the time dimension larger than one were not handled properly. This affected 
+  OZONE in a monthly resolution, SEALEVEL in a monthly resolution, and several
+  ICESHEETS datasets. (via updated version of xcube-cci)
 
 ## Version 3.1.3
 
