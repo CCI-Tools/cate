@@ -115,7 +115,7 @@ class WorkspaceTest(unittest.TestCase):
                 coords={
                     'lon': np.ndarray(shape=(0,), dtype=np.float32),
                     'lat': np.ndarray(shape=(0,), dtype=np.float32),
-                    'time': np.ndarray(shape=(0,), dtype=np.datetime64),
+                    'time': np.ndarray(shape=(0,), dtype='datetime64[ns]'),
                 },
                 attrs={
                     'history': 'a b c'
