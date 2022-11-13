@@ -106,6 +106,15 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
         except Exception:
             pass
 
+    def on_finish(self) -> None:
+        print('Coming to finish')
+
+    def on_ping(self, data: bytes) -> None:
+        print(f'ping: {data}')
+
+    def on_pong(self, data: bytes) -> None:
+        print(f'pong: {data}')
+
     def on_close(self):
         _LOG.info(f"on_close:"
                   f" code={self.close_code},"
@@ -121,6 +130,17 @@ class JsonRpcWebSocketHandler(WebSocketHandler):
     def check_origin(self, origin):
         _LOG.info('check_origin: %s', repr(origin))
         return True
+
+    def on_connection_close(self) -> None:
+        print('Connection is closing')
+
+    def on_ws_connection_close(
+        self, close_code: Optional[int] = None, close_reason: Optional[str] = None
+    ) -> None:
+        print('WS Connection is closing')
+        self.close_code = close_code
+        self.close_reason = close_reason
+        self.on_connection_close()
 
     def on_message(self, message: str):
 

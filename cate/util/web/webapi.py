@@ -295,6 +295,10 @@ class WebAPI:
         if self.auto_stop_enabled:
             self._install_next_inactivity_check(auto_stop_after)
         IOLoop.current().start()
+        # await self.server.close_all_connections()
+        # self.stop(self.name, port, address='localhost')
+        # _LOG.info('closing IO-loop...')
+        IOLoop.current().close(all_fds=True)
         return self.service_info
 
     @classmethod
@@ -304,7 +308,7 @@ class WebAPI:
              address=None,
              caller: str = None,
              service_info_file: str = None,
-             kill_after: float = None,
+             kill_after: float = 1.0,
              timeout: float = 10.0) -> dict:
         """
         Stop a WebAPI service.
@@ -389,13 +393,47 @@ class WebAPI:
             except Exception:
                 pass
 
+        # _LOG.info('stopping IO-loop...')
+        # IOLoop.current().stop()
+
         if self.server:
             _LOG.info('stopping server...')
+            # IOLoop.current().add_callback(
+            #     self.server.close_all_connections
+            # )
             self.server.stop()
             self.server = None
 
+        await self.shutdown_cancel_tasks()
         _LOG.info('stopping IO-loop...')
         IOLoop.current().stop()
+
+    async def shutdown_cancel_tasks(self, sig=None):
+        """Cancel all other tasks of the event loop and initiate cleanup"""
+        if sig is None:
+            _LOG.info("Initiating shutdown...")
+        else:
+            _LOG.info("Received signal %s, initiating shutdown...", sig.name)
+
+        # await self.cleanup()
+
+        tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+
+        if tasks:
+            _LOG.info("Cancelling pending tasks")
+            [t.cancel() for t in tasks]
+
+            try:
+                await asyncio.wait(tasks)
+            except asyncio.CancelledError as e:
+                _LOG.info("Caught Task CancelledError. Ignoring")
+            except StopAsyncIteration as e:
+                _LOG.error("Caught StopAsyncIteration Exception", exc_info=True)
+
+            tasks = [t for t in asyncio.all_tasks()]
+            for t in tasks:
+                _LOG.debug("Task status: %s", t)
+        # asyncio.get_event_loop().stop()
 
     # noinspection PyUnusedLocal
     def _sig_handler(self, sig, frame):
@@ -662,6 +700,9 @@ class WebAPIRequestHandler(RequestHandler):
         """
         self.application.time_of_last_activity = time.time()
 
+    def on_connection_close(self):
+        super().on_connection_close()
+
     def write_status_ok(self, content: object = None):
         self.write(dict(status='ok', content=content))
 
@@ -752,6 +793,7 @@ class WebAPIError(Exception):
     """
 
     def __init__(self, message: str):
+        print('Here was an error')
         super().__init__(message)
 
     @property

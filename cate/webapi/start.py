@@ -142,7 +142,8 @@ def create_application(user_root_path: str = None):
         (url_pattern(url_root + 'ws/res/tile/{{base_dir}}/{{res_id}}/{{z}}/{{y}}/{{x}}.png'), ResVarTileHandler),
         (url_pattern(url_root + 'ws/ne2/tile/{{z}}/{{y}}/{{x}}.jpg'), NE2Handler),
         (url_pattern(url_root + 'ws/countries'), CountriesGeoJSONHandler),
-    ])
+    ], websocket_ping_interval=10
+    )
 
     default_user_root_path = os.environ.get('CATE_USER_ROOT')
     if user_root_path is None:
