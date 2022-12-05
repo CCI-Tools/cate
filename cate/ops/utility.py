@@ -271,15 +271,17 @@ def no_op(num_steps: int = 20,
     memory = []
     message = 'Allocating memory' if memory_size else 'Computing nothing'
     with monitor.starting(message, num_steps):
-        if memory_size:
-            memory.append(np.zeros(memory_size, dtype=np.uint8))
         if fail_before:
             error_class = _ERROR_TYPES[error_type]
             raise error_class(f'This is a test: intentionally failed with a {error_type} error'
                               f' before {num_steps} times doing anything.')
+
         for i in range(num_steps):
+            if memory_size:
+                memory.append(np.zeros(memory_size, dtype=np.uint8))
             time.sleep(step_duration)
             monitor.progress(1.0, 'Step %s of %s doing nothing' % (i + 1, num_steps))
+
         if fail_after:
             error_class = _ERROR_TYPES[error_type]
             raise error_class(f'Intentionally failed failed with a {error_type} error'
