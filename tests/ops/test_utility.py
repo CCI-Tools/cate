@@ -11,8 +11,14 @@ import xarray as xr
 from cate.core.ds import NetworkError
 from cate.core.op import OP_REGISTRY
 from cate.core.types import ValidationError
-from cate.ops.utility import merge, sel, from_data_frame, identity, literal, \
-    pandas_fillna, no_op
+from cate.ops.utility import merge
+from cate.ops.utility import sel
+from cate.ops.utility import from_data_frame
+from cate.ops.utility import identity
+from cate.ops.utility import literal
+from cate.ops.utility import pandas_fillna
+from cate.ops.utility import no_op
+from cate.ops.utility import parse_memory_size
 from cate.util.misc import object_to_qualified_name
 
 
@@ -273,6 +279,15 @@ class NoOpTest(TestCase):
         no_op(step_duration=0, num_steps=5, memory_alloc='0.01T')
         with self.assertRaises(ValueError):
             no_op(step_duration=0, num_steps=5, memory_alloc='x')
+
+    def test_parse_memory_size(self):
+        self.assertEqual(0, parse_memory_size(''))
+        self.assertEqual(1002, parse_memory_size('1002'))
+        self.assertEqual(120000000, parse_memory_size('120M'))
+        self.assertEqual(124, parse_memory_size('124B'))
+        self.assertEqual(100000000, parse_memory_size('0.1G'))
+        self.assertEqual(300000000, parse_memory_size('0.3g'))
+        self.assertEqual(200000000, parse_memory_size('0.0002T'))
 
 
 def new_ds():

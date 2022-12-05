@@ -258,15 +258,7 @@ def no_op(num_steps: int = 20,
     """
     import time
 
-    memory_size = 0
-    if memory_alloc:
-        unit = memory_alloc[-1].lower()
-        factors = dict(b=1, k=1000, m=1000**2, g=1000**3, t=1000**4)
-        factor = 1
-        if unit in factors:
-            factor = factors[unit]
-            memory_alloc = memory_alloc[:-1]
-        memory_size = round(factor * float(memory_alloc))
+    memory_size = parse_memory_size(memory_alloc)
 
     memory = []
     message = 'Allocating memory' if memory_size else 'Computing nothing'
@@ -278,7 +270,8 @@ def no_op(num_steps: int = 20,
 
         for i in range(num_steps):
             if memory_size:
-                memory.append(np.zeros(memory_size, dtype=np.uint8))
+                array = np.random.randint(0, 255, dtype=np.uint8)
+                memory.append(array)
             time.sleep(step_duration)
             monitor.progress(1.0, 'Step %s of %s doing nothing' % (i + 1, num_steps))
 
@@ -288,6 +281,27 @@ def no_op(num_steps: int = 20,
                               f' after {num_steps} times doing nothing.')
 
     return True
+
+
+_UNIT_FACTORS = dict(
+    b=1,
+    k=1000,
+    m=1000 ** 2,
+    g=1000 ** 3,
+    t=1000 ** 4
+)
+
+
+def parse_memory_size(memory_alloc: str) -> int:
+    memory_size = 0
+    if memory_alloc:
+        unit = memory_alloc[-1].lower()
+        factor = 1
+        if unit in _UNIT_FACTORS:
+            factor = _UNIT_FACTORS[unit]
+            memory_alloc = memory_alloc[:-1]
+        memory_size = round(factor * float(memory_alloc))
+    return memory_size
 
 
 @op(tags=['utility', 'internal'])
