@@ -9,6 +9,8 @@
   the time dimension larger than one were not handled properly. This affected 
   OZONE in a monthly resolution, SEALEVEL in a monthly resolution, and several
   ICESHEETS datasets. (via updated version of xcube-cci)
+* Extended operation `no_op` by parameter `memory_alloc` for container 
+  stress testing. (#980)
 
 ## Version 3.1.3
 

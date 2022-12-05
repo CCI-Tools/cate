@@ -11,7 +11,8 @@ import xarray as xr
 from cate.core.ds import NetworkError
 from cate.core.op import OP_REGISTRY
 from cate.core.types import ValidationError
-from cate.ops.utility import merge, sel, from_data_frame, identity, literal, pandas_fillna, no_op
+from cate.ops.utility import merge, sel, from_data_frame, identity, literal, \
+    pandas_fillna, no_op
 from cate.util.misc import object_to_qualified_name
 
 
@@ -75,13 +76,15 @@ class SelTest(TestCase):
         ds = new_ds()
 
         sel_ds = sel(ds=ds, time='2014-09-06')
-        self.assertEqual(set(sel_ds.coords.keys()), {'lon', 'lat', 'time', 'reference_time'})
+        self.assertEqual(set(sel_ds.coords.keys()),
+                         {'lon', 'lat', 'time', 'reference_time'})
         self.assertEqual(sel_ds.dims['lon'], 4)
         self.assertEqual(sel_ds.dims['lat'], 2)
         self.assertNotIn('time', sel_ds.dims)
 
         sel_ds = sel(ds=ds, point=(34.51, 10.25))
-        self.assertEqual(set(sel_ds.coords.keys()), {'lon', 'lat', 'time', 'reference_time'})
+        self.assertEqual(set(sel_ds.coords.keys()),
+                         {'lon', 'lat', 'time', 'reference_time'})
         self.assertNotIn('lon', sel_ds.dims)
         self.assertNotIn('lat', sel_ds.dims)
         self.assertEqual(sel_ds.dims['time'], 10)
@@ -95,13 +98,15 @@ class SelTest(TestCase):
         ds = new_ds()
 
         sel_ds = reg_op(ds=ds, time='2014-09-06')
-        self.assertEqual(set(sel_ds.coords.keys()), {'lon', 'lat', 'time', 'reference_time'})
+        self.assertEqual(set(sel_ds.coords.keys()),
+                         {'lon', 'lat', 'time', 'reference_time'})
         self.assertEqual(sel_ds.dims['lon'], 4)
         self.assertEqual(sel_ds.dims['lat'], 2)
         self.assertNotIn('time', sel_ds.dims)
 
         sel_ds = reg_op(ds=ds, point=(34.51, 10.25))
-        self.assertEqual(set(sel_ds.coords.keys()), {'lon', 'lat', 'time', 'reference_time'})
+        self.assertEqual(set(sel_ds.coords.keys()),
+                         {'lon', 'lat', 'time', 'reference_time'})
         self.assertNotIn('lon', sel_ds.dims)
         self.assertNotIn('lat', sel_ds.dims)
         self.assertEqual(sel_ds.dims['time'], 10)
@@ -209,7 +214,8 @@ class TestFillna(TestCase):
                 'B': [5, 6, 8, 7, 5, np.nan, np.nan, np.nan, 1, 2, 7, 6]}
         expected = {'A': [1, 2, 3, 3, 4, 9, 9, 9, 1, 0, 4, 6],
                     'B': [5, 6, 8, 7, 5, 5, 5, 5, 1, 2, 7, 6]}
-        time = pd.date_range('2000-01-01', freq='MS', periods=12, tz=timezone.utc)
+        time = pd.date_range('2000-01-01', freq='MS', periods=12,
+                             tz=timezone.utc)
 
         expected = pd.DataFrame(data=expected, index=time, dtype=float)
         df = pd.DataFrame(data=data, index=time, dtype=float)
@@ -234,7 +240,8 @@ class TestFillna(TestCase):
                 'B': [5, 6, 8, 7, 5, np.nan, np.nan, np.nan, 1, 2, 7, 6]}
         expected = {'A': [1, 2, 3, 3, 4, 9, 9, 9, 1, 0, 4, 6],
                     'B': [5, 6, 8, 7, 5, 5, 5, 5, 1, 2, 7, 6]}
-        time = pd.date_range('2000-01-01', freq='MS', periods=12, tz=timezone.utc)
+        time = pd.date_range('2000-01-01', freq='MS', periods=12,
+                             tz=timezone.utc)
 
         expected = pd.DataFrame(data=expected, index=time, dtype=float)
         df = pd.DataFrame(data=data, index=time, dtype=float)
@@ -255,6 +262,16 @@ class NoOpTest(TestCase):
         with self.assertRaises(ValidationError):
             no_op(step_duration=0.001, fail_after=True, error_type='????')
 
+    def test_alloc_memory(self):
+        # We actually cannot verify that it works, so here are
+        # a few smoke tests
+        no_op(step_duration=0, num_steps=3, memory_alloc='120M')
+        no_op(step_duration=0, num_steps=200, memory_alloc='124B')
+        no_op(step_duration=0, num_steps=2, memory_alloc='0.1G')
+        no_op(step_duration=0, num_steps=5, memory_alloc='0.01T')
+        with self.assertRaises(ValueError):
+            no_op(step_duration=0, num_steps=5, memory_alloc='x')
+
 
 def new_ds():
     lon = [10.1, 10.2, 10.3, 10.4]
@@ -266,8 +283,10 @@ def new_ds():
     lon_res = len(lon)
     lat_res = len(lat)
 
-    temperature = (15 + 8 * np.random.randn(lon_res, lat_res, time_res)).round(decimals=1)
-    precipitation = (10 * np.random.rand(lon_res, lat_res, time_res)).round(decimals=1)
+    temperature = (15 + 8 * np.random.randn(lon_res, lat_res, time_res)).round(
+        decimals=1)
+    precipitation = (10 * np.random.rand(lon_res, lat_res, time_res)).round(
+        decimals=1)
 
     ds = xr.Dataset({'temperature': (['lon', 'lat', 'time'], temperature),
                      'precipitation': (['lon', 'lat', 'time'], precipitation)
