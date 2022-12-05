@@ -28,6 +28,7 @@ utility functions.
 All operations in this module are tagged with the ``"utility"`` tag.
 
 """
+import numpy as np
 import pandas as pd
 import xarray as xr
 from datetime import timezone
@@ -232,12 +233,13 @@ _ERROR_TYPES = {
 
 @op(tags=['utility'])
 @op_input('step_duration', units='seconds')
-@op_input('error_type', value_set=['Value', 'OS', 'Memory', 'Network', 'Data Access', 'Validation'])
+@op_input('error_type', value_set=list(_ERROR_TYPES.keys()))
 def no_op(num_steps: int = 20,
           step_duration: float = 0.5,
           fail_before: bool = False,
           fail_after: bool = False,
           error_type: str = 'Value',
+          memory_alloc: str = '0',
           monitor: Monitor = Monitor.NONE) -> bool:
     """
     An operation that basically does nothing but spending configurable time.
@@ -245,25 +247,46 @@ def no_op(num_steps: int = 20,
 
     :param num_steps: Number of steps to iterate.
     :param step_duration: How much time to spend in each step in seconds.
-    :param fail_before: If the operation should fail before spending time doing nothing (raise a ValidationError).
-    :param fail_after: If the operation should fail after spending time doing nothing (raise a ValueError).
+    :param fail_before: If the operation should fail before spending
+        time doing nothing (raise a ValidationError).
+    :param fail_after: If the operation should fail after spending
+        time doing nothing (raise a ValueError).
     :param error_type: The type of error to raise.
+    :param memory_alloc: Memory allocation in each step, e.g., "250M", "1G".
     :param monitor: A progress monitor.
     :return: Always True
     """
     import time
-    with monitor.starting('Computing nothing', num_steps):
+
+    memory_size = 0
+    if memory_alloc:
+        unit = memory_alloc[-1].lower()
+        factors = dict(b=1, k=1000, m=1000**2, g=1000**3, t=1000**4)
+        factor = 1
+        if unit in factors:
+            factor = factors[unit]
+            memory_alloc = memory_alloc[:-1]
+        memory_size = round(factor * float(memory_alloc))
+
+    memory = []
+    message = 'Allocating memory' if memory_size else 'Computing nothing'
+    with monitor.starting(message, num_steps):
         if fail_before:
             error_class = _ERROR_TYPES[error_type]
             raise error_class(f'This is a test: intentionally failed with a {error_type} error'
                               f' before {num_steps} times doing anything.')
+
         for i in range(num_steps):
+            if memory_size:
+                memory.append(np.zeros(memory_size, dtype=np.uint8))
             time.sleep(step_duration)
             monitor.progress(1.0, 'Step %s of %s doing nothing' % (i + 1, num_steps))
+
         if fail_after:
             error_class = _ERROR_TYPES[error_type]
             raise error_class(f'Intentionally failed failed with a {error_type} error'
                               f' after {num_steps} times doing nothing.')
+
     return True
 
 
