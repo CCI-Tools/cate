@@ -270,8 +270,7 @@ def no_op(num_steps: int = 20,
 
         for i in range(num_steps):
             if memory_size:
-                array = np.random.randint(0, 255, dtype=np.uint8)
-                memory.append(array)
+                memory.append(np.ones(memory_size, dtype=np.uint8))
             time.sleep(step_duration)
             monitor.progress(1.0, 'Step %s of %s doing nothing' % (i + 1, num_steps))
 
