@@ -1,4 +1,4 @@
-FROM quay.io/bcdev/xcube:v0.13.0.dev6
+FROM quay.io/bcdev/xcube:v0.13.0.dev5
 
 LABEL maintainer="tonio.fincke@brockmann-consult.de"
 LABEL name=cate
