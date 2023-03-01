@@ -3,7 +3,7 @@ version: '{build}'
 
 environment:
   global:
-    PYTHON_LOC: "C:\\Miniconda37-x64"
+    PYTHON_LOC: "C:\\Miniconda39-x64"
 
 install:
   - call %PYTHON_LOC%\Scripts\activate.bat
