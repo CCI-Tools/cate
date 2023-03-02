@@ -44,7 +44,8 @@ build_script:
   - conda activate xcube
   - pip install -e .
   # Install xcube-cci
-  - cd ..\xcube-cci
+  - cd ..
+  - cd xcube-cci
   - mamba install -c conda-forge lxml pydap aiohttp nest-asyncio
   - pip install -e .
   # Install cate-specific packages
