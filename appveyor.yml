@@ -11,7 +11,7 @@ platform:
 environment:
   # For the unit-tests, disable Numba JIT, otherwise Coverage wont reach the actual Python code
   NUMBA_DISABLE_JIT: 1
-  # Uncomment following line if web testing on travis breaks our build
+  # Uncomment following line if web testing breaks our build
   CATE_DISABLE_WEB_TESTS: 1
   # geopandas in tests break the build on appveyor (maybe the problem of gdal?)
   CATE_DISABLE_GEOPANDAS_TESTS: 1
