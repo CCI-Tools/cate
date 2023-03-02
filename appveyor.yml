@@ -33,6 +33,7 @@ build_script:
   - conda info -a
   - conda init bash
   - export CONDA_BASE=$(conda info --base)
+  - source $CONDA_BASE/etc/profile.d/conda.sh
   - conda install -c conda-forge -n base mamba pip
 
   - git clone https://github.com/dcs4cop/xcube.git
