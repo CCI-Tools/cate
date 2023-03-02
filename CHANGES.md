@@ -1,3 +1,5 @@
+## Version 3.1.6 (in development)
+
 ## Version 3.1.5
 
 * Feature Collections may be written as geojson also with latest fiona versions.
