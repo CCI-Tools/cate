@@ -276,6 +276,18 @@ def write_feature_collection(feature_collection: Union[fiona.Collection, Iterabl
             if num_features_written > 0:
                 io.write(',\n')
                 io.flush()
+            # fiona >=1.9 returns features of type fiona.model.Feature
+            # rather than JSON-serializable dictionaries.
+            if hasattr(feature, '__geo_interface__'):
+                # We fall back on the traditional geo-interface:
+                feature = feature.__geo_interface__
+                # Fiona =1.9.0 adds empty "geometries" field
+                # to any "geometry", we fix this too:
+                geometry = feature.get('geometry')
+                if geometry \
+                        and "geometries" in geometry \
+                        and geometry.get("type") != "GeometryCollection":
+                    del geometry["geometries"]
             if res_id is not None:
                 feature['_resId'] = res_id
             feature['_idx'] = feature_index

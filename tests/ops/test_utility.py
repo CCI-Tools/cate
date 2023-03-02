@@ -276,7 +276,7 @@ class NoOpTest(TestCase):
         no_op(step_duration=0, num_steps=3, memory_alloc='120M')
         no_op(step_duration=0, num_steps=200, memory_alloc='124B')
         no_op(step_duration=0, num_steps=2, memory_alloc='0.1G')
-        no_op(step_duration=0, num_steps=1, memory_alloc='0.01T')
+        no_op(step_duration=0, num_steps=1, memory_alloc='0.001T')
         with self.assertRaises(ValueError):
             no_op(step_duration=0, num_steps=5, memory_alloc='x')
 
