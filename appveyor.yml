@@ -1,35 +1,56 @@
 # version here is only relevant for the AppVeyor CI, no need to adjust
 version: '{build}'
 
-environment:
-  global:
-    PYTHON_LOC: "C:\\Miniconda37-x64"
+image:
+  - macOS
+  - Ubuntu2004
+
+platform:
+  - x64
+
+for:
+-
+  matrix:
+    only:
+      - image: macOS
+  install:
+    - curl -L https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh > miniconda.sh
+    - bash miniconda.sh -b -p $HOME/miniconda
+-
+  matrix:
+    only:
+      - image: Ubuntu2004
+  install:
+    - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+    - bash miniconda.sh -b -p $HOME/miniconda
 
 install:
-  - call %PYTHON_LOC%\Scripts\activate.bat
+  - export PATH="$HOME/miniconda/bin:$PATH"
+  - hash -r
   - conda config --set always_yes yes --set changeps1 no
   - conda config --set channel_priority strict
   - conda update -q conda
   - conda info -a
-  - conda install -c conda-forge -n base mamba
+  - conda init bash
+  - export CONDA_BASE=$(conda info --base)
+  - conda install -c conda-forge -n base mamba pip
 
 build_script:
-  - call %PYTHON_LOC%\Scripts\activate.bat
   - git clone https://github.com/dcs4cop/xcube.git
   - git clone https://github.com/dcs4cop/xcube-cci.git
   # Install xcube env and xcube
   - cd xcube
   - mamba env create
   - conda activate xcube
-  - python setup.py develop
+  - pip install -e .
   # Install xcube-cci
   - cd ..\xcube-cci
   - mamba install -c conda-forge lxml pydap aiohttp nest-asyncio
-  - python setup.py develop
+  - pip install -e .
   # Install cate-specific packages
   - cd ..
   - mamba install -c conda-forge cartopy
-  - python setup.py develop
+  - pip install -e .
   - conda list
   # For the unit-tests, disable Numba JIT, otherwise Coverage wont reach the actual Python code
   - set NUMBA_DISABLE_JIT=1
