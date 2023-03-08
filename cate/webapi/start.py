@@ -58,12 +58,25 @@ from cate.core.types import ValidationError
 from cate.core.wsmanag import FSWorkspaceManager
 from cate.util.misc import get_dependencies
 from cate.util.web import JsonRpcWebSocketHandler
-from cate.util.web.webapi import run_start, url_pattern, WebAPIRequestHandler, WebAPIExitHandler
+from cate.util.web.webapi import (run_start,
+                                  url_pattern,
+                                  WebAPIRequestHandler,
+                                  WebAPIExitHandler)
 from cate.version import __version__
-from cate.webapi.mpl import MplJavaScriptHandler, MplDownloadHandler, MplWebSocketHandler
-from cate.webapi.rest import ResourcePlotHandler, CountriesGeoJSONHandler, ResVarTileHandler, \
-    ResFeatureCollectionHandler, ResFeatureHandler, ResVarCsvHandler, ResVarHtmlHandler, NE2Handler, \
-    FilesUploadHandler, FilesDownloadHandler
+from cate.webapi.mpl import (MplJavaScriptHandler,
+                             MplDownloadHandler,
+                             MplWebSocketHandler)
+from cate.webapi.rest import (ResourcePlotHandler,
+                              CountriesGeoJSONHandler,
+                              ResVarTileHandler,
+                              ResFeatureCollectionHandler,
+                              ResFeatureHandler,
+                              ResVarCsvHandler,
+                              ResVarHtmlHandler,
+                              NE2Handler,
+                              FilesUploadHandler,
+                              FilesDownloadHandler,
+                              get_app_resources_path)
 from cate.webapi.service import SERVICE_NAME, SERVICE_TITLE
 from cate.webapi.websocket import WebSocketService
 
@@ -121,6 +134,7 @@ def create_application(user_root_path: str = None):
                      f" as default root URL for the API.")
 
     application = Application([
+        (url_root + 'app/(.*)', StaticFileHandler, {'path': get_app_resources_path()}),
         (url_root + '_static/(.*)', StaticFileHandler, {'path': FigureManagerWebAgg.get_static_file_path()}),
         (url_root + 'mpl.js', MplJavaScriptHandler),
         (url_pattern(url_root + 'mpl/download/{{base_dir}}/{{figure_id}}/{{format_name}}'), MplDownloadHandler),

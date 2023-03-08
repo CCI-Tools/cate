@@ -25,13 +25,15 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
 
 import concurrent.futures
 import datetime
+import importlib.resources
 import json
+import logging
 import os
 import sys
 import tempfile
 import time
 import zipfile
-from typing import Sequence, Any
+from typing import Sequence, Any, Optional
 
 import fiona
 import geopandas as gpd
@@ -69,11 +71,14 @@ MEM_TILE_CACHE = Cache(MemoryCacheStore(),
                        threshold=0.75)
 
 # Note, the following "get_config()" call in the code will make sure "~/.cate/<version>" is created
-USE_WORKSPACE_IMAGERY_CACHE = get_config().get('use_workspace_imagery_cache', WEBAPI_USE_WORKSPACE_IMAGERY_CACHE)
+USE_WORKSPACE_IMAGERY_CACHE = get_config().get('use_workspace_imagery_cache',
+                                               WEBAPI_USE_WORKSPACE_IMAGERY_CACHE)
 
 TRACE_PERF = is_debug_mode()
 
 THREAD_POOL = concurrent.futures.ThreadPoolExecutor()
+
+_LOG = logging.getLogger('cate')
 
 _NUM_GEOM_SIMP_LEVELS = 8
 
@@ -629,7 +634,26 @@ class FilesDownloadHandler(WebAPIRequestHandler):
         zip_file = self._zip_files(target_files)
         self._return_zip_file(zip_file, process_id)
 
-        self.finish(json.dumps({'status': 'success', 'error': '', 'message': 'Done'}))
+        self.finish(
+            json.dumps({'status': 'success', 'error': '', 'message': 'Done'}))
+
+
+def get_app_resources_path() -> Optional[str]:
+    app_path = os.environ.get("CATE_APP_PATH")
+    if app_path:
+        return app_path
+    try:
+        with importlib.resources.files("cate.webapi") as path:
+            app_path = path / "app"
+            if (app_path / "index.html").is_file():
+                return str(app_path)
+    except ImportError:
+        pass
+    _LOG.warning(f"Cannot find 'cate/webapi/app,"
+                 f" consider setting environment variable"
+                 f" CATE_APP_PATH",
+                 exc_info=True)
+    return None
 
 
 def _new_monitor() -> Monitor:
