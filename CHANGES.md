@@ -1,4 +1,5 @@
 ## Version 3.1.6 (in development)
+* Use compatible library versions in software environments 
 
 ## Version 3.1.5
 
