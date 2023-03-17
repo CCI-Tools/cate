@@ -1,4 +1,4 @@
-## Version 3.1.6 (in development)
+## Version 3.1.6
 
 * Fixed docker image
 * Use compatible library versions in software environments 
