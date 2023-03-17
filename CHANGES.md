@@ -1,3 +1,5 @@
+## Version 3.1.7 (in development)
+
 ## Version 3.1.6
 
 * Fixed docker image
