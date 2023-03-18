@@ -134,13 +134,13 @@ def create_application(user_root_path: str = None):
                      f" as default root URL for the API.")
 
     application = Application([
-        (url_root + 'app', RedirectHandler, {
-            'url': url_root + 'app/'}
-         ),
         (url_root + 'app/(.*)', StaticFileHandler, {
             'path': get_app_resources_path(),
             'default_filename': 'index.html'
         }),
+        (url_root + 'app', RedirectHandler, {
+            'url': url_root + 'app/'}
+         ),
         (url_root + '_static/(.*)', StaticFileHandler, {'path': FigureManagerWebAgg.get_static_file_path()}),
         (url_root + 'mpl.js', MplJavaScriptHandler),
         (url_pattern(url_root + 'mpl/download/{{base_dir}}/{{figure_id}}/{{format_name}}'), MplDownloadHandler),

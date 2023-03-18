@@ -641,6 +641,7 @@ class FilesDownloadHandler(WebAPIRequestHandler):
 def get_app_resources_path() -> Optional[str]:
     app_path = os.environ.get("CATE_APP_PATH")
     if app_path:
+        _LOG.warning(f"Endpoint '/app' will be served from {app_path}")
         return app_path
     try:
         with importlib.resources.files("cate.webapi") as path:
