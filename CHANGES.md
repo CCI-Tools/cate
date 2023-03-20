@@ -1,4 +1,11 @@
-## Version 3.1.6 (in development)
+## Version 4.0.0 (in development)
+
+* Cate is now designed to work inside of Jupyter Lab and standalone.
+  For this reason, the Cate App UI is now bundled with the Cate server
+  and served via the endpoint "/app".
+
+* The "local" data store is now configured to use the current 
+  working directory as root.
 
 ## Version 3.1.5
 

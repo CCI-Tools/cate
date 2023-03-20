@@ -19,7 +19,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import logging
+
 from xcube.util.assertions import assert_given
+
+_LOG = logging.getLogger('cate')
 
 
 def cate_init():
@@ -36,6 +40,9 @@ def cate_init():
 
     dir_path = os.path.dirname(os.path.abspath(__file__))
     default_stores_file = os.path.join(dir_path, 'data/stores.yml')
+
+    _LOG.info("----------------> current dir is", os.getcwd())
+    print("----------------> current dir is", os.getcwd())
 
     if os.path.exists(STORES_CONF_FILE):
         with open(STORES_CONF_FILE, 'r') as fp:
