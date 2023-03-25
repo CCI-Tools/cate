@@ -7,6 +7,11 @@
 * The "local" data store is now configured to use the current 
   working directory as root.
 
+## Version 3.1.6
+
+* Fixed docker image
+* Use compatible library versions in software environments 
+
 ## Version 3.1.5
 
 * Feature Collections may be written as geojson also with latest fiona versions.
