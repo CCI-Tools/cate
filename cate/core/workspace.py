@@ -36,12 +36,14 @@ import xarray as xr
 
 from .workflow import Workflow, OpStep, NodePort, ValueCache
 from ..conf import conf
-from ..conf.defaults import WORKSPACE_DATA_DIR_NAME, WORKSPACE_WORKFLOW_FILE_NAME, DEFAULT_SCRATCH_WORKSPACES_PATH
+from ..conf.defaults import WORKSPACE_DATA_DIR_NAME, \
+    WORKSPACE_WORKFLOW_FILE_NAME, DEFAULT_SCRATCH_WORKSPACES_PATH
 from ..core.cdm import get_tiling_scheme
 from ..core.op import OP_REGISTRY
 from ..core.types import GeoDataFrame, ValidationError
 from ..util.im import get_chunk_size
-from ..util.misc import object_to_qualified_name, to_json, new_indexed_name, to_scalar
+from ..util.misc import object_to_qualified_name, to_json, new_indexed_name, \
+    to_scalar
 from ..util.monitor import Monitor
 from ..util.namespace import Namespace
 from ..util.opmetainf import OpMetaInfo
@@ -52,11 +54,15 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 
 _LOG = logging.getLogger('cate')
 
-_RESOURCE_PERSISTENCE_FORMATS = dict(netcdf4=('nc', xr.open_dataset, 'to_netcdf'),
-                                     zarr=('zarr', xr.open_zarr, 'to_zarr'))
+_RESOURCE_PERSISTENCE_FORMATS = dict(
+    netcdf4=('nc', xr.open_dataset, 'to_netcdf'),
+    zarr=('zarr', xr.open_zarr, 'to_zarr')
+)
 
-#: An JSON-serializable operation argument is a one-element dictionary taking two possible forms:
-#: 1. dict(value=Any):  a value which may be any constant Python object which must JSON-serializable
+#: An JSON-serializable operation argument is a one-element dictionary
+#  taking two possible forms:
+#: 1. dict(value=Any):  a value which may be any constant Python object
+#     which must JSON-serializable
 #: 2. dict(source=str): a reference to a step port name
 OpArg = Dict[str, Any]
 
@@ -70,22 +76,27 @@ OpKwArgs = Dict[str, OpArg]
 def mk_op_arg(arg) -> OpArg:
     """
     Utility function which turns an argument into an operation argument.
-    If *args* is a ``str`` and starts with "@" it is turned into a "source" argument,
-    otherwise it is turned into a "value" argument.
+    If *args* is a ``str`` and starts with "@" it is turned into a
+    "source" argument, otherwise it is turned into a "value" argument.
     """
-    return dict(source=arg[1:]) if isinstance(arg, str) and arg.startswith('@') else dict(value=arg)
+    return dict(source=arg[1:]) \
+        if (isinstance(arg, str)
+            and arg.startswith('@')) \
+        else dict(value=arg)
 
 
 def mk_op_args(*args) -> OpArgs:
     """
-    Utility function which converts a list into positional operation arguments.
+    Utility function which converts a list into positional
+    operation arguments.
     """
     return [mk_op_arg(arg) for arg in args]
 
 
 def mk_op_kwargs(**kwargs) -> OpKwArgs:
     """
-    Utility function which converts a dictionary into operation keyword arguments.
+    Utility function which converts a dictionary into
+    operation keyword arguments.
     """
     return OrderedDict([(kw, mk_op_arg(arg)) for kw, arg in kwargs.items()])
 
@@ -96,35 +107,76 @@ class Workspace:
     By design, workspace workflows have no inputs and every step is an output.
     """
 
-    def __init__(self, base_dir: str, workflow: Workflow, is_modified: bool = False):
+    _base_dir_to_id: Dict[str, int] = {}
+    _last_id = 0
+    _lock = RLock()
+
+    def __init__(self,
+                 base_dir: str,
+                 workflow: Workflow,
+                 is_modified: bool = False,
+                 id: Optional[int] = None):
         assert base_dir
         assert workflow
+        self._id = self.base_dir_to_id(base_dir, id=id)
         self._base_dir = base_dir
         self._workflow = workflow
-        self._is_scratch = (base_dir or '').startswith(DEFAULT_SCRATCH_WORKSPACES_PATH)
+        self._is_scratch = (base_dir or '').startswith(
+            DEFAULT_SCRATCH_WORKSPACES_PATH
+        )
         self._is_modified = is_modified
         self._is_closed = False
         self._resource_cache = ValueCache()
         self._user_data = dict()
-        self._lock = RLock()
 
     def __del__(self):
         self.close()
 
+    @classmethod
+    def base_dir_to_id(cls, base_dir: str, id: Optional[int] = None) -> int:
+        with cls._lock:
+            if isinstance(id, int):
+                # Try reusing base_dir --> id
+                if base_dir not in cls._base_dir_to_id \
+                        and id not in set(cls._base_dir_to_id.values()):
+                    cls._base_dir_to_id[base_dir] = id
+                    return id
+            if base_dir in cls._base_dir_to_id:
+                id = cls._base_dir_to_id[base_dir]
+            else:
+                id = cls._last_id + 1
+                cls._last_id = id
+                cls._base_dir_to_id[base_dir] = id
+        return id
+
+    @classmethod
+    def id_to_base_dir(cls, id: int) -> str:
+        with cls._lock:
+            for base_dir, _id in cls._base_dir_to_id.items():
+                if id == _id:
+                    return base_dir
+        raise ValueError(f'No base directory'
+                         f' found for workspace identifier #{id}')
+
+    @property
+    def id(self) -> int:
+        """The Workspace' identifier."""
+        return self._id
+
     @property
     def base_dir(self) -> str:
-        """The Workspace's container directory."""
+        """The Workspace' container directory."""
         return self._base_dir
 
     @property
     def workflow(self) -> Workflow:
-        """The Workspace's workflow."""
+        """The Workspace' workflow."""
         self._assert_open()
         return self._workflow
 
     @property
     def resource_cache(self) -> ValueCache:
-        """The Workspace's resource cache."""
+        """The Workspace' resource cache."""
         return self._resource_cache
 
     @property
@@ -161,7 +213,8 @@ class Workspace:
 
     @classmethod
     def get_workflow_file(cls, base_dir) -> str:
-        return os.path.join(cls.get_workspace_data_dir(base_dir), WORKSPACE_WORKFLOW_FILE_NAME)
+        return os.path.join(cls.get_workspace_data_dir(base_dir),
+                            WORKSPACE_WORKFLOW_FILE_NAME)
 
     @classmethod
     def new_workflow(cls, header: dict = None) -> Workflow:
@@ -171,10 +224,15 @@ class Workspace:
 
     @classmethod
     def create(cls, base_dir: str, description: str = None) -> 'Workspace':
-        return Workspace(base_dir, Workspace.new_workflow(dict(description=description or '')))
+        return Workspace(base_dir,
+                         Workspace.new_workflow(
+                             dict(description=description or '')
+                         ))
 
     @classmethod
-    def open(cls, base_dir: str, monitor: Monitor = Monitor.NONE) -> 'Workspace':
+    def open(cls,
+             base_dir: str,
+             monitor: Monitor = Monitor.NONE) -> 'Workspace':
         if not os.path.isdir(cls.get_workspace_data_dir(base_dir)):
             raise ValidationError('Not a valid workspace: %s' % base_dir)
         workflow_file = cls.get_workflow_file(base_dir)
@@ -182,7 +240,8 @@ class Workspace:
         workspace = Workspace(base_dir, workflow)
 
         # Read resources for persistent steps
-        persistent_steps = [step for step in workflow.steps if step.persistent]
+        persistent_steps = [step for step in workflow.steps
+                            if step.persistent]
         if persistent_steps:
             with monitor.starting('Reading resources', len(persistent_steps)):
                 for step in persistent_steps:
@@ -198,7 +257,8 @@ class Workspace:
             self._resource_cache.close()
             # Remove all resource files that are no longer required
             if os.path.isdir(self.workspace_data_dir):
-                persistent_ids = {step.id for step in self.workflow.steps if step.persistent}
+                persistent_ids = {step.id for step in self.workflow.steps
+                                  if step.persistent}
                 for filename in os.listdir(self.workspace_data_dir):
                     res_file = os.path.join(self.workspace_data_dir, filename)
                     if os.path.isfile(res_file) and filename.endswith('.nc'):
@@ -221,9 +281,11 @@ class Workspace:
             self.workflow.store(self.workflow_file)
 
             # Write resources for all persistent steps
-            persistent_steps = [step for step in self.workflow.steps if step.persistent]
+            persistent_steps = [step for step in self.workflow.steps
+                                if step.persistent]
             if persistent_steps:
-                with monitor.starting('Writing resources', len(persistent_steps)):
+                with monitor.starting('Writing resources',
+                                      len(persistent_steps)):
                     for step in persistent_steps:
                         self._write_resource_to_file(step.id)
                         monitor.progress(1)
@@ -233,28 +295,36 @@ class Workspace:
     def _write_resource_to_file(self, res_name):
         res_value = self._resource_cache.get(res_name)
         if isinstance(res_value, xr.Dataset):
-            format_props = _RESOURCE_PERSISTENCE_FORMATS.get(conf.get_dataset_persistence_format())
+            format_props = _RESOURCE_PERSISTENCE_FORMATS.get(
+                conf.get_dataset_persistence_format()
+            )
             if format_props:
                 ext, _, write_attr = format_props
                 if hasattr(res_value, write_attr):
                     write_method = getattr(res_value, write_attr)
                     # noinspection PyBroadException
                     try:
-                        resource_file = os.path.join(self.workspace_data_dir, res_name + '.' + ext)
+                        resource_file = os.path.join(self.workspace_data_dir,
+                                                     res_name + '.' + ext)
                         write_method(resource_file)
                     except Exception:
-                        _LOG.exception('writing resource "%s" to file failed' % res_name)
+                        _LOG.exception(
+                            'writing resource "%s" to file failed' % res_name
+                        )
 
     def _read_resource_from_file(self, res_name):
         for ext, open_dataset, _ in _RESOURCE_PERSISTENCE_FORMATS.values():
-            res_file = os.path.join(self.workspace_data_dir, res_name + '.' + ext)
+            res_file = os.path.join(self.workspace_data_dir,
+                                    res_name + '.' + ext)
             if os.path.exists(res_file):
                 # noinspection PyBroadException
                 try:
                     res_value = open_dataset(res_file)
                     self._resource_cache[res_name] = res_value
                 except Exception:
-                    _LOG.exception('reading resource "%s" from file failed' % res_name)
+                    _LOG.exception(
+                        'reading resource "%s" from file failed' % res_name
+                    )
 
     def set_resource_persistence(self, res_name: str, persistent: bool):
         with self._lock:
@@ -268,22 +338,25 @@ class Workspace:
 
     @classmethod
     def from_json_dict(cls, json_dict):
+        id = json_dict.get('id', None)
         base_dir = json_dict.get('base_dir', None)
         workflow_json = json_dict.get('workflow', {})
         is_modified = json_dict.get('is_modified', False)
         workflow = Workflow.from_json_dict(workflow_json)
-        return Workspace(base_dir, workflow, is_modified=is_modified)
+        return Workspace(base_dir, workflow, is_modified=is_modified, id=id)
 
     def to_json_dict(self):
         with self._lock:
             self._assert_open()
-            return OrderedDict([('base_dir', self.base_dir),
-                                ('is_scratch', self.is_scratch),
-                                ('is_modified', self.is_modified),
-                                ('is_saved', os.path.exists(self.workspace_data_dir)),
-                                ('workflow', self.workflow.to_json_dict()),
-                                ('resources', self._resources_to_json_list())
-                                ])
+            return OrderedDict([
+                ('id', self.id),
+                ('base_dir', self.base_dir),
+                ('is_scratch', self.is_scratch),
+                ('is_modified', self.is_modified),
+                ('is_saved', os.path.exists(self.workspace_data_dir)),
+                ('workflow', self.workflow.to_json_dict()),
+                ('resources', self._resources_to_json_list())
+            ])
 
     def _resources_to_json_list(self):
         resource_descriptors = []
@@ -292,31 +365,59 @@ class Workspace:
             res_name = res_step.id
             if res_name in resource_cache:
                 res_id = self._resource_cache.get_id(res_name)
-                res_update_count = self._resource_cache.get_update_count(res_name)
+                res_update_count = self._resource_cache.get_update_count(
+                    res_name)
                 resource = resource_cache.pop(res_name)
-                resource_descriptor = self._get_resource_descriptor(res_id, res_update_count, res_name, resource)
+                resource_descriptor = self._get_resource_descriptor(
+                    res_id,
+                    res_update_count,
+                    res_name,
+                    resource
+                )
                 resource_descriptors.append(resource_descriptor)
         if len(resource_cache) > 0:
-            # We should not get here as all resources should have an associated workflow step!
+            # We should not get here as all resources should have
+            # an associated workflow step!
             for res_name, resource in resource_cache.items():
                 res_id = self._resource_cache.get_id(res_name)
-                res_update_count = self._resource_cache.get_update_count(res_name)
-                resource_descriptor = self._get_resource_descriptor(res_id, res_update_count, res_name, resource)
+                res_update_count = self._resource_cache.get_update_count(
+                    res_name)
+                resource_descriptor = self._get_resource_descriptor(
+                    res_id,
+                    res_update_count,
+                    res_name,
+                    resource
+                )
                 resource_descriptors.append(resource_descriptor)
         return resource_descriptors
 
     @classmethod
-    def _get_resource_descriptor(cls, res_id: int, res_update_count: int, res_name: str, resource):
+    def _get_resource_descriptor(cls,
+                                 res_id: int,
+                                 res_update_count: int,
+                                 res_name: str,
+                                 resource: Any):
         data_type_name = object_to_qualified_name(type(resource))
-        resource_json = dict(id=res_id, updateCount=res_update_count, name=res_name, dataType=data_type_name)
+        resource_json = dict(id=res_id,
+                             updateCount=res_update_count,
+                             name=res_name,
+                             dataType=data_type_name)
         if isinstance(resource, xr.Dataset):
-            cls._update_resource_json_from_dataset(resource_json, resource)
+            cls._update_resource_json_from_dataset(
+                resource_json, resource
+            )
         elif isinstance(resource, GeoDataFrame):
-            cls._update_resource_json_from_feature_collection(resource_json, resource.features)
+            cls._update_resource_json_from_feature_collection(
+                resource_json, resource.features
+            )
         elif isinstance(resource, pd.DataFrame):
-            cls._update_resource_json_from_data_frame(resource_json, resource)
+            cls._update_resource_json_from_data_frame(
+                resource_json, resource
+            )
         elif isinstance(resource, fiona.Collection):
-            cls._update_resource_json_from_feature_collection(resource_json, resource)
+            cls._update_resource_json_from_feature_collection(
+                resource_json, resource
+            )
         return resource_json
 
     @classmethod
@@ -327,24 +428,34 @@ class Workspace:
         for var_name in var_names:
             if not var_name.endswith('_bnds'):
                 variable = dataset.data_vars[var_name]
-                variable_descriptors.append(cls._get_xarray_variable_descriptor(variable))
+                variable_descriptors.append(
+                    cls._get_xarray_variable_descriptor(variable)
+                )
         var_names = sorted(dataset.coords.keys())
         for var_name in var_names:
             variable = dataset.coords[var_name]
-            coords_descriptors.append(cls._get_xarray_variable_descriptor(variable, is_coord=True))
+            coords_descriptors.append(
+                cls._get_xarray_variable_descriptor(variable, is_coord=True)
+            )
         # noinspection PyArgumentList
-        resource_json.update(dimSizes=to_json(dataset.dims),
-                             attributes=Workspace._attrs_to_json_dict(dataset.attrs),
-                             variables=variable_descriptors,
-                             coordVariables=coords_descriptors)
+        resource_json.update(
+            dimSizes=to_json(dataset.dims),
+            attributes=Workspace._attrs_to_json_dict(dataset.attrs),
+            variables=variable_descriptors,
+            coordVariables=coords_descriptors
+        )
 
     @classmethod
-    def _update_resource_json_from_data_frame(cls, resource_json, data_frame: pd.DataFrame):
+    def _update_resource_json_from_data_frame(cls,
+                                              resource_json,
+                                              data_frame: pd.DataFrame):
         variable_descriptors = []
         var_names = list(data_frame.columns)
         for var_name in var_names:
             variable = data_frame[var_name]
-            variable_descriptors.append(cls._get_pandas_variable_descriptor(variable))
+            variable_descriptors.append(
+                cls._get_pandas_variable_descriptor(variable)
+            )
         # noinspection PyArgumentList,PyTypeChecker
 
         if len(data_frame.shape) == 2:
@@ -366,10 +477,15 @@ class Workspace:
             if isinstance(geom_type, pd.Series) and geom_type.size > 0:
                 attributes['geom_type'] = str(geom_type.iloc[0])
 
-        resource_json.update(variables=variable_descriptors, attributes=attributes)
+        resource_json.update(variables=variable_descriptors,
+                             attributes=attributes)
 
     @classmethod
-    def _update_resource_json_from_feature_collection(cls, resource_json, features: fiona.Collection):
+    def _update_resource_json_from_feature_collection(
+            cls,
+            resource_json,
+            features: fiona.Collection
+    ):
         variable_descriptors = []
         num_features = len(features)
         num_properties = 0
@@ -384,7 +500,8 @@ class Workspace:
                 })
 
         if num_features == 1 and len(variable_descriptors) >= 1:
-            # For single rows we can provide feature values directly, given they are scalars
+            # For single rows we can provide feature values directly,
+            # given they are scalars
             feature = list(features)[0]
             if isinstance(feature, dict) and 'properties' in feature:
                 feature_properties = feature['properties']
@@ -431,7 +548,9 @@ class Workspace:
         return variable_info
 
     @classmethod
-    def _get_xarray_variable_descriptor(cls, variable: xr.DataArray, is_coord=False):
+    def _get_xarray_variable_descriptor(cls,
+                                        variable: xr.DataArray,
+                                        is_coord=False):
         attrs = variable.attrs
         variable_info = {
             'name': variable.name,
@@ -452,8 +571,10 @@ class Workspace:
                 variable_info['isYFlipped'] = tiling_scheme.geo_extent.inv_y
         elif variable.ndim == 1:
             # Serialize data of coordinate variables.
-            # To limit data transfer volume, we serialize data arrays only if they are 1D.
-            # Note that the 'data' field is used to display coordinate labels in the GUI only.
+            # To limit data transfer volume, we serialize data arrays
+            # only if they are 1D.
+            # Note that the 'data' field is used to display coordinate
+            # labels in the GUI only.
             variable_info['data'] = to_json(variable.data)
 
         if variable.size == 1:
@@ -468,7 +589,8 @@ class Workspace:
                            displayMax='display_max')
             for var_prop_name, display_settings_name in mapping.items():
                 if display_settings_name in display_settings:
-                    variable_info[var_prop_name] = display_settings[display_settings_name]
+                    variable_info[var_prop_name] \
+                        = display_settings[display_settings_name]
 
         return variable_info
 
@@ -489,8 +611,11 @@ class Workspace:
                     dependent_steps.append(step.id)
 
             if dependent_steps:
-                raise ValidationError('Cannot delete resource "%s" because the following resource(s) '
-                                      'depend on it: %s' % (res_name, ', '.join(dependent_steps)))
+                raise ValidationError(
+                    'Cannot delete resource "%s" because the following'
+                    ' resource(s) depend on it: %s'
+                    % (res_name, ', '.join(dependent_steps))
+                )
 
             self.workflow.remove_step(res_step)
             if res_name in self._resource_cache:
@@ -506,8 +631,11 @@ class Workspace:
             if res_step_new is res_step:
                 return
             if res_step_new is not None:
-                raise ValidationError('Resource "%s" cannot be renamed to "%s", '
-                                      'because "%s" is already in use.' % (res_name, new_res_name, new_res_name))
+                raise ValidationError(
+                    'Resource "%s" cannot be renamed to "%s", '
+                    'because "%s" is already in use.'
+                    % (res_name, new_res_name, new_res_name)
+                )
 
             res_step.set_id(new_res_name)
 
@@ -521,17 +649,21 @@ class Workspace:
                      overwrite: bool = False,
                      validate_args=False) -> str:
         """
-        Set a resource named *res_name* to the result of an operation *op_name* using the given operation arguments
-        *op_kwargs*.
+        Set a resource named *res_name* to the result of an operation
+        *op_name* using the given operation arguments *op_kwargs*.
 
-        :param res_name: An optional resource name. If given and not empty, it must be unique within this workspace.
-               If not provided, a workspace-unique resource name will be generated.
+        :param res_name: An optional resource name.
+            If given and not empty, it must be unique within this workspace.
+            If not provided, a workspace-unique resource name
+            will be generated.
         :param op_name: The name of a registered operation.
-        :param op_kwargs: The operation's keyword arguments. Each argument must be a dict having either a "source" or
-               "value" key.
+        :param op_kwargs: The operation's keyword arguments.
+            Each argument must be a dict having either a "source" or
+            "value" key.
         :param overwrite:
         :param validate_args:
-        :return: The resource name, either the one passed in or a generated one.
+        :return: The resource name,
+            either the one passed in or a generated one.
         """
         assert op_name
         assert op_kwargs is not None
@@ -543,7 +675,8 @@ class Workspace:
         with self._lock:
             if not res_name:
                 default_res_pattern = conf.get_default_res_pattern()
-                res_pattern = op.op_meta_info.header.get('res_pattern', default_res_pattern)
+                res_pattern = op.op_meta_info.header.get('res_pattern',
+                                                         default_res_pattern)
                 res_name = self._new_resource_name(res_pattern)
             Workspace._validate_res_name(res_name)
 
@@ -551,10 +684,12 @@ class Workspace:
 
             workflow = self.workflow
 
-            # This namespace will allow us to wire the new resource with existing workflow steps
-            # We only add step outputs, so we cannot reference another step's input neither.
-            # This is not a problem because a workspace's workflow doesn't have any inputs
-            # to be referenced anyway.
+            # This namespace will allow us to wire the new resource with
+            # existing workflow steps.
+            # We only add step outputs, so we cannot reference another
+            # step's input neither.
+            # This is not a problem because a workspace's workflow
+            # doesn't have any inputs to be referenced anyway.
             namespace = dict()
             for step in workflow.steps:
                 output_namespace = step.outputs
@@ -562,7 +697,9 @@ class Workspace:
 
             does_exist = res_name in namespace
             if not overwrite and does_exist:
-                raise ValidationError('A resource named "%s" already exists' % res_name)
+                raise ValidationError(
+                    'A resource named "%s" already exists' % res_name
+                )
 
             if does_exist:
                 # Prevent resource from self-referencing
@@ -571,7 +708,10 @@ class Workspace:
             # Wire new op_step with outputs from existing steps
             for input_name, input_value in op_kwargs.items():
                 if input_name not in new_step.inputs:
-                    raise ValidationError('"%s" is not an input of operation "%s"' % (input_name, op_name))
+                    raise ValidationError(
+                        '"%s" is not an input of operation "%s"'
+                        % (input_name, op_name)
+                    )
                 input_port = new_step.inputs[input_name]
 
                 if 'source' in input_value:
@@ -584,24 +724,36 @@ class Workspace:
                     elif isinstance(source, Namespace):
                         # source is output_namespace of another step
                         if OpMetaInfo.RETURN_OUTPUT_NAME not in source:
-                            raise ValidationError('Illegal argument for input "%s" of operation "%s' %
-                                                  (input_name, op_name))
-                        input_port.source = source[OpMetaInfo.RETURN_OUTPUT_NAME]
+                            raise ValidationError(
+                                'Illegal argument for input "%s"'
+                                ' of operation "%s'
+                                % (input_name, op_name)
+                            )
+                        input_port.source = source[
+                            OpMetaInfo.RETURN_OUTPUT_NAME
+                        ]
                 elif 'value' in input_value:
                     # Constant value
                     input_port.value = input_value['value']
                 else:
-                    raise ValidationError('Illegal argument for input "%s" of operation "%s' % (input_name, op_name))
+                    raise ValidationError(
+                        'Illegal argument for input "%s" of operation "%s'
+                        % (input_name, op_name)
+                    )
 
             if validate_args:
                 inputs = new_step.inputs
-                input_values = {kw: inputs[kw].source or inputs[kw].value for kw, v in op_kwargs.items()}
-                # Validate all values except those of type NodePort (= the sources)
-                op.op_meta_info.validate_input_values(input_values, [NodePort])
+                input_values = {kw: (inputs[kw].source or inputs[kw].value)
+                                for kw, v in op_kwargs.items()}
+                # Validate all values except those of type
+                # NodePort (= the sources)
+                op.op_meta_info.validate_input_values(input_values,
+                                                      [NodePort])
 
             old_step = workflow.find_node(res_name)
 
-            # Collect keys of invalidated cache entries, initialize with res_name
+            # Collect keys of invalidated cache entries,
+            # initialize with res_name
             ids_of_invalidated_steps = {res_name}
             if old_step is not None:
                 # Collect all IDs of steps that depend on old_step, if any
@@ -615,7 +767,8 @@ class Workspace:
             workflow.add_step(new_step, can_exist=True)
             self._is_modified = True
 
-            # Remove any cached resource values, whose steps became invalidated
+            # Remove any cached resource values,
+            # whose steps became invalidated
             for key in ids_of_invalidated_steps:
                 if key in self._resource_cache:
                     self._resource_cache[key] = UNDEFINED
@@ -638,18 +791,26 @@ class Workspace:
                 if 'should_return' == input_name and 'value' in input_value:
                     returns = input_value['value']
                 elif 'source' in input_value:
-                    unpacked_op_kwargs[input_name] = safe_eval(input_value['source'], self.resource_cache)
+                    unpacked_op_kwargs[input_name] = safe_eval(
+                        input_value['source'],
+                        self.resource_cache
+                    )
                 elif 'value' in input_value:
                     unpacked_op_kwargs[input_name] = input_value['value']
 
-        # Allow executing self.workflow.invoke() out of the locked context so we can run tasks in parallel
+        # Allow executing self.workflow.invoke() out of the locked
+        # context so we can run tasks in parallel
         with monitor.starting("Running operation '%s'" % op_name, 2):
-            self.workflow.invoke(context=self._new_context(), monitor=monitor.child(work=1))
-            return_value = op(monitor=monitor.child(work=1), **unpacked_op_kwargs)
+            self.workflow.invoke(context=self._new_context(),
+                                 monitor=monitor.child(work=1))
+            return_value = op(monitor=monitor.child(work=1),
+                              **unpacked_op_kwargs)
             if returns:
                 return return_value
 
-    def execute_workflow(self, res_name: str = None, monitor: Monitor = Monitor.NONE):
+    def execute_workflow(self,
+                         res_name: str = None,
+                         monitor: Monitor = Monitor.NONE):
         self._assert_open()
 
         steps = None
@@ -660,12 +821,17 @@ class Workspace:
             else:
                 res_step = self.workflow.find_node(res_name)
                 if res_step is None:
-                    raise ValidationError('Resource "%s" not found' % res_name)
+                    raise ValidationError(
+                        'Resource "%s" not found' % res_name
+                    )
                 steps = self.workflow.find_steps_to_compute(res_step.id)
 
-        # Allow executing self.workflow.invoke_steps() out of the locked context so we can run tasks in parallel
+        # Allow executing self.workflow.invoke_steps() out of
+        # the locked context so we can run tasks in parallel
         if steps and len(steps):
-            self.workflow.invoke_steps(steps, context=self._new_context(), monitor=monitor)
+            self.workflow.invoke_steps(steps,
+                                       context=self._new_context(),
+                                       monitor=monitor)
             return steps[-1].get_output_value()
         else:
             return None
@@ -675,18 +841,23 @@ class Workspace:
 
     def _assert_open(self):
         if self._is_closed:
-            raise ValidationError('Workspace is already closed: ' + self._base_dir)
+            raise ValidationError(
+                'Workspace is already closed: ' + self._base_dir
+            )
 
     def _new_resource_name(self, res_pattern):
-        return new_indexed_name({step.id for step in self.workflow.steps}, res_pattern)
+        return new_indexed_name({step.id for step in self.workflow.steps},
+                                res_pattern)
 
     @staticmethod
     def _validate_res_name(res_name: str):
         if not res_name.isidentifier():
             raise ValidationError(
-                "Resource name '%s' is not valid. "
-                "The name must only contain the uppercase and lowercase letters A through Z, the underscore _ and, "
-                "except for the first character, the digits 0 through 9." % res_name)
+                "Resource name '%s' is not valid."
+                " The name must only contain the uppercase"
+                " and lowercase letters A through Z, the underscore _ and,"
+                " except for the first character,"
+                " the digits 0 through 9." % res_name)
 
 
 def _to_json_scalar_value(value, nchars=1000):

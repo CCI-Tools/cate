@@ -20,6 +20,21 @@ NETCDF_TEST_FILE_2 = os.path.join(os.path.dirname(__file__), '..', 'data', 'prec
 
 
 class WorkspaceTest(unittest.TestCase):
+    def test_base_dir_and_id(self):
+        Workspace._base_dir_to_id = {}
+        Workspace._last_id = 4
+
+        self.assertEqual(5, Workspace.base_dir_to_id("test1"))
+        self.assertEqual(5, Workspace.base_dir_to_id("test1"))
+        self.assertEqual(11, Workspace.base_dir_to_id("test2", id=11))
+        self.assertEqual(11, Workspace.base_dir_to_id("test2", id=12))
+        self.assertEqual(12, Workspace.base_dir_to_id("test3", id=12))
+        self.assertEqual(12, Workspace.base_dir_to_id("test3"))
+
+        self.assertEqual("test1", Workspace.id_to_base_dir(id=5))
+        self.assertEqual("test2", Workspace.id_to_base_dir(id=11))
+        self.assertEqual("test3", Workspace.id_to_base_dir(id=12))
+
     def test_utilities(self):
         self.assertEqual(mk_op_arg(1), {'value': 1})
         self.assertEqual(mk_op_arg('2'), {'value': '2'})
@@ -408,56 +423,56 @@ class WorkspaceTest(unittest.TestCase):
 
     def test_set_and_rename_and_execute_step(self):
         ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
-        self.assertEqual(ws.user_data, {})
+        self.assertEqual({}, ws.user_data)
 
         ws.set_resource('cate.ops.utility.identity', mk_op_kwargs(value=1), res_name='X')
         ws.set_resource('cate.ops.utility.identity', mk_op_kwargs(value="@X"), res_name='Y')
         ws.set_resource('cate.ops.utility.identity', mk_op_kwargs(value="@X"), res_name='Z')
-        self.assertEqual(len(ws.workflow.steps), 3)
-        self.assertEqual(ws.resource_cache, {})
+        self.assertEqual(3, len(ws.workflow.steps))
+        self.assertEqual({}, ws.resource_cache)
 
         value = ws.execute_workflow('Y')
-        self.assertEqual(value, 1)
-        self.assertEqual(ws.resource_cache.get('X'), 1)
-        self.assertEqual(ws.resource_cache.get('Y'), 1)
-        self.assertEqual(ws.resource_cache.get('Z'), None)
+        self.assertEqual(1, value)
+        self.assertEqual(1,ws.resource_cache.get('X'))
+        self.assertEqual(1, ws.resource_cache.get('Y'))
+        self.assertEqual(None, ws.resource_cache.get('Z'))
 
         value = ws.execute_workflow('Z')
-        self.assertEqual(value, 1)
-        self.assertEqual(ws.resource_cache.get('X'), 1)
-        self.assertEqual(ws.resource_cache.get('Y'), 1)
-        self.assertEqual(ws.resource_cache.get('Z'), 1)
+        self.assertEqual(1, value)
+        self.assertEqual(1, ws.resource_cache.get('X'))
+        self.assertEqual(1, ws.resource_cache.get('Y'))
+        self.assertEqual(1, ws.resource_cache.get('Z'))
 
         ws.set_resource('cate.ops.utility.identity', mk_op_kwargs(value=9), res_name='X', overwrite=True)
-        self.assertEqual(len(ws.workflow.steps), 3)
-        self.assertEqual(ws.resource_cache.get('X'), UNDEFINED)
-        self.assertEqual(ws.resource_cache.get('Y'), UNDEFINED)
-        self.assertEqual(ws.resource_cache.get('Z'), UNDEFINED)
+        self.assertEqual(3, len(ws.workflow.steps), 3)
+        self.assertEqual(UNDEFINED, ws.resource_cache.get('X'))
+        self.assertEqual(UNDEFINED, ws.resource_cache.get('Y'))
+        self.assertEqual(UNDEFINED, ws.resource_cache.get('Z'))
 
         ws.execute_workflow()
-        self.assertEqual(ws.resource_cache.get('X'), 9)
-        self.assertEqual(ws.resource_cache.get('Y'), 9)
-        self.assertEqual(ws.resource_cache.get('Z'), 9)
+        self.assertEqual(9, ws.resource_cache.get('X'))
+        self.assertEqual(9, ws.resource_cache.get('Y'))
+        self.assertEqual(9, ws.resource_cache.get('Z'))
 
         ws.rename_resource('X', 'A')
         self.assertIsNone(ws.workflow.find_node('X'))
         self.assertIsNotNone(ws.workflow.find_node('A'))
-        self.assertEqual(ws.resource_cache.get('X', '--'), '--')
-        self.assertEqual(ws.resource_cache.get('A'), 9)
-        self.assertEqual(ws.resource_cache.get('Y'), 9)
-        self.assertEqual(ws.resource_cache.get('Z'), 9)
+        self.assertEqual('--', ws.resource_cache.get('X', '--'))
+        self.assertEqual(9, ws.resource_cache.get('A'))
+        self.assertEqual(9, ws.resource_cache.get('Y'))
+        self.assertEqual(9, ws.resource_cache.get('Z'))
 
         ws.set_resource('cate.ops.utility.identity', mk_op_kwargs(value=5), res_name='A', overwrite=True)
-        self.assertEqual(ws.resource_cache.get('X', '--'), '--')
-        self.assertEqual(ws.resource_cache.get('A'), UNDEFINED)
-        self.assertEqual(ws.resource_cache.get('Y'), UNDEFINED)
-        self.assertEqual(ws.resource_cache.get('Z'), UNDEFINED)
+        self.assertEqual('--', ws.resource_cache.get('X', '--'))
+        self.assertEqual(UNDEFINED, ws.resource_cache.get('A') )
+        self.assertEqual(UNDEFINED, ws.resource_cache.get('Y'))
+        self.assertEqual(UNDEFINED, ws.resource_cache.get('Z'))
 
         ws.execute_workflow()
-        self.assertEqual(ws.resource_cache.get('X', '--'), '--')
-        self.assertEqual(ws.resource_cache.get('A'), 5)
-        self.assertEqual(ws.resource_cache.get('Y'), 5)
-        self.assertEqual(ws.resource_cache.get('Z'), 5)
+        self.assertEqual('--', ws.resource_cache.get('X', '--'))
+        self.assertEqual(5, ws.resource_cache.get('A'))
+        self.assertEqual(5, ws.resource_cache.get('Y'))
+        self.assertEqual(5, ws.resource_cache.get('Z'))
 
     @unittest.skip("_extract_point is not an operator anymore")
     def test_set_step_and_run_op(self):
