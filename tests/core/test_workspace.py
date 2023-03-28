@@ -24,16 +24,19 @@ class WorkspaceTest(unittest.TestCase):
         Workspace._base_dir_to_id = {}
         Workspace._last_id = 4
 
-        self.assertEqual(5, Workspace.base_dir_to_id("test1"))
-        self.assertEqual(5, Workspace.base_dir_to_id("test1"))
-        self.assertEqual(11, Workspace.base_dir_to_id("test2", id=11))
-        self.assertEqual(11, Workspace.base_dir_to_id("test2", id=12))
-        self.assertEqual(12, Workspace.base_dir_to_id("test3", id=12))
-        self.assertEqual(12, Workspace.base_dir_to_id("test3"))
+        self.assertEqual(5, Workspace.get_id_from_base_dir("test1"))
+        self.assertEqual(5, Workspace.get_id_from_base_dir("test1"))
+        self.assertEqual(11, Workspace.get_id_from_base_dir("test2",
+                                                            preferred_id=11))
+        self.assertEqual(11, Workspace.get_id_from_base_dir("test2",
+                                                            preferred_id=12))
+        self.assertEqual(12, Workspace.get_id_from_base_dir("test3",
+                                                            preferred_id=12))
+        self.assertEqual(12, Workspace.get_id_from_base_dir("test3"))
 
-        self.assertEqual("test1", Workspace.id_to_base_dir(id=5))
-        self.assertEqual("test2", Workspace.id_to_base_dir(id=11))
-        self.assertEqual("test3", Workspace.id_to_base_dir(id=12))
+        self.assertEqual("test1", Workspace.get_base_dir_from_id(id=5))
+        self.assertEqual("test2", Workspace.get_base_dir_from_id(id=11))
+        self.assertEqual("test3", Workspace.get_base_dir_from_id(id=12))
 
     def test_utilities(self):
         self.assertEqual(mk_op_arg(1), {'value': 1})
