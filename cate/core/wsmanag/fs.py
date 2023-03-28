@@ -25,175 +25,25 @@ import platform
 import pprint
 import shutil
 import uuid
-from abc import ABCMeta, abstractmethod
 from typing import Dict, List, Optional, Tuple, Any, Union
 
-from .objectio import write_object
-from .workflow import Workflow
-from .workspace import Workspace, OpKwArgs
-from ..conf.defaults import DEFAULT_SCRATCH_WORKSPACES_PATH, \
-    WORKSPACE_DATA_DIR_NAME, WORKSPACES_DIR_NAME, \
-    DEFAULT_WORKSPACES_PATH, SCRATCH_WORKSPACES_DIR_NAME
-from ..core.types import ValidationError
-from ..util.misc import cwd
-from ..util.monitor import Monitor
-from ..util.safe import safe_eval
-from ..util.undefined import UNDEFINED
-
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
+from cate.conf.defaults import DEFAULT_SCRATCH_WORKSPACES_PATH
+from cate.conf.defaults import DEFAULT_WORKSPACES_PATH
+from cate.conf.defaults import SCRATCH_WORKSPACES_DIR_NAME
+from cate.conf.defaults import WORKSPACES_DIR_NAME
+from cate.conf.defaults import WORKSPACE_DATA_DIR_NAME
+from cate.core.objectio import write_object
+from cate.core.types import ValidationError
+from cate.core.workflow import Workflow
+from cate.core.workspace import OpKwArgs
+from cate.core.workspace import Workspace
+from cate.util.misc import cwd
+from cate.util.monitor import Monitor
+from cate.util.safe import safe_eval
+from cate.util.undefined import UNDEFINED
+from .abc import WorkspaceManager
 
 _LOG = logging.getLogger('cate')
-
-
-class WorkspaceManager(metaclass=ABCMeta):
-    """
-    Abstract base class which represents the ``WorkspaceManager`` interface.
-    """
-
-    @property
-    @abstractmethod
-    def root_path(self) -> Optional[str]:
-        pass
-
-    @abstractmethod
-    def resolve_path(self, id_or_path: Union[int, str]) -> str:
-        pass
-
-    # TODO (forman): remove me! this method exists,
-    #  because new_workspace() and save_workspace_as() take names
-    #  instead of paths. Better to add flags to new_workspace()
-    #  and save_workspace_as() to indicate
-    #  they are not paths, but just names which will be
-    #  relative to default "~/workspaces" location.
-    @abstractmethod
-    def resolve_workspace_dir(self, path_or_name: str) -> str:
-        pass
-
-    @abstractmethod
-    def get_open_workspaces(self) -> List[Workspace]:
-        pass
-
-    @abstractmethod
-    def get_workspace(self, base_dir: str) -> Workspace:
-        pass
-
-    @abstractmethod
-    def list_workspace_names(self) -> List[str]:
-        pass
-
-    @abstractmethod
-    def new_workspace(self,
-                      workspace_dir: Optional[str],
-                      description: str = None) -> Workspace:
-        pass
-
-    @abstractmethod
-    def open_workspace(self,
-                       workspace_dir: str,
-                       monitor: Monitor = Monitor.NONE) -> Workspace:
-        pass
-
-    @abstractmethod
-    def close_workspace(self, workspace_dir: str) -> None:
-        pass
-
-    @abstractmethod
-    def close_all_workspaces(self) -> None:
-        pass
-
-    @abstractmethod
-    def save_workspace_as(self,
-                          workspace_dir: str,
-                          new_workspace_dir: str,
-                          monitor: Monitor = Monitor.NONE) -> Workspace:
-        pass
-
-    @abstractmethod
-    def save_workspace(self,
-                       workspace_dir: str,
-                       monitor: Monitor = Monitor.NONE) -> Workspace:
-        pass
-
-    @abstractmethod
-    def save_all_workspaces(self, monitor: Monitor = Monitor.NONE) -> None:
-        pass
-
-    @abstractmethod
-    def delete_workspace(self,
-                         workspace_dir: str,
-                         remove_completely: bool = False) -> None:
-        pass
-
-    @abstractmethod
-    def clean_workspace(self, base_dir: str) -> Workspace:
-        pass
-
-    @abstractmethod
-    def run_op_in_workspace(
-            self,
-            workspace_dir: str,
-            op_name: str,
-            op_args: OpKwArgs,
-            monitor: Monitor = Monitor.NONE
-    ) -> Optional[Any]:
-        pass
-
-    @abstractmethod
-    def set_workspace_resource(
-            self,
-            workspace_dir: str,
-            op_name: str,
-            op_args: OpKwArgs,
-            res_name: Optional[str] = None,
-            overwrite: bool = False,
-            monitor: Monitor = Monitor.NONE
-    ) -> Tuple[Workspace, str]:
-        pass
-
-    @abstractmethod
-    def rename_workspace_resource(self,
-                                  workspace_dir: str,
-                                  res_name: str,
-                                  new_res_name: str) -> Workspace:
-        pass
-
-    @abstractmethod
-    def delete_workspace_resource(self,
-                                  workspace_dir: str,
-                                  res_name: str) -> Workspace:
-        pass
-
-    @abstractmethod
-    def set_workspace_resource_persistence(self,
-                                           workspace_dir: str,
-                                           res_name: str,
-                                           persistent: bool) -> Workspace:
-        pass
-
-    @abstractmethod
-    def write_workspace_resource(self,
-                                 workspace_dir: str,
-                                 res_name: str,
-                                 file_path: str,
-                                 format_name: str = None,
-                                 monitor: Monitor = Monitor.NONE) -> None:
-        pass
-
-    @abstractmethod
-    def plot_workspace_resource(self,
-                                workspace_dir: str,
-                                res_name: str,
-                                var_name: str = None,
-                                file_path: str = None,
-                                monitor: Monitor = Monitor.NONE) -> None:
-        pass
-
-    @abstractmethod
-    def print_workspace_resource(self,
-                                 workspace_dir: str,
-                                 res_name_or_expr: str = None,
-                                 monitor: Monitor = Monitor.NONE) -> None:
-        pass
 
 
 class FSWorkspaceManager(WorkspaceManager):
@@ -237,7 +87,7 @@ class FSWorkspaceManager(WorkspaceManager):
         """Turn path into a normalized, absolute path."""
 
         if isinstance(id_or_path, int):
-            path = Workspace.id_to_base_dir(id_or_path)
+            path = Workspace.get_base_dir_from_id(id_or_path)
         else:
             path = id_or_path
 

@@ -1,23 +1,23 @@
 # The MIT License (MIT)
-# Copyright (c) 2016, 2017 by the ESA CCI Toolbox development team and contributors
+# Copyright (c) 2016-2023 by the ESA CCI Toolbox team and contributors
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy of
-# this software and associated documentation files (the "Software"), to deal in
-# the Software without restriction, including without limitation the rights to
-# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-# of the Software, and to permit persons to whom the Software is furnished to do
-# so, subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
 #
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
 
 """
 This module defines the ``Workspace`` class.
@@ -34,23 +34,28 @@ import fiona
 import pandas as pd
 import xarray as xr
 
-from .workflow import Workflow, OpStep, NodePort, ValueCache
-from ..conf import conf
-from ..conf.defaults import WORKSPACE_DATA_DIR_NAME, \
-    WORKSPACE_WORKFLOW_FILE_NAME, DEFAULT_SCRATCH_WORKSPACES_PATH
-from ..core.cdm import get_tiling_scheme
-from ..core.op import OP_REGISTRY
-from ..core.types import GeoDataFrame, ValidationError
-from ..util.im import get_chunk_size
-from ..util.misc import object_to_qualified_name, to_json, new_indexed_name, \
-    to_scalar
-from ..util.monitor import Monitor
-from ..util.namespace import Namespace
-from ..util.opmetainf import OpMetaInfo
-from ..util.safe import safe_eval
-from ..util.undefined import UNDEFINED
-
-__author__ = "Norman Fomferra (Brockmann Consult GmbH)"
+from cate.conf import conf
+from cate.conf.defaults import DEFAULT_SCRATCH_WORKSPACES_PATH
+from cate.conf.defaults import WORKSPACE_DATA_DIR_NAME
+from cate.conf.defaults import WORKSPACE_WORKFLOW_FILE_NAME
+from cate.util.im import get_chunk_size
+from cate.util.misc import new_indexed_name
+from cate.util.misc import object_to_qualified_name
+from cate.util.misc import to_json
+from cate.util.misc import to_scalar
+from cate.util.monitor import Monitor
+from cate.util.namespace import Namespace
+from cate.util.opmetainf import OpMetaInfo
+from cate.util.safe import safe_eval
+from cate.util.undefined import UNDEFINED
+from .cdm import get_tiling_scheme
+from .op import OP_REGISTRY
+from .types import GeoDataFrame
+from .types import ValidationError
+from .workflow import NodePort
+from .workflow import OpStep
+from .workflow import ValueCache
+from .workflow import Workflow
 
 _LOG = logging.getLogger('cate')
 
@@ -109,16 +114,17 @@ class Workspace:
 
     _base_dir_to_id: Dict[str, int] = {}
     _last_id = 0
-    _lock = RLock()
+    _id_lock = RLock()
 
     def __init__(self,
                  base_dir: str,
                  workflow: Workflow,
                  is_modified: bool = False,
-                 id: Optional[int] = None):
+                 preferred_id: Optional[int] = None):
         assert base_dir
         assert workflow
-        self._id = self.base_dir_to_id(base_dir, id=id)
+        self._id = self.get_id_from_base_dir(base_dir,
+                                             preferred_id=preferred_id)
         self._base_dir = base_dir
         self._workflow = workflow
         self._is_scratch = (base_dir or '').startswith(
@@ -128,33 +134,51 @@ class Workspace:
         self._is_closed = False
         self._resource_cache = ValueCache()
         self._user_data = dict()
+        self._lock = RLock()
 
     def __del__(self):
         self.close()
 
     @classmethod
-    def base_dir_to_id(cls, base_dir: str, id: Optional[int] = None) -> int:
-        with cls._lock:
-            if isinstance(id, int):
-                # Try reusing base_dir --> id
-                if base_dir not in cls._base_dir_to_id \
-                        and id not in set(cls._base_dir_to_id.values()):
-                    cls._base_dir_to_id[base_dir] = id
-                    return id
-            if base_dir in cls._base_dir_to_id:
-                id = cls._base_dir_to_id[base_dir]
-            else:
-                id = cls._last_id + 1
-                cls._last_id = id
-                cls._base_dir_to_id[base_dir] = id
+    def get_id_from_base_dir(cls,
+                             base_dir: str,
+                             preferred_id: Optional[int] = None) -> int:
+        with cls._id_lock:
+            id = cls._get_id_from_base_dir(base_dir, preferred_id)
+            _LOG.info(f'{base_dir!r} --> {id}')
+            return id
+
+    @classmethod
+    def get_base_dir_from_id(cls, id: int) -> str:
+        with cls._id_lock:
+            base_dir = cls._get_base_dir_from_id(id)
+            _LOG.info(f'{id} --> {base_dir!r}')
+            return base_dir
+
+    @classmethod
+    def _get_id_from_base_dir(cls,
+                              base_dir: str,
+                              preferred_id: Optional[int]) -> int:
+        base_dir_to_id = cls._base_dir_to_id
+        if isinstance(preferred_id, int):
+            # Try reusing base_dir --> id
+            if base_dir not in base_dir_to_id \
+                    and preferred_id not in set(base_dir_to_id.values()):
+                base_dir_to_id[base_dir] = preferred_id
+                return preferred_id
+        if base_dir in base_dir_to_id:
+            id = base_dir_to_id[base_dir]
+        else:
+            id = cls._last_id + 1
+            cls._last_id = id
+            base_dir_to_id[base_dir] = id
         return id
 
     @classmethod
-    def id_to_base_dir(cls, id: int) -> str:
-        with cls._lock:
-            for base_dir, _id in cls._base_dir_to_id.items():
-                if id == _id:
-                    return base_dir
+    def _get_base_dir_from_id(cls, id: int) -> str:
+        for base_dir, _id in cls._base_dir_to_id.items():
+            if id == _id:
+                return base_dir
         raise ValueError(f'No base directory'
                          f' found for workspace identifier #{id}')
 
@@ -251,9 +275,9 @@ class Workspace:
         return workspace
 
     def close(self):
-        if self._is_closed:
-            return
         with self._lock:
+            if self._is_closed:
+                return
             self._resource_cache.close()
             # Remove all resource files that are no longer required
             if os.path.isdir(self.workspace_data_dir):
@@ -270,8 +294,8 @@ class Workspace:
                                 _LOG.exception('closing workspace failed')
 
     def save(self, monitor: Monitor = Monitor.NONE):
-        self._assert_open()
         with self._lock:
+            self._assert_open()
             base_dir = self.base_dir
             if not os.path.isdir(base_dir):
                 os.makedirs(base_dir)
@@ -338,12 +362,15 @@ class Workspace:
 
     @classmethod
     def from_json_dict(cls, json_dict):
-        id = json_dict.get('id', None)
+        preferred_id = json_dict.get('id', None)
         base_dir = json_dict.get('base_dir', None)
         workflow_json = json_dict.get('workflow', {})
         is_modified = json_dict.get('is_modified', False)
         workflow = Workflow.from_json_dict(workflow_json)
-        return Workspace(base_dir, workflow, is_modified=is_modified, id=id)
+        return Workspace(base_dir,
+                         workflow,
+                         is_modified=is_modified,
+                         preferred_id=preferred_id)
 
     def to_json_dict(self):
         with self._lock:
@@ -827,7 +854,7 @@ class Workspace:
                 steps = self.workflow.find_steps_to_compute(res_step.id)
 
         # Allow executing self.workflow.invoke_steps() out of
-        # the locked context so we can run tasks in parallel
+        # the locked context, so we can run tasks in parallel
         if steps and len(steps):
             self.workflow.invoke_steps(steps,
                                        context=self._new_context(),

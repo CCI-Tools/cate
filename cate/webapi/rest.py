@@ -114,7 +114,7 @@ class WorkspaceResourceHandler(WebAPIRequestHandler):
         # noinspection PyUnresolvedReferences
         workspace_manager: WorkspaceManager = \
             self.application.workspace_manager
-        base_dir = Workspace.id_to_base_dir(workspace_id)
+        base_dir = Workspace.get_base_dir_from_id(workspace_id)
         base_dir = workspace_manager.resolve_path(base_dir)
         workspace = workspace_manager.get_workspace(base_dir)
         res_name = workspace.resource_cache.get_key(res_id)
@@ -298,7 +298,7 @@ class ResourcePlotHandler(WorkspaceResourceHandler):
                 self.application.workspace_manager
             var_name = self.get_query_argument('var_name', default=None)
             file_path = self.get_query_argument('file_path', default=None)
-            base_dir = Workspace.id_to_base_dir(int(workspace_id))
+            base_dir = Workspace.get_base_dir_from_id(int(workspace_id))
             with cwd(base_dir):
                 workspace_manager.plot_workspace_resource(base_dir, res_name,
                                                           var_name=var_name,
