@@ -227,8 +227,11 @@ def _parse_write_arg(write_arg) -> Tuple[NullableStr, NullableStr, NullableStr]:
     name, path = name_and_path if len(name_and_path) == 2 else (None, write_arg)
     path_and_format = path.rsplit(',', maxsplit=1)
     path, format_name = path_and_format if len(path_and_format) == 2 else (path, None)
-    return name if name else None, path if path else None, format_name.upper() \
-        if format_name else None
+    return (
+        name if name else None,
+        path if path else None,
+        format_name.upper() if format_name else None
+    )
 
 
 def _parse_op_args(raw_args: List[str],
@@ -1374,129 +1377,6 @@ class DataSourceCommand(SubCommandCommand):
                   "Please check constraint.")
 
 
-class UpdateCommand(Command):
-    """
-    The ``update`` command is used to update an existing cate environment to a specific or the
-    latest cate version.
-    """
-
-    @classmethod
-    def name(cls):
-        return 'upd'
-
-    @classmethod
-    def parser_kwargs(cls):
-        return dict(help='Update an existing cate environment to a specific or to the latest cate '
-                         'version',
-                    description='Update an existing cate environment to a specific or to the '
-                                'latest cate version.')
-
-    @classmethod
-    def configure_parser(cls, parser):
-        parser.add_argument('-y', '--yes', dest='yes', action='store_true', default=False,
-                            help='Do not ask for confirmation.')
-        parser.add_argument('-i', '--info', dest='show_info', action='store_true', default=False,
-                            help='Show version information only; do not update yet.')
-        parser.add_argument('--dry-run', dest='dry_run', action='store_true', default=False,
-                            help='Only display what would have been done.')
-        parser.add_argument('version', metavar='VERSION', nargs='?', default=None,
-                            help='A cate version identifier, e.g. "1.0.3"; '
-                                 'the version identifier must have the form "major.minor.micro" '
-                                 'and may comprise a development release suffix, '
-                                 'e.g. "1.2.0.dev4"')
-
-    def execute(self, command_args):
-        current_version = __version__
-        desired_version = command_args.version
-        show_info = command_args.show_info
-        dry_run = command_args.dry_run
-
-        from cate.util.process import run_subprocess
-        if sys.platform == 'win32':
-            conda_path = os.path.join(sys.prefix, 'Scripts', 'conda.exe')
-        else:
-            conda_path = os.path.join(sys.prefix, 'bin', 'conda')
-
-        import subprocess
-
-        package = 'cate-cli'
-        channel = 'ccitools'
-        command = [conda_path, 'search', '--channel', channel, package]
-        completed_process = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout = completed_process.stdout.decode("utf-8") if completed_process.stdout else None
-        stderr = completed_process.stderr.decode("utf-8") if completed_process.stderr else None
-        if stderr:
-            raise CommandError(stderr)
-
-        available_versions = []
-        latest_version = None
-        if stdout:
-            package_info = [row.split() for row in stdout.split('\n')]
-            package_info.reverse()
-            for entry in package_info:
-                available_version = None
-                if len(entry) == 4 and entry[0] == package and entry[-1] == channel:
-                    available_version = entry[1]
-                elif len(entry) == 3 and entry[-1] == channel:
-                    available_version = entry[0]
-                if available_version:
-                    available_versions.append(available_version)
-                    if not latest_version:
-                        latest_version = available_version
-
-        if not latest_version:
-            raise CommandError('failed to retrieve latest cate version')
-
-        if show_info:
-            print('Latest version is %s' % latest_version)
-            print('Current version is %s' % current_version)
-            if desired_version:
-                available = desired_version in available_versions
-                print(f'Desired version is %s (%s)'
-                      % (desired_version, 'available' if available else 'not available'))
-            print('Available versions:')
-            for available_version in available_versions:
-                print(' ', available_version)
-            return
-
-        if not desired_version:
-            desired_version = latest_version
-
-        if desired_version == current_version:
-            if latest_version == current_version:
-                print('Current cate version is %s and up-to-date' % current_version)
-            else:
-                print('Current cate version is already %s' % current_version)
-            return
-
-        if desired_version not in available_versions:
-            raise CommandError(f'desired cate version {desired_version} is not available; '
-                               'type "cate upd --info" to show available versions')
-
-        if command_args.yes or dry_run:
-            answer = 'y'
-        else:
-            prompt = f'Do you really want to change from {current_version} to {desired_version} ' \
-                     f'(y/[n])? '
-            answer = input(prompt)
-        if not answer or answer.lower() != 'y':
-            return
-
-        command = [conda_path, 'install', '--yes', '--channel',
-                   channel, '--channel', 'conda-forge']
-        if dry_run:
-            command.append('--dry-run')
-        command.append('%s=%s' % (package, desired_version))
-
-        def stdout_handler(text):
-            sys.stdout.write(text)
-
-        def stderr_handler(text):
-            sys.stdout.write(text)
-
-        run_subprocess(command, stdout_handler=stdout_handler, stderr_handler=stderr_handler)
-
-
 class IOCommand(SubCommandCommand):
     """
     The ``io`` command implements various operations w.r.t. supported data and file formats.
@@ -1588,7 +1468,6 @@ COMMAND_REGISTRY = [
     ResourceCommand,
     RunCommand,
     IOCommand,
-    UpdateCommand,
     # PluginCommand,
 ]
 
