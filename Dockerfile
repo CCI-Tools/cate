@@ -28,7 +28,7 @@ RUN source activate xcube && python setup.py install
 
 # Install missing dependencies
 
-RUN source activate xcube && mamba install -c conda-forge cartopy
+RUN source activate xcube && mamba install -c conda-forge cartopy numpy=1.23
 
 WORKDIR /home/${XCUBE_USER_NAME}
 

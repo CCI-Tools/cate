@@ -14,6 +14,11 @@
 
 * Removed the `cate upd` CLI command.
 
+## Version 3.1.6
+
+* Fixed docker image
+* Use compatible library versions in software environments 
+
 ## Version 3.1.5
 
 * Feature Collections may be written as geojson also with latest fiona versions.
