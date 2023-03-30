@@ -155,11 +155,8 @@ class WebAPIWorkspaceManager(WorkspaceManager):
     def root_path(self) -> Optional[str]:
         return None
 
-    def resolve_path(self, id_or_path: Union[int, str]) -> str:
-        if isinstance(id_or_path, int):
-            return Workspace.get_base_dir_from_id(id_or_path)
-        else:
-            return id_or_path
+    def resolve_path(self, path_or_name: str) -> str:
+        return path_or_name
 
     def resolve_workspace_dir(self, path_or_name: str) -> str:
         return path_or_name

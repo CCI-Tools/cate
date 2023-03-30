@@ -109,7 +109,6 @@ class NE2Handler(WebAPIRequestHandler):
 class WorkspaceResourceHandler(WebAPIRequestHandler):
 
     def get_workspace_resource(self, workspace_id: str, res_id: str):
-        workspace_id = self.to_int("workspace_id", workspace_id)
         res_id = self.to_int("res_id", res_id)
         # noinspection PyUnresolvedReferences
         workspace_manager: WorkspaceManager = \
@@ -291,14 +290,14 @@ class ResVarTileHandler(WorkspaceResourceHandler):
 
 # noinspection PyAbstractClass,PyBroadException
 class ResourcePlotHandler(WorkspaceResourceHandler):
-    def get(self, workspace_id, res_name):
+    def get(self, workspace_id: str, res_name: str):
         try:
             # noinspection PyUnresolvedReferences
             workspace_manager: WorkspaceManager = \
                 self.application.workspace_manager
             var_name = self.get_query_argument('var_name', default=None)
             file_path = self.get_query_argument('file_path', default=None)
-            base_dir = Workspace.get_base_dir_from_id(int(workspace_id))
+            base_dir = Workspace.get_base_dir_from_id(workspace_id)
             with cwd(base_dir):
                 workspace_manager.plot_workspace_resource(base_dir, res_name,
                                                           var_name=var_name,

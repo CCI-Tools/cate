@@ -38,7 +38,8 @@ class WorkspaceManager(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def resolve_path(self, id_or_path: Union[int, str]) -> str:
+    def resolve_path(self, path: str) -> str:
+        """Turn *path* into a normalized, absolute path."""
         pass
 
     # TODO (forman): remove me! this method exists,

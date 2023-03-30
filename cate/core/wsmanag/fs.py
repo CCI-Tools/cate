@@ -78,18 +78,15 @@ class FSWorkspaceManager(WorkspaceManager):
         return self._root_path
 
     def resolve_workspace_dir(self, path_or_name: str) -> str:
-        if self._is_no_path(path_or_name):
+        if self._is_plain_name(path_or_name):
             return os.path.join(self.workspaces_dir, path_or_name)
         else:
             return self.resolve_path(path_or_name)
 
-    def resolve_path(self, id_or_path: Union[int, str]) -> str:
-        """Turn path into a normalized, absolute path."""
-
-        if isinstance(id_or_path, int):
-            path = Workspace.get_base_dir_from_id(id_or_path)
-        else:
-            path = id_or_path
+    def resolve_path(self, path: str) -> str:
+        """Resolve *path* against root_path, if any.
+        Return absolute path always.
+        """
 
         if not self._root_path:
             # Not in sandbox mode, return normalized, absolute path
@@ -172,7 +169,7 @@ class FSWorkspaceManager(WorkspaceManager):
                                          scratch_dir_name)
             os.makedirs(workspace_dir, exist_ok=True)
             is_scratch = True
-        elif self._is_no_path(workspace_dir_or_name):
+        elif self._is_plain_name(workspace_dir_or_name):
             # Just a name
             workspace_dir = os.path.normpath(
                 os.path.join(self.workspaces_dir,
@@ -199,7 +196,7 @@ class FSWorkspaceManager(WorkspaceManager):
         return workspace
 
     @classmethod
-    def _is_no_path(cls, path_or_name):
+    def _is_plain_name(cls, path_or_name):
         return '/' not in path_or_name and '\\' not in path_or_name
 
     def open_workspace(self,
@@ -234,7 +231,7 @@ class FSWorkspaceManager(WorkspaceManager):
                           monitor: Monitor = Monitor.NONE) -> Workspace:
         workspace = self.get_workspace(workspace_dir)
 
-        if self._is_no_path(new_workspace_dir_or_name):
+        if self._is_plain_name(new_workspace_dir_or_name):
             new_workspace_dir = os.path.normpath(
                 os.path.join(self.workspaces_dir, new_workspace_dir_or_name)
             )

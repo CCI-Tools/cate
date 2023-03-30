@@ -132,7 +132,6 @@ class MplDownloadHandler(WebAPIRequestHandler):
 
     def get(self, workspace_id: str, figure_id: str, format_name: str):
 
-        workspace_id = int(workspace_id)
         figure_id = int(figure_id)
 
         # noinspection PyUnresolvedReferences
@@ -140,7 +139,8 @@ class MplDownloadHandler(WebAPIRequestHandler):
             self.application.workspace_manager
         assert workspace_manager
 
-        base_dir = workspace_manager.resolve_path(workspace_id)
+        base_dir = Workspace.get_base_dir_from_id(workspace_id)
+        base_dir = workspace_manager.resolve_path(base_dir)
         workspace = workspace_manager.get_workspace(base_dir)
         assert workspace
 
@@ -211,7 +211,8 @@ class MplWebSocketHandler(WebSocketHandler):
             self.application.workspace_manager
         assert workspace_manager
 
-        base_dir = workspace_manager.resolve_path(workspace_id)
+        base_dir = Workspace.get_base_dir_from_id(workspace_id)
+        base_dir = workspace_manager.resolve_path(base_dir)
         self.workspace = workspace_manager.get_workspace(base_dir)
         assert self.workspace
 

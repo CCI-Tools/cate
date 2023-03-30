@@ -22,7 +22,7 @@
 """
 This module defines the ``Workspace`` class.
 """
-
+import base64
 import logging
 import os
 import shutil
@@ -56,7 +56,7 @@ from .workflow import NodePort
 from .workflow import OpStep
 from .workflow import ValueCache
 from .workflow import Workflow
-
+from functools import cached_property
 _LOG = logging.getLogger('cate')
 
 _RESOURCE_PERSISTENCE_FORMATS = dict(
@@ -112,19 +112,12 @@ class Workspace:
     By design, workspace workflows have no inputs and every step is an output.
     """
 
-    _base_dir_to_id: Dict[str, int] = {}
-    _last_id = 0
-    _id_lock = RLock()
-
     def __init__(self,
                  base_dir: str,
                  workflow: Workflow,
-                 is_modified: bool = False,
-                 preferred_id: Optional[int] = None):
+                 is_modified: bool = False):
         assert base_dir
         assert workflow
-        self._id = self.get_id_from_base_dir(base_dir,
-                                             preferred_id=preferred_id)
         self._base_dir = base_dir
         self._workflow = workflow
         self._is_scratch = (base_dir or '').startswith(
@@ -140,52 +133,12 @@ class Workspace:
         self.close()
 
     @classmethod
-    def get_id_from_base_dir(cls,
-                             base_dir: str,
-                             preferred_id: Optional[int] = None) -> int:
-        with cls._id_lock:
-            id = cls._get_id_from_base_dir(base_dir, preferred_id)
-            _LOG.info(f'{base_dir!r} --> {id}')
-            return id
+    def get_base_dir_from_id(cls, workspace_id: str) -> str:
+        return base64.b16decode(workspace_id).decode('utf-8')
 
     @classmethod
-    def get_base_dir_from_id(cls, id: int) -> str:
-        with cls._id_lock:
-            base_dir = cls._get_base_dir_from_id(id)
-            _LOG.info(f'{id} --> {base_dir!r}')
-            return base_dir
-
-    @classmethod
-    def _get_id_from_base_dir(cls,
-                              base_dir: str,
-                              preferred_id: Optional[int]) -> int:
-        base_dir_to_id = cls._base_dir_to_id
-        if isinstance(preferred_id, int):
-            # Try reusing base_dir --> id
-            if base_dir not in base_dir_to_id \
-                    and preferred_id not in set(base_dir_to_id.values()):
-                base_dir_to_id[base_dir] = preferred_id
-                return preferred_id
-        if base_dir in base_dir_to_id:
-            id = base_dir_to_id[base_dir]
-        else:
-            id = cls._last_id + 1
-            cls._last_id = id
-            base_dir_to_id[base_dir] = id
-        return id
-
-    @classmethod
-    def _get_base_dir_from_id(cls, id: int) -> str:
-        for base_dir, _id in cls._base_dir_to_id.items():
-            if id == _id:
-                return base_dir
-        raise ValueError(f'No base directory'
-                         f' found for workspace identifier #{id}')
-
-    @property
-    def id(self) -> int:
-        """The Workspace' identifier."""
-        return self._id
+    def get_id_from_base_dir(cls, base_dir: str) -> str:
+        return base64.b16encode(bytes(base_dir, 'utf-8')).decode('utf-8')
 
     @property
     def base_dir(self) -> str:
@@ -362,21 +315,18 @@ class Workspace:
 
     @classmethod
     def from_json_dict(cls, json_dict):
-        preferred_id = json_dict.get('id', None)
         base_dir = json_dict.get('base_dir', None)
         workflow_json = json_dict.get('workflow', {})
         is_modified = json_dict.get('is_modified', False)
         workflow = Workflow.from_json_dict(workflow_json)
         return Workspace(base_dir,
                          workflow,
-                         is_modified=is_modified,
-                         preferred_id=preferred_id)
+                         is_modified=is_modified)
 
     def to_json_dict(self):
         with self._lock:
             self._assert_open()
             return OrderedDict([
-                ('id', self.id),
                 ('base_dir', self.base_dir),
                 ('is_scratch', self.is_scratch),
                 ('is_modified', self.is_modified),
