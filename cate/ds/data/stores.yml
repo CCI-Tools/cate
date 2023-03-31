@@ -23,7 +23,7 @@ cci-zarr-store:
 local:
   store_id: "file"
   store_params:
-    root: ~
+    root: "~"
     max_depth: 4
   title: "File Data Sources"
   description: >
