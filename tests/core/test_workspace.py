@@ -11,15 +11,31 @@ from shapely.geometry import Point
 
 from cate.core.types import ValidationError
 from cate.core.workflow import Workflow, OpStep
-from cate.core.workspace import Workspace, mk_op_arg, mk_op_args, mk_op_kwargs
+from cate.core.workspace import Workspace
+from cate.core.workspace import mk_op_arg
+from cate.core.workspace import mk_op_args
+from cate.core.workspace import mk_op_kwargs
 from cate.util.opmetainf import OpMetaInfo
 from cate.util.undefined import UNDEFINED
 
-NETCDF_TEST_FILE_1 = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp.nc')
-NETCDF_TEST_FILE_2 = os.path.join(os.path.dirname(__file__), '..', 'data', 'precip_and_temp_2.nc')
+NETCDF_TEST_FILE_1 = os.path.join(os.path.dirname(__file__),
+                                  '..', 'data', 'precip_and_temp.nc')
+NETCDF_TEST_FILE_2 = os.path.join(os.path.dirname(__file__),
+                                  '..', 'data', 'precip_and_temp_2.nc')
 
 
 class WorkspaceTest(unittest.TestCase):
+    def test_id_codec(self):
+        base_dir = ".cate/workspaces/TEST-1"
+        ws_id = "2E636174652F776F726B7370616365732F544553542D31"
+        self.assertEqual(ws_id, Workspace.get_id_from_base_dir(base_dir))
+        self.assertEqual(base_dir, Workspace.get_base_dir_from_id(ws_id))
+
+        base_dir = ".cate/scratch/345f-3ad6-99de"
+        ws_id = "2E636174652F736372617463682F333435662D336164362D39396465"
+        self.assertEqual(ws_id, Workspace.get_id_from_base_dir(base_dir))
+        self.assertEqual(base_dir, Workspace.get_base_dir_from_id(ws_id))
+
     def test_utilities(self):
         self.assertEqual(mk_op_arg(1), {'value': 1})
         self.assertEqual(mk_op_arg('2'), {'value': '2'})
@@ -28,10 +44,16 @@ class WorkspaceTest(unittest.TestCase):
 
         self.assertEqual(mk_op_args(), [])
         self.assertEqual(mk_op_args(1, '2', 'a', '@b'),
-                         [{'value': 1}, {'value': '2'}, {'value': 'a'}, {'source': 'b'}])
+                         [{'value': 1},
+                          {'value': '2'},
+                          {'value': 'a'},
+                          {'source': 'b'}])
 
-        self.assertEqual(mk_op_kwargs(a=1), OrderedDict([('a', {'value': 1})]))
-        self.assertEqual(mk_op_kwargs(a=1, b='@c'), OrderedDict([('a', {'value': 1}), ('b', {'source': 'c'})]))
+        self.assertEqual(mk_op_kwargs(a=1),
+                         OrderedDict([('a', {'value': 1})]))
+        self.assertEqual(mk_op_kwargs(a=1, b='@c'),
+                         OrderedDict([('a', {'value': 1}),
+                                      ('b', {'source': 'c'})]))
 
     def test_workspace_is_part_of_context(self):
 
@@ -44,8 +66,14 @@ class WorkspaceTest(unittest.TestCase):
             op_reg = OP_REGISTRY.add_op(some_op)
             op_reg.op_meta_info.inputs['ctx']['context'] = True
 
-            ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
-            ws.set_resource(op_reg.op_meta_info.qualified_name, {}, res_name='new_ctx')
+            ws = Workspace('/path',
+                           Workflow(
+                               OpMetaInfo('workspace_workflow',
+                                          header=dict(description='Test!'))
+                           ))
+            ws.set_resource(op_reg.op_meta_info.qualified_name,
+                            {},
+                            res_name='new_ctx')
             ws.execute_workflow('new_ctx')
 
             self.assertTrue('new_ctx' in ws.resource_cache)
@@ -56,10 +84,16 @@ class WorkspaceTest(unittest.TestCase):
             OP_REGISTRY.remove_op(some_op)
 
     def test_workspace_can_create_new_res_names(self):
-        ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
-        res_name_1 = ws.set_resource('cate.ops.utility.identity', mk_op_kwargs(value='A'))
-        res_name_2 = ws.set_resource('cate.ops.utility.identity', mk_op_kwargs(value='B'))
-        res_name_3 = ws.set_resource('cate.ops.utility.identity', mk_op_kwargs(value='C'))
+        ws = Workspace('/path',
+                       Workflow(
+                           OpMetaInfo('workspace_workflow',
+                                      header=dict(description='Test!'))))
+        res_name_1 = ws.set_resource('cate.ops.utility.identity',
+                                     mk_op_kwargs(value='A'))
+        res_name_2 = ws.set_resource('cate.ops.utility.identity',
+                                     mk_op_kwargs(value='B'))
+        res_name_3 = ws.set_resource('cate.ops.utility.identity',
+                                     mk_op_kwargs(value='C'))
         self.assertEqual(res_name_1, 'res_1')
         self.assertEqual(res_name_2, 'res_2')
         self.assertEqual(res_name_3, 'res_3')
@@ -71,14 +105,24 @@ class WorkspaceTest(unittest.TestCase):
 
         def dataset_op() -> xr.Dataset:
             periods = 5
-            temperature_data = (15 + 8 * np.random.randn(periods, 2, 2)).round(decimals=1)
-            temperature_attrs = {'a': np.array([1, 2, 3]), 'comment': 'hot', '_FillValue': np.nan}
-            precipitation_data = (10 * np.random.rand(periods, 2, 2)).round(decimals=1)
-            precipitation_attrs = {'x': True, 'comment': 'wet', '_FillValue': -1.0}
+            temperature_data = (15 + 8 * np.random.randn(periods, 2, 2)) \
+                .round(decimals=1)
+            temperature_attrs = {'a': np.array([1, 2, 3]),
+                                 'comment': 'hot',
+                                 '_FillValue': np.nan}
+            precipitation_data = (10 * np.random.rand(periods, 2, 2)) \
+                .round(decimals=1)
+            precipitation_attrs = {'x': True,
+                                   'comment': 'wet',
+                                   '_FillValue': -1.0}
             ds = xr.Dataset(
                 data_vars={
-                    'temperature': (('time', 'lat', 'lon'), temperature_data, temperature_attrs),
-                    'precipitation': (('time', 'lat', 'lon'), precipitation_data, precipitation_attrs)
+                    'temperature': (('time', 'lat', 'lon'),
+                                    temperature_data,
+                                    temperature_attrs),
+                    'precipitation': (('time', 'lat', 'lon'),
+                                      precipitation_data,
+                                      precipitation_attrs)
                 },
                 coords={
                     'lon': np.array([12, 13]),
@@ -109,8 +153,12 @@ class WorkspaceTest(unittest.TestCase):
         def empty_dataset_op() -> xr.Dataset:
             ds = xr.Dataset(
                 data_vars={
-                    'temperature': (('time', 'lat', 'lon'), np.ndarray(shape=(0, 0, 0), dtype=np.float32)),
-                    'precipitation': (('time', 'lat', 'lon'), np.ndarray(shape=(0, 0, 0), dtype=np.float32))
+                    'temperature': (('time', 'lat', 'lon'),
+                                    np.ndarray(shape=(0, 0, 0),
+                                               dtype=np.float32)),
+                    'precipitation': (('time', 'lat', 'lon'),
+                                      np.ndarray(shape=(0, 0, 0),
+                                                 dtype=np.float32))
                 },
                 coords={
                     'lon': np.ndarray(shape=(0,), dtype=np.float32),
@@ -126,7 +174,10 @@ class WorkspaceTest(unittest.TestCase):
             data = {'A': [1, 2, 3, np.nan, 4, 9, np.nan, np.nan, 1, 0, 4, 6],
                     'B': [5, 6, 8, 7, 5, 5, 5, 9, 1, 2, 7, 6]}
             time = pd.date_range('2000-01-01', freq='MS', periods=12)
-            return pd.DataFrame(data=data, index=time, dtype=float, columns=['A', 'B'])
+            return pd.DataFrame(data=data,
+                                index=time,
+                                dtype=float,
+                                columns=['A', 'B'])
 
         def scalar_data_frame_op() -> pd.DataFrame:
             data = {'A': [1.3],
@@ -173,17 +224,28 @@ class WorkspaceTest(unittest.TestCase):
             OP_REGISTRY.add_op(empty_data_frame_op)
             OP_REGISTRY.add_op(int_op)
             OP_REGISTRY.add_op(str_op)
-            workflow = Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!')))
-            workflow.add_step(OpStep(dataset_op, node_id='ds'))
-            workflow.add_step(OpStep(data_frame_op, node_id='df'))
-            workflow.add_step(OpStep(geo_data_frame_op, node_id='gdf'))
-            workflow.add_step(OpStep(scalar_dataset_op, node_id='scalar_ds'))
-            workflow.add_step(OpStep(scalar_data_frame_op, node_id='scalar_df'))
-            workflow.add_step(OpStep(scalar_geo_data_frame_op, node_id='scalar_gdf'))
-            workflow.add_step(OpStep(empty_dataset_op, node_id='empty_ds'))
-            workflow.add_step(OpStep(empty_data_frame_op, node_id='empty_df'))
-            workflow.add_step(OpStep(int_op, node_id='i'))
-            workflow.add_step(OpStep(str_op, node_id='s'))
+            workflow = Workflow(OpMetaInfo('workspace_workflow',
+                                           header=dict(description='Test!')))
+            workflow.add_step(OpStep(dataset_op,
+                                     node_id='ds'))
+            workflow.add_step(OpStep(data_frame_op,
+                                     node_id='df'))
+            workflow.add_step(OpStep(geo_data_frame_op,
+                                     node_id='gdf'))
+            workflow.add_step(OpStep(scalar_dataset_op,
+                                     node_id='scalar_ds'))
+            workflow.add_step(OpStep(scalar_data_frame_op,
+                                     node_id='scalar_df'))
+            workflow.add_step(OpStep(scalar_geo_data_frame_op,
+                                     node_id='scalar_gdf'))
+            workflow.add_step(OpStep(empty_dataset_op,
+                                     node_id='empty_ds'))
+            workflow.add_step(OpStep(empty_data_frame_op,
+                                     node_id='empty_df'))
+            workflow.add_step(OpStep(int_op,
+                                     node_id='i'))
+            workflow.add_step(OpStep(str_op,
+                                     node_id='s'))
             ws = Workspace('/path', workflow)
             ws.execute_workflow()
 
@@ -200,9 +262,12 @@ class WorkspaceTest(unittest.TestCase):
 
             res_ds = l_res[0]
             self.assertEqual(res_ds.get('name'), 'ds')
-            self.assertEqual(res_ds.get('dataType'), 'xarray.core.dataset.Dataset')
-            self.assertEqual(res_ds.get('dimSizes'), dict(lat=2, lon=2, time=5))
-            self.assertEqual(res_ds.get('attributes'), {'history': 'a b c'})
+            self.assertEqual(res_ds.get('dataType'),
+                             'xarray.core.dataset.Dataset')
+            self.assertEqual(res_ds.get('dimSizes'),
+                             dict(lat=2, lon=2, time=5))
+            self.assertEqual(res_ds.get('attributes'),
+                             {'history': 'a b c'})
             res_ds_vars = res_ds.get('variables')
             self.assertIsNotNone(res_ds_vars)
             self.assertEqual(len(res_ds_vars), 2)
@@ -214,7 +279,8 @@ class WorkspaceTest(unittest.TestCase):
             self.assertEqual(res_ds_var_1.get('chunkSizes'), None)
             self.assertEqual(res_ds_var_1.get('isYFlipped'), True)
             self.assertEqual(res_ds_var_1.get('isFeatureAttribute'), None)
-            self.assertEqual(res_ds_var_1.get('attributes'), dict(x=True, comment='wet', _FillValue=-1.))
+            self.assertEqual(res_ds_var_1.get('attributes'),
+                             dict(x=True, comment='wet', _FillValue=-1.))
             res_ds_var_2 = res_ds_vars[1]
             self.assertEqual(res_ds_var_2.get('name'), 'temperature')
             self.assertEqual(res_ds_var_2.get('dataType'), 'float64')
@@ -223,12 +289,17 @@ class WorkspaceTest(unittest.TestCase):
             self.assertEqual(res_ds_var_2.get('chunkSizes'), None)
             self.assertEqual(res_ds_var_2.get('isYFlipped'), True)
             self.assertEqual(res_ds_var_2.get('isFeatureAttribute'), None)
-            self.assertEqual(res_ds_var_2.get('attributes'), dict(a=[1, 2, 3], comment='hot', _FillValue=np.nan))
+            self.assertEqual(res_ds_var_2.get('attributes'),
+                             dict(a=[1, 2, 3],
+                                  comment='hot',
+                                  _FillValue=np.nan))
 
             res_df = l_res[1]
             self.assertEqual(res_df.get('name'), 'df')
-            self.assertEqual(res_df.get('dataType'), 'pandas.core.frame.DataFrame')
-            self.assertEqual(res_df.get('attributes'), {'num_rows': 12, 'num_columns': 2})
+            self.assertEqual(res_df.get('dataType'),
+                             'pandas.core.frame.DataFrame')
+            self.assertEqual(res_df.get('attributes'),
+                             {'num_rows': 12, 'num_columns': 2})
             res_df_vars = res_df.get('variables')
             self.assertIsNotNone(res_df_vars)
             self.assertEqual(len(res_df_vars), 2)
@@ -251,8 +322,12 @@ class WorkspaceTest(unittest.TestCase):
 
             res_gdf = l_res[2]
             self.assertEqual(res_gdf.get('name'), 'gdf')
-            self.assertEqual(res_gdf.get('dataType'), 'geopandas.geodataframe.GeoDataFrame')
-            self.assertEqual(res_gdf.get('attributes'), {'num_rows': 3, 'num_columns': 4, 'geom_type': 'Point'})
+            self.assertEqual(res_gdf.get('dataType'),
+                             'geopandas.geodataframe.GeoDataFrame')
+            self.assertEqual(res_gdf.get('attributes'),
+                             {'num_rows': 3,
+                              'num_columns': 4,
+                              'geom_type': 'Point'})
             res_gdf_vars = res_gdf.get('variables')
             self.assertIsNotNone(res_gdf_vars)
             self.assertEqual(len(res_gdf_vars), 4)
@@ -293,26 +368,41 @@ class WorkspaceTest(unittest.TestCase):
             res_scalar_ds_vars = res_scalar_ds.get('variables')
             self.assertIsNotNone(res_scalar_ds_vars)
             self.assertEqual(len(res_scalar_ds_vars), 2)
-            scalar_values = {res_scalar_ds_vars[0].get('name'): res_scalar_ds_vars[0].get('value'),
-                             res_scalar_ds_vars[1].get('name'): res_scalar_ds_vars[1].get('value')}
-            self.assertEqual(scalar_values, {'temperature': 15.2, 'precipitation': 10.1})
+            scalar_values = {
+                res_scalar_ds_vars[0].get('name'):
+                    res_scalar_ds_vars[0].get('value'),
+                res_scalar_ds_vars[1].get('name'):
+                    res_scalar_ds_vars[1].get('value')
+            }
+            self.assertEqual(scalar_values, {'temperature': 15.2,
+                                             'precipitation': 10.1})
 
             res_scalar_df = l_res[4]
             res_scalar_df_vars = res_scalar_df.get('variables')
             self.assertIsNotNone(res_scalar_df_vars)
             self.assertEqual(len(res_scalar_df_vars), 2)
-            scalar_values = {res_scalar_df_vars[0].get('name'): res_scalar_df_vars[0].get('value'),
-                             res_scalar_df_vars[1].get('name'): res_scalar_df_vars[1].get('value')}
+            scalar_values = {
+                res_scalar_df_vars[0].get('name'):
+                    res_scalar_df_vars[0].get('value'),
+                res_scalar_df_vars[1].get('name'):
+                    res_scalar_df_vars[1].get('value')
+            }
             self.assertEqual(scalar_values, {'A': 1.3, 'B': 5.9})
 
             res_scalar_gdf = l_res[5]
             res_scalar_gdf_vars = res_scalar_gdf.get('variables')
             self.assertIsNotNone(res_scalar_gdf_vars)
             self.assertEqual(len(res_scalar_gdf_vars), 4)
-            scalar_values = {res_scalar_gdf_vars[0].get('name'): res_scalar_gdf_vars[0].get('value'),
-                             res_scalar_gdf_vars[1].get('name'): res_scalar_gdf_vars[1].get('value'),
-                             res_scalar_gdf_vars[2].get('name'): res_scalar_gdf_vars[2].get('value'),
-                             res_scalar_gdf_vars[3].get('name'): res_scalar_gdf_vars[3].get('value')}
+            scalar_values = {
+                res_scalar_gdf_vars[0].get('name'):
+                    res_scalar_gdf_vars[0].get('value'),
+                res_scalar_gdf_vars[1].get('name'):
+                    res_scalar_gdf_vars[1].get('value'),
+                res_scalar_gdf_vars[2].get('name'):
+                    res_scalar_gdf_vars[2].get('value'),
+                res_scalar_gdf_vars[3].get('name'):
+                    res_scalar_gdf_vars[3].get('value')
+            }
             self.assertEqual(scalar_values, {'name': (1000 * 'A') + '...',
                                              'lat': 45,
                                              'lon': -120,
@@ -322,16 +412,25 @@ class WorkspaceTest(unittest.TestCase):
             res_empty_ds_vars = res_empty_ds.get('variables')
             self.assertIsNotNone(res_empty_ds_vars)
             self.assertEqual(len(res_empty_ds_vars), 2)
-            scalar_values = {res_empty_ds_vars[0].get('name'): res_empty_ds_vars[0].get('value'),
-                             res_empty_ds_vars[1].get('name'): res_empty_ds_vars[1].get('value')}
-            self.assertEqual(scalar_values, {'temperature': None, 'precipitation': None})
+            scalar_values = {
+                res_empty_ds_vars[0].get('name'): res_empty_ds_vars[0].get(
+                    'value'),
+                res_empty_ds_vars[1].get('name'): res_empty_ds_vars[1].get(
+                    'value')
+            }
+            self.assertEqual(scalar_values,
+                             {'temperature': None, 'precipitation': None})
 
             res_empty_df = l_res[7]
             res_empty_df_vars = res_empty_df.get('variables')
             self.assertIsNotNone(res_empty_df_vars)
             self.assertEqual(len(res_empty_df_vars), 2)
-            scalar_values = {res_empty_df_vars[0].get('name'): res_empty_df_vars[0].get('value'),
-                             res_empty_df_vars[1].get('name'): res_empty_df_vars[1].get('value')}
+            scalar_values = {
+                res_empty_df_vars[0].get('name'): res_empty_df_vars[0].get(
+                    'value'),
+                res_empty_df_vars[1].get('name'): res_empty_df_vars[1].get(
+                    'value')
+            }
             self.assertEqual(scalar_values, {'A': None, 'B': None})
 
             res_int = l_res[8]
@@ -360,33 +459,55 @@ class WorkspaceTest(unittest.TestCase):
 
     # noinspection PyMethodMayBeStatic
     def test_execute_empty_workflow(self):
-        ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
+        ws = Workspace('/path', Workflow(
+            OpMetaInfo('workspace_workflow',
+                       header=dict(description='Test!'))
+        ))
         ws.execute_workflow()
 
     def test_set_and_execute_step(self):
-        ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
+        ws = Workspace('/path', Workflow(
+            OpMetaInfo('workspace_workflow',
+                       header=dict(description='Test!'))
+        ))
 
         with self.assertRaises(ValidationError) as we:
             ws.set_resource("not_existing_op", {})
-        self.assertEqual('Unknown operation "not_existing_op"', str(we.exception))
+        self.assertEqual('Unknown operation "not_existing_op"',
+                         str(we.exception))
 
         with self.assertRaises(ValidationError) as we:
-            ws.set_resource('cate.ops.io.read_netcdf', mk_op_kwargs(location=NETCDF_TEST_FILE_1), res_name='X')
-        self.assertEqual('"location" is not an input of operation "cate.ops.io.read_netcdf"', str(we.exception))
+            ws.set_resource('cate.ops.io.read_netcdf',
+                            mk_op_kwargs(location=NETCDF_TEST_FILE_1),
+                            res_name='X')
+        self.assertEqual('"location" is not an input '
+                         'of operation "cate.ops.io.read_netcdf"',
+                         str(we.exception))
 
         with self.assertRaises(ValidationError) as we:
-            ws.set_resource('cate.ops.io.read_netcdf', {'file': {'foo': 'bar'}}, res_name='X')
-        self.assertEqual('Illegal argument for input "file" of operation "cate.ops.io.read_netcdf', str(we.exception))
+            ws.set_resource('cate.ops.io.read_netcdf',
+                            {'file': {'foo': 'bar'}},
+                            res_name='X')
+        self.assertEqual('Illegal argument for input "file"'
+                         ' of operation "cate.ops.io.read_netcdf',
+                         str(we.exception))
 
-        ws.set_resource('cate.ops.io.read_netcdf', mk_op_kwargs(file=NETCDF_TEST_FILE_1), res_name='X')
-        ws.set_resource('cate.ops.timeseries.tseries_mean', mk_op_kwargs(ds="@X", var="precipitation"), res_name='Y')
+        ws.set_resource('cate.ops.io.read_netcdf',
+                        mk_op_kwargs(file=NETCDF_TEST_FILE_1),
+                        res_name='X')
+        ws.set_resource('cate.ops.timeseries.tseries_mean',
+                        mk_op_kwargs(ds="@X",
+                                     var="precipitation"),
+                        res_name='Y')
         self.assertEqual(ws.resource_cache, {})
 
         ws.execute_workflow('Y')
         self.assertIn('X', ws.resource_cache)
         self.assertIn('Y', ws.resource_cache)
 
-        ws.set_resource('cate.ops.timeseries.tseries_mean', mk_op_kwargs(ds="@X", var="temperature"), res_name='Y',
+        ws.set_resource('cate.ops.timeseries.tseries_mean',
+                        mk_op_kwargs(ds="@X", var="temperature"),
+                        res_name='Y',
                         overwrite=True)
         self.assertIn('X', ws.resource_cache)
         self.assertIn('Y', ws.resource_cache)
@@ -396,7 +517,10 @@ class WorkspaceTest(unittest.TestCase):
         self.assertIn('X', ws.resource_cache)
         self.assertIn('Y', ws.resource_cache)
 
-        ws.set_resource('cate.ops.io.read_netcdf', mk_op_kwargs(file=NETCDF_TEST_FILE_2), res_name='X', overwrite=True)
+        ws.set_resource('cate.ops.io.read_netcdf',
+                        mk_op_kwargs(file=NETCDF_TEST_FILE_2),
+                        res_name='X',
+                        overwrite=True)
         self.assertIn('X', ws.resource_cache)
         self.assertIs(ws.resource_cache['X'], UNDEFINED)
         self.assertIn('Y', ws.resource_cache)
@@ -407,70 +531,83 @@ class WorkspaceTest(unittest.TestCase):
         self.assertIn('Y', ws.resource_cache)
 
     def test_set_and_rename_and_execute_step(self):
-        ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
-        self.assertEqual(ws.user_data, {})
+        ws = Workspace('/path',
+                       Workflow(OpMetaInfo('workspace_workflow',
+                                           header=dict(description='Test!'))))
+        self.assertEqual({}, ws.user_data)
 
-        ws.set_resource('cate.ops.utility.identity', mk_op_kwargs(value=1), res_name='X')
-        ws.set_resource('cate.ops.utility.identity', mk_op_kwargs(value="@X"), res_name='Y')
-        ws.set_resource('cate.ops.utility.identity', mk_op_kwargs(value="@X"), res_name='Z')
-        self.assertEqual(len(ws.workflow.steps), 3)
-        self.assertEqual(ws.resource_cache, {})
+        ws.set_resource('cate.ops.utility.identity',
+                        mk_op_kwargs(value=1), res_name='X')
+        ws.set_resource('cate.ops.utility.identity',
+                        mk_op_kwargs(value="@X"), res_name='Y')
+        ws.set_resource('cate.ops.utility.identity',
+                        mk_op_kwargs(value="@X"), res_name='Z')
+        self.assertEqual(3, len(ws.workflow.steps))
+        self.assertEqual({}, ws.resource_cache)
 
         value = ws.execute_workflow('Y')
-        self.assertEqual(value, 1)
-        self.assertEqual(ws.resource_cache.get('X'), 1)
-        self.assertEqual(ws.resource_cache.get('Y'), 1)
-        self.assertEqual(ws.resource_cache.get('Z'), None)
+        self.assertEqual(1, value)
+        self.assertEqual(1, ws.resource_cache.get('X'))
+        self.assertEqual(1, ws.resource_cache.get('Y'))
+        self.assertEqual(None, ws.resource_cache.get('Z'))
 
         value = ws.execute_workflow('Z')
-        self.assertEqual(value, 1)
-        self.assertEqual(ws.resource_cache.get('X'), 1)
-        self.assertEqual(ws.resource_cache.get('Y'), 1)
-        self.assertEqual(ws.resource_cache.get('Z'), 1)
+        self.assertEqual(1, value)
+        self.assertEqual(1, ws.resource_cache.get('X'))
+        self.assertEqual(1, ws.resource_cache.get('Y'))
+        self.assertEqual(1, ws.resource_cache.get('Z'))
 
-        ws.set_resource('cate.ops.utility.identity', mk_op_kwargs(value=9), res_name='X', overwrite=True)
-        self.assertEqual(len(ws.workflow.steps), 3)
-        self.assertEqual(ws.resource_cache.get('X'), UNDEFINED)
-        self.assertEqual(ws.resource_cache.get('Y'), UNDEFINED)
-        self.assertEqual(ws.resource_cache.get('Z'), UNDEFINED)
+        ws.set_resource('cate.ops.utility.identity',
+                        mk_op_kwargs(value=9), res_name='X', overwrite=True)
+        self.assertEqual(3, len(ws.workflow.steps), 3)
+        self.assertEqual(UNDEFINED, ws.resource_cache.get('X'))
+        self.assertEqual(UNDEFINED, ws.resource_cache.get('Y'))
+        self.assertEqual(UNDEFINED, ws.resource_cache.get('Z'))
 
         ws.execute_workflow()
-        self.assertEqual(ws.resource_cache.get('X'), 9)
-        self.assertEqual(ws.resource_cache.get('Y'), 9)
-        self.assertEqual(ws.resource_cache.get('Z'), 9)
+        self.assertEqual(9, ws.resource_cache.get('X'))
+        self.assertEqual(9, ws.resource_cache.get('Y'))
+        self.assertEqual(9, ws.resource_cache.get('Z'))
 
         ws.rename_resource('X', 'A')
         self.assertIsNone(ws.workflow.find_node('X'))
         self.assertIsNotNone(ws.workflow.find_node('A'))
-        self.assertEqual(ws.resource_cache.get('X', '--'), '--')
-        self.assertEqual(ws.resource_cache.get('A'), 9)
-        self.assertEqual(ws.resource_cache.get('Y'), 9)
-        self.assertEqual(ws.resource_cache.get('Z'), 9)
+        self.assertEqual('--', ws.resource_cache.get('X', '--'))
+        self.assertEqual(9, ws.resource_cache.get('A'))
+        self.assertEqual(9, ws.resource_cache.get('Y'))
+        self.assertEqual(9, ws.resource_cache.get('Z'))
 
-        ws.set_resource('cate.ops.utility.identity', mk_op_kwargs(value=5), res_name='A', overwrite=True)
-        self.assertEqual(ws.resource_cache.get('X', '--'), '--')
-        self.assertEqual(ws.resource_cache.get('A'), UNDEFINED)
-        self.assertEqual(ws.resource_cache.get('Y'), UNDEFINED)
-        self.assertEqual(ws.resource_cache.get('Z'), UNDEFINED)
+        ws.set_resource('cate.ops.utility.identity',
+                        mk_op_kwargs(value=5), res_name='A', overwrite=True)
+        self.assertEqual('--', ws.resource_cache.get('X', '--'))
+        self.assertEqual(UNDEFINED, ws.resource_cache.get('A'))
+        self.assertEqual(UNDEFINED, ws.resource_cache.get('Y'))
+        self.assertEqual(UNDEFINED, ws.resource_cache.get('Z'))
 
         ws.execute_workflow()
-        self.assertEqual(ws.resource_cache.get('X', '--'), '--')
-        self.assertEqual(ws.resource_cache.get('A'), 5)
-        self.assertEqual(ws.resource_cache.get('Y'), 5)
-        self.assertEqual(ws.resource_cache.get('Z'), 5)
+        self.assertEqual('--', ws.resource_cache.get('X', '--'))
+        self.assertEqual(5, ws.resource_cache.get('A'))
+        self.assertEqual(5, ws.resource_cache.get('Y'))
+        self.assertEqual(5, ws.resource_cache.get('Z'))
 
     @unittest.skip("_extract_point is not an operator anymore")
     def test_set_step_and_run_op(self):
-        ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
+        ws = Workspace('/path',
+                       Workflow(OpMetaInfo('workspace_workflow',
+                                           header=dict(description='Test!'))))
 
-        ws.set_resource('cate.ops.io.read_netcdf', mk_op_kwargs(file=NETCDF_TEST_FILE_1), res_name='X')
+        ws.set_resource('cate.ops.io.read_netcdf',
+                        mk_op_kwargs(file=NETCDF_TEST_FILE_1), res_name='X')
         ws.execute_workflow('X')
         self.assertIsNotNone(ws.workflow)
         self.assertEqual(len(ws.workflow.steps), 1)
         self.assertIn('X', ws.resource_cache)
 
         op_name = '_extract_point'
-        op_args = mk_op_kwargs(ds='@X', point='10.22, 34.52', indexers=dict(time='2014-09-11'), should_return=True)
+        op_args = mk_op_kwargs(ds='@X',
+                               point='10.22, 34.52',
+                               indexers=dict(time='2014-09-11'),
+                               should_return=True)
         op_result = ws.run_op(op_name, op_args)
         self.assertEqual(len(op_result), 4)
         self.assertAlmostEqual(op_result['lat'], 34.5)
@@ -479,25 +616,32 @@ class WorkspaceTest(unittest.TestCase):
         self.assertAlmostEqual(op_result['temperature'], 32.9)
 
         # without asking for return data
-        op_args = mk_op_kwargs(ds='@X', point='10.22, 34.52', indexers=dict(time='2014-09-11'))
+        op_args = mk_op_kwargs(ds='@X',
+                               point='10.22, 34.52',
+                               indexers=dict(time='2014-09-11'))
         op_result = ws.run_op(op_name, op_args)
         self.assertIsNone(op_result)
 
         # with a non existing operator name
         with self.assertRaises(ValidationError) as we:
             ws.run_op("not_existing_op", {})
-        self.assertEqual('Unknown operation "not_existing_op"', str(we.exception))
+        self.assertEqual('Unknown operation "not_existing_op"',
+                         str(we.exception))
 
     # TODO (forman): #391
     def test_set_resource_is_reentrant(self):
         from concurrent.futures import ThreadPoolExecutor
 
-        ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
+        ws = Workspace('/path',
+                       Workflow(OpMetaInfo('workspace_workflow',
+                                           header=dict(description='Test!'))))
 
         def set_resource_and_execute():
-            res_name = ws.set_resource('cate.ops.utility.no_op',
-                                       op_kwargs=dict(num_steps=dict(value=10),
-                                                      step_duration=dict(value=0.05)))
+            res_name = ws.set_resource(
+                'cate.ops.utility.no_op',
+                op_kwargs=dict(num_steps=dict(value=10),
+                               step_duration=dict(value=0.05))
+            )
             ws.execute_workflow(res_name=res_name)
             return res_name
 
@@ -563,11 +707,17 @@ class WorkspaceTest(unittest.TestCase):
 
         expected_json_dict = json.loads(expected_json_text)
 
-        ws = Workspace('/path', Workflow(OpMetaInfo('workspace_workflow', header=dict(description='Test!'))))
+        ws = Workspace('/path',
+                       Workflow(OpMetaInfo('workspace_workflow',
+                                           header=dict(description='Test!'))))
         # print("wf_1: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
-        ws.set_resource('cate.ops.io.read_netcdf', mk_op_kwargs(file=NETCDF_TEST_FILE_1), res_name='p')
+        ws.set_resource('cate.ops.io.read_netcdf',
+                        mk_op_kwargs(file=NETCDF_TEST_FILE_1),
+                        res_name='p')
         # print("wf_2: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
-        ws.set_resource('cate.ops.timeseries.tseries_mean', mk_op_kwargs(ds="@p", var="precipitation"), res_name='ts')
+        ws.set_resource('cate.ops.timeseries.tseries_mean',
+                        mk_op_kwargs(ds="@p", var="precipitation"),
+                        res_name='ts')
         # print("wf_3: " + json.dumps(ws.workflow.to_json_dict(), indent='  '))
 
         self.maxDiff = None
@@ -575,14 +725,19 @@ class WorkspaceTest(unittest.TestCase):
 
         with self.assertRaises(ValueError) as e:
             ws.set_resource('cate.ops.timeseries.tseries_point',
-                            mk_op_kwargs(ds="@p", point="iih!", var="precipitation"), res_name='ts2',
+                            mk_op_kwargs(ds="@p",
+                                         point="iih!",
+                                         var="precipitation"),
+                            res_name='ts2',
                             validate_args=True)
         self.assertEqual(str(e.exception),
-                         "Input 'point' for operation 'cate.ops.timeseries.tseries_point': "
+                         "Input 'point' for operation"
+                         " 'cate.ops.timeseries.tseries_point': "
                          "Value cannot be converted into a 'PointLike': "
                          "Invalid geometry WKT format.")
 
         ws2 = Workspace.from_json_dict(ws.to_json_dict())
         self.assertEqual(ws2.base_dir, ws.base_dir)
-        self.assertEqual(ws2.workflow.op_meta_info.qualified_name, ws.workflow.op_meta_info.qualified_name)
+        self.assertEqual(ws2.workflow.op_meta_info.qualified_name,
+                         ws.workflow.op_meta_info.qualified_name)
         self.assertEqual(len(ws2.workflow.steps), len(ws.workflow.steps))

@@ -1,29 +1,30 @@
 # The MIT License (MIT)
-# Copyright (c) 2016, 2017 by the ESA CCI Toolbox development team and contributors
+# Copyright (c) 2016-2023 by the ESA CCI Toolbox team and contributors
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy of
-# this software and associated documentation files (the "Software"), to deal in
-# the Software without restriction, including without limitation the rights to
-# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-# of the Software, and to permit persons to whom the Software is furnished to do
-# so, subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
 #
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
 
 """
-Implements the Tornado REST and WebSocket handlers for working with interactive ``matplotlib``
-figures in a web frontend.
+Implements the Tornado REST and WebSocket handlers for working with
+interactive ``matplotlib`` figures in a web frontend.
 
-Code bases on an example taken from https://matplotlib.org/examples/user_interfaces/embedding_webagg.html
+Code bases on an example taken from
+https://matplotlib.org/examples/user_interfaces/embedding_webagg.html
 """
 
 import io
@@ -33,7 +34,8 @@ from typing import Optional
 
 from matplotlib.backends.backend_webagg_core import FigureManagerWebAgg
 # noinspection PyUnresolvedReferences
-from matplotlib.backends.backend_webagg_core import new_figure_manager_given_figure
+from matplotlib.backends.backend_webagg_core import \
+    new_figure_manager_given_figure
 from matplotlib.figure import Figure
 from tornado.web import RequestHandler
 from tornado.websocket import WebSocketHandler
@@ -55,10 +57,10 @@ html_content = """
     <!-- TODO: There should be a way to include all of the required javascript
                and CSS so matplotlib can add to the set in the future if it
                needs to. -->
-    <link rel="stylesheet" href="_static/css/page.css" type="text/css">
-    <link rel="stylesheet" href="_static/css/boilerplate.css" type="text/css" />
-    <link rel="stylesheet" href="_static/css/fbm.css" type="text/css" />
-    <link rel="stylesheet" href="_static/jquery/css/themes/base/jquery-ui.min.css" >
+    <link rel="stylesheet" href="_static/css/page.css" type="text/css"/>
+    <link rel="stylesheet" href="_static/css/boilerplate.css" type="text/css"/>
+    <link rel="stylesheet" href="_static/css/fbm.css" type="text/css"/>
+    <link rel="stylesheet" href="_static/jquery/css/themes/base/jquery-ui.min.css"/>
     <script src="_static/jquery/js/jquery-1.11.3.min.js"></script>
     <script src="_static/jquery/js/jquery-ui.min.js"></script>
     <script src="mpl.js"></script>
@@ -73,10 +75,12 @@ html_content = """
 
       $(document).ready(
         function() {
-          /* It is up to the application to provide a websocket that the figure
-             will use to communicate to the server.  This websocket object can
-             also be a "fake" websocket that underneath multiplexes messages
-             from multiple figures, if necessary. */
+          /* It is up to the application to provide a websocket that the 
+             figure will use to communicate to the server. 
+             This websocket object can also be a "fake" websocket that 
+             underneath multiplexes messages from multiple figures, 
+             if necessary. 
+          */
           var websocket_type = mpl.get_websocket_type();
           var websocket = new websocket_type("%(ws_uri)sws");
 
@@ -126,14 +130,16 @@ class MplDownloadHandler(WebAPIRequestHandler):
     Handles downloading of the figure in various file formats.
     """
 
-    def get(self, base_dir: str, figure_id: str, format_name: str):
+    def get(self, workspace_id: str, figure_id: str, format_name: str):
 
         figure_id = int(figure_id)
 
         # noinspection PyUnresolvedReferences
-        workspace_manager: WorkspaceManager = self.application.workspace_manager
+        workspace_manager: WorkspaceManager = \
+            self.application.workspace_manager
         assert workspace_manager
 
+        base_dir = Workspace.get_base_dir_from_id(workspace_id)
         base_dir = workspace_manager.resolve_path(base_dir)
         workspace = workspace_manager.get_workspace(base_dir)
         assert workspace
@@ -184,22 +190,28 @@ class MplWebSocketHandler(WebSocketHandler):
     supports_binary = True
 
     def __init__(self, application, request, **kwargs):
-        super(MplWebSocketHandler, self).__init__(application, request, **kwargs)
+        super(MplWebSocketHandler, self).__init__(application,
+                                                  request,
+                                                  **kwargs)
         self.workspace = None
+        self.workspace_id = None
         self.figure_id = None
         self.figure_manager = None
 
-    def open(self, base_dir: str, figure_id: str):
+    def open(self, workspace_id: str, figure_id: str):
         if hasattr(self, 'set_nodelay'):
             self.set_nodelay(True)
 
+        self.workspace_id = int(workspace_id)
         self.figure_id = int(figure_id)
-        # print('MplWebSocketHandler.open', base_dir, figure_id)
+        # print('MplWebSocketHandler.open', workspace_id, figure_id)
 
         # noinspection PyUnresolvedReferences
-        workspace_manager: WorkspaceManager = self.application.workspace_manager
+        workspace_manager: WorkspaceManager = \
+            self.application.workspace_manager
         assert workspace_manager
 
+        base_dir = Workspace.get_base_dir_from_id(workspace_id)
         base_dir = workspace_manager.resolve_path(base_dir)
         self.workspace = workspace_manager.get_workspace(base_dir)
         assert self.workspace
@@ -207,7 +219,8 @@ class MplWebSocketHandler(WebSocketHandler):
         # print('got figure_manager for figure #%s' % figure_id)
 
     def on_close(self):
-        # print('MplWebSocketHandler.on_close', self.workspace.base_dir, self.figure_id)
+        # print('MplWebSocketHandler.on_close',
+        #       self.workspace.base_dir, self.figure_id)
         self._remove_figure_manager()
 
     def on_message(self, message):
@@ -225,7 +238,9 @@ class MplWebSocketHandler(WebSocketHandler):
         else:
             figure_id = message['figure_id']
             if figure_id != self.figure_id:
-                message = "received figure_id={}, but expected figure_id={}".format(figure_id, self.figure_id)
+                message = "received figure_id={}," \
+                          " but expected figure_id={}".format(figure_id,
+                                                              self.figure_id)
                 self.send_json(dict(type='message', message=message))
                 return
 
@@ -247,7 +262,9 @@ class MplWebSocketHandler(WebSocketHandler):
         if self.supports_binary:
             self.write_message(blob, binary=True)
         else:
-            data_uri = "data:image/png;base64,{0}".format(blob.encode('base64').replace('\n', ''))
+            data_uri = "data:image/png;base64,{0}".format(
+                blob.encode('base64').replace('\n', '')
+            )
             self.write_message(data_uri)
 
     def check_origin(self, origin):
@@ -269,15 +286,18 @@ class MplWebSocketHandler(WebSocketHandler):
         figure = workspace.resource_cache.get_value_by_id(figure_id)
         if isinstance(figure, Figure):
             figure_managers = workspace.user_data.get('figure_managers')
-            figure_manager = figure_managers and figure_managers.get(figure_id)
+            figure_manager = figure_managers \
+                             and figure_managers.get(figure_id)
             if figure_manager:
                 if figure_manager.canvas.figure is figure:
-                    # we have a figure_manager and it already manages our figure
+                    # we have a figure_manager and it already
+                    # manages our figure
                     return figure_manager
                 # forget this manager, we have a new figure
                 figure_manager.remove_web_socket(self)
             # create a new figure_manager for our figure
-            figure_manager = new_figure_manager_given_figure(figure_id, figure)
+            figure_manager = new_figure_manager_given_figure(figure_id,
+                                                             figure)
             figure_manager.add_web_socket(self)
             if not figure_managers:
                 # store a new mapping of figure_id to figure_manager
@@ -298,8 +318,10 @@ class MplWebSocketHandler(WebSocketHandler):
             del figure_managers[figure_id]
 
 
-def _get_figure_manager(workspace: Workspace, figure_id: int) -> FigureManagerWebAgg:
+def _get_figure_manager(workspace: Workspace, figure_id: int) \
+        -> FigureManagerWebAgg:
     figure_managers = workspace.user_data.get('figure_managers')
     if figure_managers and figure_id in figure_managers:
         return figure_managers[figure_id]
-    raise ValueError("missing figure manager for figure_id={}".format(figure_id))
+    raise ValueError("missing figure manager"
+                     " for figure_id={}".format(figure_id))

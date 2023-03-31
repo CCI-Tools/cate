@@ -19,11 +19,5 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-# Cate version string (PEP440-compatible), e.g.
-# "0.8.0", "0.8.0.dev1", "0.8.0rc1", "0.8.0rc1.dev1"
-__version__ = '4.0.0.dev2'
-
-# Other package meta-info
-__title__ = 'cate'
-__description__ = 'Cate - the ESA CCI Toolbox'
-__url__ = 'https://github.com/CCI-Tools/cate'
+from .abc import WorkspaceManager
+from .fs import FSWorkspaceManager

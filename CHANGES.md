@@ -1,11 +1,18 @@
 ## Version 4.0.0 (in development)
 
+* Now using workspace identifiers instead of base directories in resource 
+  URLs of the WebAPI. This way we no longer need to URL-encode workspace 
+  directories in WebAPI URLs, which did not work with 
+  [jupyter-server-proxy](https://jupyter-server-proxy.readthedocs.io/).
+
 * Cate is now designed to work inside of Jupyter Lab and standalone.
   For this reason, the Cate App UI is now bundled with the Cate server
   and served via the endpoint "/app".
 
 * The "local" data store is now configured to use the current 
   working directory as root.
+
+* Removed the `cate upd` CLI command.
 
 ## Version 3.1.6
 

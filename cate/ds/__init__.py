@@ -41,9 +41,6 @@ def cate_init():
     dir_path = os.path.dirname(os.path.abspath(__file__))
     default_stores_file = os.path.join(dir_path, 'data/stores.yml')
 
-    _LOG.info("----------------> current dir is", os.getcwd())
-    print("----------------> current dir is", os.getcwd())
-
     if os.path.exists(STORES_CONF_FILE):
         with open(STORES_CONF_FILE, 'r') as fp:
             store_configs = yaml.safe_load(fp)
@@ -56,11 +53,14 @@ def cate_init():
         assert_given(store_id, name='store_id', exception_type=RuntimeError)
 
         if store_id == 'file' \
-                and 'store_params' in store_config \
-                and store_config.get('store_params', {}).get('root') is None:
-            root = os.environ.get('CATE_LOCAL_DATA_STORE_PATH',
-                                  os.path.join(get_data_stores_path(),
-                                               store_name))
+                and 'store_params' in store_config:
+            root = store_config.get('store_params', {}).get('root')
+            if root is None:
+                root = os.environ.get('CATE_LOCAL_DATA_STORE_PATH',
+                                      os.path.join(get_data_stores_path(),
+                                                   store_name))
+            else:
+                root = os.path.abspath(os.path.expanduser(root))
             # Note: even if the root directory doesn't exist yet,
             # the xcube "file" data store will create it for us.
             store_config['store_params']['root'] = root

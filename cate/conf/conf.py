@@ -24,7 +24,7 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH)"
 import logging
 import os.path
 import sys
-from typing import Any, Dict, Optional, Sequence, Union
+from typing import Any, Dict, Optional, Sequence, Union, Hashable
 
 from .defaults import GLOBAL_CONF_FILE, LOCAL_CONF_FILE, LOCATION_FILE, VERSION_CONF_FILE, \
     VARIABLE_DISPLAY_SETTINGS, DEFAULT_DATA_PATH, DEFAULT_VERSION_DATA_PATH, DEFAULT_COLOR_MAP, DEFAULT_RES_PATTERN, \
@@ -116,12 +116,13 @@ def get_http_proxy() -> Optional[str]:
     return http_proxy
 
 
-def is_default_variable(var_name: str) -> bool:
+def is_default_variable(var_name: Hashable) -> bool:
     default_variables = get_config().get('default_variables', DEFAULT_VARIABLES)
     return var_name in default_variables
 
 
-def get_variable_display_settings(var_name: str) -> Optional[Dict[str, Any]]:
+def get_variable_display_settings(var_name: Hashable) \
+        -> Optional[Dict[str, Any]]:
     """
     Get the global variable display settings which is a combination of defaults.
     :return:
