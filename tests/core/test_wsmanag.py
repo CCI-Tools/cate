@@ -393,9 +393,17 @@ class FSWorkspaceManagerTest(WorkspaceManagerTestMixin, unittest.TestCase):
 
     def test_resolve_workspace_dir(self):
         ws_manag = self.new_workspace_manager()
-        self.assertEqual(os.path.join(ws_manag.root_path, 'workspaces', 'test-1'),
+        self.assertEqual(os.path.join(ws_manag.root_path,
+                                      '.cate', 'workspaces', 'test-1'),
                          ws_manag.resolve_workspace_dir('test-1'))
-        self.assertEqual(os.path.join(ws_manag.root_path, 'my_workspaces', 'test-1'),
-                         ws_manag.resolve_workspace_dir(os.path.join('my_workspaces', 'test-1')))
-        self.assertEqual(os.path.join(ws_manag.root_path, 'my_workspaces', 'test-1'),
-                         ws_manag.resolve_workspace_dir(os.path.join(os.path.sep, 'my_workspaces', 'test-1')))
+        self.assertEqual(os.path.join(ws_manag.root_path,
+                                      'my_workspaces', 'test-1'),
+                         ws_manag.resolve_workspace_dir(
+                             os.path.join('my_workspaces', 'test-1')
+                         ))
+        self.assertEqual(os.path.join(ws_manag.root_path,
+                                      'my_workspaces', 'test-1'),
+                         ws_manag.resolve_workspace_dir(
+                             os.path.join(os.path.sep,
+                                          'my_workspaces', 'test-1')
+                         ))
