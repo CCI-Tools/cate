@@ -25,8 +25,9 @@ import platform
 import pprint
 import shutil
 import uuid
-from typing import Dict, List, Optional, Tuple, Any, Union
+from typing import Dict, List, Optional, Tuple, Any
 
+from cate.conf.defaults import DEFAULT_DATA_DIR_NAME
 from cate.conf.defaults import DEFAULT_SCRATCH_WORKSPACES_PATH
 from cate.conf.defaults import DEFAULT_WORKSPACES_PATH
 from cate.conf.defaults import SCRATCH_WORKSPACES_DIR_NAME
@@ -47,10 +48,25 @@ _LOG = logging.getLogger('cate')
 
 
 class FSWorkspaceManager(WorkspaceManager):
+    """An implementation of the WorkspaceManager interface for
+    the local file system.
+
+    This class is used by Cate server to manage workspaces.
+
+    :param root_path: Optional root path. If given, this manager
+        will resolve incoming paths against the root path.
+        Note that incoming paths (from the Cate server client)
+        are usually always absolute, i.e. they always start with a
+        file path separator (single slash).
+    """
 
     def __init__(self, root_path: str = None):
         self._open_workspaces: Dict[str, Workspace] = {}
+
         self._root_path: Optional[str] = None
+        self._workspaces_dir_path = DEFAULT_WORKSPACES_PATH
+        self._scratch_workspaces_dir_path = DEFAULT_SCRATCH_WORKSPACES_PATH
+
         if root_path:
             root_path = os.path.normpath(root_path)
             if not os.path.isabs(root_path):
@@ -59,19 +75,34 @@ class FSWorkspaceManager(WorkspaceManager):
                 )
             if not os.path.isdir(root_path):
                 raise ValueError('root directory does not exist')
-            self._root_path = root_path
 
-    @property
-    def scratch_workspaces_dir_path(self) -> str:
-        if self._root_path:
-            return os.path.join(self._root_path, SCRATCH_WORKSPACES_DIR_NAME)
-        return DEFAULT_SCRATCH_WORKSPACES_PATH
+            self._root_path = root_path
+            self._workspaces_dir_path = os.path.join(
+                root_path,
+                DEFAULT_DATA_DIR_NAME,
+                WORKSPACES_DIR_NAME
+            )
+            self._scratch_workspaces_dir_path = os.path.join(
+                root_path,
+                DEFAULT_DATA_DIR_NAME,
+                SCRATCH_WORKSPACES_DIR_NAME
+            )
+        os.makedirs(self._workspaces_dir_path, exist_ok=True)
+        if os.path.isdir(self._scratch_workspaces_dir_path):
+            shutil.rmtree(self._scratch_workspaces_dir_path)
+        os.makedirs(self._scratch_workspaces_dir_path, exist_ok=True)
+        _LOG.info(f"Workspaces directory:"
+                  f" {self.workspaces_dir}")
+        _LOG.info(f"Scratch workspaces directory:"
+                  f" {self.scratch_workspaces_dir}")
 
     @property
     def workspaces_dir(self) -> str:
-        if self._root_path:
-            return os.path.join(self._root_path, WORKSPACES_DIR_NAME)
-        return DEFAULT_WORKSPACES_PATH
+        return self._workspaces_dir_path
+
+    @property
+    def scratch_workspaces_dir(self) -> str:
+        return self._scratch_workspaces_dir_path
 
     @property
     def root_path(self) -> Optional[str]:
@@ -92,7 +123,7 @@ class FSWorkspaceManager(WorkspaceManager):
             # Not in sandbox mode, return normalized, absolute path
             return os.path.normpath(os.path.abspath(path))
 
-        # In sandbox mode!
+        # In restricted sandbox mode!
 
         is_win = platform.system() == 'Windows'
 
@@ -165,7 +196,7 @@ class FSWorkspaceManager(WorkspaceManager):
         is_scratch = False
         if workspace_dir_or_name is None:
             scratch_dir_name = str(uuid.uuid4())
-            workspace_dir = os.path.join(self.scratch_workspaces_dir_path,
+            workspace_dir = os.path.join(self.scratch_workspaces_dir,
                                          scratch_dir_name)
             os.makedirs(workspace_dir, exist_ok=True)
             is_scratch = True
