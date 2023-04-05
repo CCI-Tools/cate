@@ -193,7 +193,8 @@ def create_application(user_root_path: str = None):
         _LOG.warning(f"user root path given by environment variable"
                      f" CATE_USER_ROOT superseded by {user_root_path}")
 
-    configure_data_stores(local_root_path=user_root_path)
+    if user_root_path is not None:
+        configure_data_stores(local_root_path=user_root_path)
     application.workspace_manager = FSWorkspaceManager(user_root_path)
 
     return application
