@@ -85,7 +85,6 @@ Components
 import datetime
 import glob
 import logging
-import re
 from typing import Sequence, Optional, Union, Any, Dict, Set, Tuple
 
 import geopandas as gpd
@@ -100,6 +99,7 @@ from xcube.util.progress import ProgressState
 from xcube.util.progress import add_progress_observers
 from .cdm import get_lon_dim_name, get_lat_dim_name
 from .types import PolygonLike, TimeRangeLike, VarNamesLike, ValidationError
+from ..conf.defaults import CATE_LOCAL_DIR_NAME
 from ..util.monitor import ChildMonitor
 from ..util.monitor import Monitor
 
@@ -111,7 +111,7 @@ __author__ = "Chris Bernat (Telespazio VEGA UK Ltd), ", \
              "Marco Zühlke (Brockmann Consult GmbH)"
 
 _LOG = logging.getLogger('cate')
-CATE_LOCAL_DIR_NAME = 'cate-local'
+
 DATA_STORE_POOL = xcube_store.DataStorePool()
 
 
