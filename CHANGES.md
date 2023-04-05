@@ -11,6 +11,9 @@
 
 * The "local" data store is now configured to use the current 
   working directory as root.
+  
+* Cached data is now written into a sub-folder `cate-local/{data_store_id}` 
+  within the localc data store root unless another folder is specified. 
 
 * Removed the `cate upd` CLI command.
 
