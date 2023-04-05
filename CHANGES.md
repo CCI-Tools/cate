@@ -13,7 +13,7 @@
   working directory as root.
   
 * Cached data is now written into a sub-folder `cate-local/{data_store_id}` 
-  within the localc data store root unless another folder is specified. 
+  within Cate server's root path unless another folder is specified. 
 
 * Removed the `cate upd` CLI command.
 
