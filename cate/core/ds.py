@@ -456,7 +456,8 @@ def open_dataset(dataset_id: str,
             with add_progress_observers(XcubeProgressObserver(ChildMonitor(monitor, cache_work))):
                 dataset, dataset_id = make_local(data=dataset,
                                                  local_name=local_ds_id,
-                                                 orig_dataset_name=dataset_id)
+                                                 orig_dataset_name=dataset_id,
+                                                 data_store_id=data_store_id)
 
     return dataset, dataset_id
 
@@ -464,7 +465,8 @@ def open_dataset(dataset_id: str,
 def make_local(data: Any,
                *,
                local_name: Optional[str] = None,
-               orig_dataset_name: Optional[str] = None) -> Tuple[Any, str]:
+               orig_dataset_name: Optional[str] = None,
+               data_store_id: Optional[str] = None) -> Tuple[Any, str]:
     local_data_store_id = 'local'
     local_store = DATA_STORE_POOL.get_store(local_data_store_id)
     if local_store is None:
@@ -485,6 +487,10 @@ def make_local(data: Any,
         while local_store.has_data(local_name):
             i += 1
             local_name = f'local.{orig_dataset_name}.{i}{extension}'
+    if '/' not in local_name:
+        local_name_prefix = f'cate-local/{data_store_id}/' \
+            if data_store_id is not None else 'cate-local/'
+        local_name = local_name_prefix + local_name
     local_data_id = local_store.write_data(data=data,
                                            data_id=local_name,
                                            replace=True)
