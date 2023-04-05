@@ -1,15 +1,15 @@
 # The MIT License (MIT)
-# Copyright (c) 2016, 2017 by the ESA CCI Toolbox development team and contributors
+# Copyright (c) 2016-2023 by the ESA CCI Toolbox team and contributors
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy of
-# this software and associated documentation files (the "Software"), to deal in
-# the Software without restriction, including without limitation the rights to
-# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-# of the Software, and to permit persons to whom the Software is furnished to do
-# so, subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
 #
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -85,7 +85,6 @@ Components
 import datetime
 import glob
 import logging
-import re
 from typing import Sequence, Optional, Union, Any, Dict, Set, Tuple
 
 import geopandas as gpd
@@ -100,6 +99,7 @@ from xcube.util.progress import ProgressState
 from xcube.util.progress import add_progress_observers
 from .cdm import get_lon_dim_name, get_lat_dim_name
 from .types import PolygonLike, TimeRangeLike, VarNamesLike, ValidationError
+from ..conf.defaults import CATE_LOCAL_DIR_NAME
 from ..util.monitor import ChildMonitor
 from ..util.monitor import Monitor
 
@@ -109,14 +109,6 @@ __author__ = "Chris Bernat (Telespazio VEGA UK Ltd), ", \
              "Tonio Fincke (Brockmann Consult GmbH), " \
              "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH)"
-
-URL_REGEX = re.compile(
-    r'^(?:http|ftp)s?://'  # http:// or https://
-    r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'  # domain
-    r'localhost|'  # localhost...
-    r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
-    r'(?::\d+)?'  # optional port
-    r'(?:/?|[/?]\S+)$', re.IGNORECASE)
 
 _LOG = logging.getLogger('cate')
 
@@ -456,7 +448,8 @@ def open_dataset(dataset_id: str,
             with add_progress_observers(XcubeProgressObserver(ChildMonitor(monitor, cache_work))):
                 dataset, dataset_id = make_local(data=dataset,
                                                  local_name=local_ds_id,
-                                                 orig_dataset_name=dataset_id)
+                                                 orig_dataset_name=dataset_id,
+                                                 data_store_id=data_store_id)
 
     return dataset, dataset_id
 
@@ -464,7 +457,8 @@ def open_dataset(dataset_id: str,
 def make_local(data: Any,
                *,
                local_name: Optional[str] = None,
-               orig_dataset_name: Optional[str] = None) -> Tuple[Any, str]:
+               orig_dataset_name: Optional[str] = None,
+               data_store_id: Optional[str] = None) -> Tuple[Any, str]:
     local_data_store_id = 'local'
     local_store = DATA_STORE_POOL.get_store(local_data_store_id)
     if local_store is None:
@@ -485,6 +479,10 @@ def make_local(data: Any,
         while local_store.has_data(local_name):
             i += 1
             local_name = f'local.{orig_dataset_name}.{i}{extension}'
+    if '/' not in local_name:
+        local_name_prefix = f'{CATE_LOCAL_DIR_NAME}/{data_store_id}/' \
+            if data_store_id is not None else f'{CATE_LOCAL_DIR_NAME}/'
+        local_name = local_name_prefix + local_name
     local_data_id = local_store.write_data(data=data,
                                            data_id=local_name,
                                            replace=True)
