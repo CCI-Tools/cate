@@ -9,9 +9,9 @@
   For this reason, the Cate App UI is now bundled with the Cate server
   and served via the endpoint "/app".
 
-* The "local" data store is now configured to use the current 
-  working directory as root.
-  
+* The "local" data store is now configured to use a given 
+  server root path.
+
 * Cached data is now written into a sub-folder `cate-local/{data_store_id}` 
   within Cate server's root path unless another folder is specified. 
 
