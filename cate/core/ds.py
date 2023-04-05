@@ -1,15 +1,15 @@
 # The MIT License (MIT)
-# Copyright (c) 2016, 2017 by the ESA CCI Toolbox development team and contributors
+# Copyright (c) 2016-2023 by the ESA CCI Toolbox team and contributors
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy of
-# this software and associated documentation files (the "Software"), to deal in
-# the Software without restriction, including without limitation the rights to
-# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-# of the Software, and to permit persons to whom the Software is furnished to do
-# so, subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
 #
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -110,16 +110,8 @@ __author__ = "Chris Bernat (Telespazio VEGA UK Ltd), ", \
              "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH)"
 
-URL_REGEX = re.compile(
-    r'^(?:http|ftp)s?://'  # http:// or https://
-    r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'  # domain
-    r'localhost|'  # localhost...
-    r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
-    r'(?::\d+)?'  # optional port
-    r'(?:/?|[/?]\S+)$', re.IGNORECASE)
-
 _LOG = logging.getLogger('cate')
-
+CATE_LOCAL_DIR_NAME = 'cate-local'
 DATA_STORE_POOL = xcube_store.DataStorePool()
 
 
@@ -488,8 +480,8 @@ def make_local(data: Any,
             i += 1
             local_name = f'local.{orig_dataset_name}.{i}{extension}'
     if '/' not in local_name:
-        local_name_prefix = f'cate-local/{data_store_id}/' \
-            if data_store_id is not None else 'cate-local/'
+        local_name_prefix = f'{CATE_LOCAL_DIR_NAME}/{data_store_id}/' \
+            if data_store_id is not None else f'{CATE_LOCAL_DIR_NAME}/'
         local_name = local_name_prefix + local_name
     local_data_id = local_store.write_data(data=data,
                                            data_id=local_name,
