@@ -56,6 +56,7 @@ from tornado.web import Application, StaticFileHandler, RedirectHandler
 from cate.conf.defaults import WEBAPI_PROGRESS_DEFER_PERIOD
 from cate.core.types import ValidationError
 from cate.core.wsmanag import FSWorkspaceManager
+from cate.ds.stores import configure_data_stores
 from cate.util.misc import get_dependencies
 from cate.util.web import JsonRpcWebSocketHandler
 from cate.util.web.webapi import (run_start,
@@ -94,8 +95,9 @@ _LOG = logging.getLogger('cate')
 class WebAPIInfoHandler(WebAPIRequestHandler):
     def get(self):
         # noinspection PyUnresolvedReferences
-        user_root_mode = isinstance(self.application.workspace_manager, FSWorkspaceManager) \
-                         and self.application.workspace_manager.root_path is not None
+        workspace_manager = self.application.workspace_manager
+        user_root_mode = isinstance(workspace_manager, FSWorkspaceManager) \
+                         and workspace_manager.root_path is not None
 
         self.write_status_ok(content={
             'name': SERVICE_NAME,
@@ -116,7 +118,8 @@ def service_factory(application):
     )
 
 
-# All JSON REST responses should have same structure, namely a dictionary as follows:
+# All JSON REST responses should have same structure,
+# namely a dictionary as follows:
 #
 # {
 #    "status": "ok" | "error",
@@ -190,6 +193,7 @@ def create_application(user_root_path: str = None):
         _LOG.warning(f"user root path given by environment variable"
                      f" CATE_USER_ROOT superseded by {user_root_path}")
 
+    configure_data_stores(local_root_path=user_root_path)
     application.workspace_manager = FSWorkspaceManager(user_root_path)
 
     return application
