@@ -28,7 +28,7 @@ from ..version import __version__
 CATE_LOCAL_DIR_NAME = 'cate-local'
 
 DEFAULT_DATA_DIR_NAME = '.cate'
-DEFAULT_DATA_PATH = os.environ.get('CATE_DEFAULT_DATA_PATH',
+DEFAULT_DATA_PATH = os.environ.get('CATE_DATA_PATH',
     os.path.join(os.path.expanduser('~'), DEFAULT_DATA_DIR_NAME))
 DEFAULT_VERSION_DATA_PATH = os.path.join(DEFAULT_DATA_PATH, __version__)
 
