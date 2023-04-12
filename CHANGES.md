@@ -17,6 +17,9 @@
 
 * Removed the `cate upd` CLI command.
 
+* Added support of environment variable `CATE_DATA_PATH` to set path where to
+  find basic cate configuration files.
+
 ## Version 3.1.6
 
 * Fixed docker image
