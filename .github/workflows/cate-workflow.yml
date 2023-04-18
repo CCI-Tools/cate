@@ -40,7 +40,7 @@ jobs:
           tar xvzf v"${XCUBE_CCI_VERSION}".tar.gz
           cd xcube-cci-"${XCUBE_CCI_VERSION}"
           python setup.py install
-          mamba install -y -c conda-forge aiohttp nest-asyncio lxml pydap cartopy jsonschema
+          mamba install -y -c conda-forge aiohttp nest-asyncio lxml pydap==3.3 cartopy jsonschema
       - name: setup-cate
         shell: bash -l {0}
         run: |
