@@ -132,8 +132,10 @@ class WebSocketServiceTest(unittest.TestCase):
 
         lds = self.service.get_data_sources(data_store_id='local',
                                             monitor=Monitor.NONE)
-        self.assertNotIn(data_source_id,
-                         [ds['id'] for ds in lds if ds['id'] == data_source_id])
+        self.assertNotIn(
+            adjusted_data_source_id,
+            [ds['id'] for ds in lds if ds['id'] == adjusted_data_source_id]
+        )
 
     def test_get_operations(self):
         ops = self.service.get_operations()
