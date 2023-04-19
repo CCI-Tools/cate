@@ -113,9 +113,9 @@ class WebSocketServiceTest(unittest.TestCase):
             monitor=Monitor.NONE)
 
         self.assertEqual(1, len(new_lds))
-        self.assertEqual(new_lds[0]['id'], adjusted_data_source_id)
-        self.assertEqual(new_lds[0]['title'], adjusted_data_source_id)
-        self.assertEqual(str(new_lds[0]['data_type']), 'dataset')
+        self.assertEqual(adjusted_data_source_id, new_lds[0]['id'])
+        self.assertEqual(adjusted_data_source_id, new_lds[0]['title'])
+        self.assertEqual('dataset', str(new_lds[0]['data_type']))
 
         lds = self.service.get_data_sources(data_store_id='local',
                                             monitor=Monitor.NONE)
