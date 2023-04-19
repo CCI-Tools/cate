@@ -30,7 +30,8 @@ class WebSocketServiceTest(unittest.TestCase):
         DATA_STORE_POOL.remove_all_store_configs()
         self._store_root = './temp_local'
         config = DataStoreConfig(store_id='file',
-                                 store_params=dict(root=self._store_root))
+                                 store_params=dict(root=self._store_root,
+                                                   max_depth=2))
         DATA_STORE_POOL.add_store_config(
             store_instance_id='local',
             store_config=config)
@@ -98,6 +99,7 @@ class WebSocketServiceTest(unittest.TestCase):
     def test_add_and_remove_local_data_source(self):
 
         data_source_id = 'locally_added_data_source_for_testing.zarr'
+        adjusted_data_source_id = f'cate-local/{data_source_id}'
 
         lds = self.service.get_data_sources(data_store_id='local',
                                             monitor=Monitor.NONE)
@@ -111,23 +113,29 @@ class WebSocketServiceTest(unittest.TestCase):
             monitor=Monitor.NONE)
 
         self.assertEqual(1, len(new_lds))
-        self.assertEqual(new_lds[0]['id'], data_source_id)
-        self.assertEqual(new_lds[0]['title'], data_source_id)
-        self.assertEqual(str(new_lds[0]['data_type']), 'dataset')
+        self.assertEqual(adjusted_data_source_id, new_lds[0]['id'])
+        self.assertEqual(adjusted_data_source_id, new_lds[0]['title'])
+        self.assertEqual('dataset', str(new_lds[0]['data_type']))
 
         lds = self.service.get_data_sources(data_store_id='local',
                                             monitor=Monitor.NONE)
-        self.assertIn(data_source_id,
-                         [ds['id'] for ds in lds if ds['id'] == data_source_id])
+        self.assertIn(
+            adjusted_data_source_id,
+            [ds['id'] for ds in lds if ds['id'] == adjusted_data_source_id]
+        )
 
-        self.service.remove_local_data_source(data_source_id=data_source_id,
-                                              remove_files=True,
-                                              monitor=Monitor.NONE)
+        self.service.remove_local_data_source(
+            data_source_id=adjusted_data_source_id,
+            remove_files=True,
+            monitor=Monitor.NONE
+        )
 
         lds = self.service.get_data_sources(data_store_id='local',
                                             monitor=Monitor.NONE)
-        self.assertNotIn(data_source_id,
-                         [ds['id'] for ds in lds if ds['id'] == data_source_id])
+        self.assertNotIn(
+            adjusted_data_source_id,
+            [ds['id'] for ds in lds if ds['id'] == adjusted_data_source_id]
+        )
 
     def test_get_operations(self):
         ops = self.service.get_operations()
