@@ -6,6 +6,11 @@
 .. _NumPy: http://www.numpy.org/
 .. _JASMINE: http://www.jasmine.ac.uk/
 
+.. attention::
+    Cate has become the ESA Climate Toolbox.
+    This documentation is being discontinued.
+    You can find the documentation on the ESA Climate Toolbox
+    `here <http://esa-climate-toolbox.readthedocs.io/>`_.
 
 ==========
 About Cate

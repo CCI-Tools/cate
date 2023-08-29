@@ -20,6 +20,12 @@
 .. _JASMIN CaaS: https://help.jasmin.ac.uk/article/4735-cluster-as-a-service
 .. _JASMIN Kubernetes CaaS: https://help.jasmin.ac.uk/article/4781-cluster-as-a-service-kubernetes
 
+.. attention::
+    Cate has become the ESA Climate Toolbox.
+    This documentation is being discontinued.
+    You can find the documentation on the ESA Climate Toolbox
+    `here <http://esa-climate-toolbox.readthedocs.io/>`_.
+
 ============
 Architecture
 ============

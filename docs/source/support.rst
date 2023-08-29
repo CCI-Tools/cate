@@ -9,6 +9,11 @@
 .. _ESA CCI Open Data Portal: http://cci.esa.int/
 .. _Issue #64: https://github.com/CCI-Tools/cate/issues/64
 
+.. attention::
+    Cate has become the ESA Climate Toolbox.
+    This documentation is being discontinued.
+    You can find the documentation on the ESA Climate Toolbox
+    `here <http://esa-climate-toolbox.readthedocs.io/>`_.
 
 =======
 Support

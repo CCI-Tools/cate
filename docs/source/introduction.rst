@@ -4,6 +4,12 @@
 .. _UNFCCC: http://unfccc.int/2860.php
 .. _ECVs: https://climate.esa.int/en/projects/
 
+.. attention::
+    Cate has become the ESA Climate Toolbox.
+    This documentation is being discontinued.
+    You can find the documentation on the ESA Climate Toolbox
+    `here <http://esa-climate-toolbox.readthedocs.io/>`_.
+
 ============
 Introduction
 ============

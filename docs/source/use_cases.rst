@@ -16,6 +16,12 @@
 .. _Coupled Model Intercomparison Project: http://cmip-pcmdi.llnl.gov/
 .. _Coupled Carbon Cycle Climate Intercomparison Project: http://www.wcrp-climate.org/modelling-wgcm-mip-catalogue/modelling-wgcm-mips/230-modelling-wgcm-c4mip
 
+.. attention::
+    Cate has become the ESA Climate Toolbox.
+    This documentation is being discontinued.
+    You can find the documentation on the ESA Climate Toolbox
+    `here <http://esa-climate-toolbox.readthedocs.io/>`_.
+
 =========
 Use Cases
 =========

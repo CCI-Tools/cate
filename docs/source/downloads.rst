@@ -4,6 +4,12 @@
 .. _Cate App releases page: https://github.com/CCI-Tools/cate-app/releases
 .. _MIT open source license: https://github.com/CCI-Tools/cate/blob/master/LICENSE
 
+.. attention::
+    Cate has become the ESA Climate Toolbox.
+    This documentation is being discontinued.
+    You can find the documentation on the ESA Climate Toolbox
+    `here <http://esa-climate-toolbox.readthedocs.io/>`_.
+
 =========
 Downloads
 =========
