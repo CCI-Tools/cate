@@ -1,23 +1,24 @@
 # The MIT License (MIT)
-# Copyright (c) 2016, 2017 by the ESA CCI Toolbox development team and contributors
+# Copyright (c) 2016-2023 by the ESA CCI Toolbox team and contributors
 #
-# Permission is hereby granted, free of charge, to any person obtaining a copy of
-# this software and associated documentation files (the "Software"), to deal in
-# the Software without restriction, including without limitation the rights to
-# use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-# of the Software, and to permit persons to whom the Software is furnished to do
-# so, subject to the following conditions:
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
 #
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 # AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+# DEALINGS IN THE SOFTWARE.
+
 
 __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
              "Marco Zühlke (Brockmann Consult GmbH)" \
@@ -25,13 +26,15 @@ __author__ = "Norman Fomferra (Brockmann Consult GmbH), " \
 
 import concurrent.futures
 import datetime
+import importlib.resources
 import json
+import logging
 import os
 import sys
 import tempfile
 import time
 import zipfile
-from typing import Sequence, Any
+from typing import Sequence, Any, Optional
 
 import fiona
 import geopandas as gpd
@@ -50,6 +53,7 @@ from ..conf.defaults import \
     WEBAPI_USE_WORKSPACE_IMAGERY_CACHE
 from ..core.cdm import get_tiling_scheme
 from ..core.types import GeoDataFrame
+from ..core.workspace import Workspace
 from ..core.wsmanag import WorkspaceManager
 from ..util.cache import Cache, MemoryCacheStore, FileCacheStore
 from ..util.im import ImagePyramid, TransformArrayImage, ColorMappedRgbaImage
@@ -62,18 +66,25 @@ from ..version import __version__
 
 # TODO (forman): We must keep a MemoryCacheStore Cache for each workspace.
 #                We can use the Workspace.user_data dict for this purpose.
-#                However, a global cache is fine as long as we have just one workspace open at a time.
+#                However, a global cache is fine as long as we have just
+#                one workspace open at a time.
 #
 MEM_TILE_CACHE = Cache(MemoryCacheStore(),
                        capacity=WEBAPI_WORKSPACE_MEM_TILE_CACHE_CAPACITY,
                        threshold=0.75)
 
-# Note, the following "get_config()" call in the code will make sure "~/.cate/<version>" is created
-USE_WORKSPACE_IMAGERY_CACHE = get_config().get('use_workspace_imagery_cache', WEBAPI_USE_WORKSPACE_IMAGERY_CACHE)
+# Note, the following "get_config()" call in the code will
+# make sure "~/.cate/<version>" is created
+USE_WORKSPACE_IMAGERY_CACHE = get_config().get(
+    'use_workspace_imagery_cache',
+    WEBAPI_USE_WORKSPACE_IMAGERY_CACHE
+)
 
 TRACE_PERF = is_debug_mode()
 
 THREAD_POOL = concurrent.futures.ThreadPoolExecutor()
+
+_LOG = logging.getLogger('cate')
 
 _NUM_GEOM_SIMP_LEVELS = 8
 
@@ -97,10 +108,12 @@ class NE2Handler(WebAPIRequestHandler):
 # noinspection PyAbstractClass
 class WorkspaceResourceHandler(WebAPIRequestHandler):
 
-    def get_workspace_resource(self, base_dir, res_id: str):
+    def get_workspace_resource(self, workspace_id: str, res_id: str):
         res_id = self.to_int("res_id", res_id)
         # noinspection PyUnresolvedReferences
-        workspace_manager: WorkspaceManager = self.application.workspace_manager
+        workspace_manager: WorkspaceManager = \
+            self.application.workspace_manager
+        base_dir = Workspace.get_base_dir_from_id(workspace_id)
         base_dir = workspace_manager.resolve_path(base_dir)
         workspace = workspace_manager.get_workspace(base_dir)
         res_name = workspace.resource_cache.get_key(res_id)
@@ -112,22 +125,27 @@ class WorkspaceResourceHandler(WebAPIRequestHandler):
 class ResVarTileHandler(WorkspaceResourceHandler):
     PYRAMIDS = None
 
-    def get(self, base_dir, res_id, z, y, x):
+    def get(self, workspace_id, res_id, z, y, x):
         try:
-            workspace, res_id, res_name, dataset = self.get_workspace_resource(base_dir, res_id)
+            workspace, res_id, res_name, dataset = \
+                self.get_workspace_resource(workspace_id, res_id)
 
             # GLOBAL_LOCK.acquire()
 
             if not isinstance(dataset, xr.Dataset):
-                self.write_status_error(message='Resource "%s" must be a Dataset' % res_name)
+                self.write_status_error(
+                    message='Resource "%s" must be a Dataset' % res_name
+                )
                 self.finish()
                 return
 
             var_name = self.get_query_argument('var')
             var_index = self.get_query_argument_int_tuple('index', ())
             cmap_name = self.get_query_argument('cmap', default='jet')
-            cmap_min = self.get_query_argument_float('min', default=float('nan'))
-            cmap_max = self.get_query_argument_float('max', default=float('nan'))
+            cmap_min = self.get_query_argument_float('min',
+                                                     default=float('nan'))
+            cmap_max = self.get_query_argument_float('max',
+                                                     default=float('nan'))
 
             if ResVarTileHandler.PYRAMIDS is None:
                 ResVarTileHandler.PYRAMIDS = dict()
@@ -140,7 +158,7 @@ class ResVarTileHandler(WorkspaceResourceHandler):
                                         cmap_min,
                                         cmap_max)
 
-            pyramid_id = '%s-%s' % (base_dir, image_id)
+            pyramid_id = '%s-%s' % (workspace.base_dir, image_id)
 
             if pyramid_id in ResVarTileHandler.PYRAMIDS:
                 pyramid = ResVarTileHandler.PYRAMIDS[pyramid_id]
@@ -167,22 +185,34 @@ class ResVarTileHandler(WorkspaceResourceHandler):
                     # print('var_index =', var_index)
                     array = variable[var_index]
                 else:
-                    self.write_status_error(message='Variable must be an N-D Dataset with N >= 2, '
-                                                    'but "%s" is only %d-D' % (var_name, variable.ndim))
+                    self.write_status_error(
+                        message='Variable must be an N-D Dataset with N >= 2,'
+                                ' but "%s" is only %d-D'
+                                % (var_name, variable.ndim)
+                    )
                     self.finish()
                     return
 
-                cmap_min = np.nanmin(array.values) if np.isnan(cmap_min) else cmap_min
-                cmap_max = np.nanmax(array.values) if np.isnan(cmap_max) else cmap_max
+                cmap_min = np.nanmin(array.values) \
+                    if np.isnan(cmap_min) else cmap_min
+                cmap_max = np.nanmax(array.values) \
+                    if np.isnan(cmap_max) else cmap_max
                 # print('cmap_min =', cmap_min)
                 # print('cmap_max =', cmap_max)
 
                 if USE_WORKSPACE_IMAGERY_CACHE:
                     mem_tile_cache = MEM_TILE_CACHE
-                    rgb_tile_cache_dir = os.path.join(base_dir, WORKSPACE_CACHE_DIR_NAME, 'v%s' % __version__, 'tiles')
-                    rgb_tile_cache = Cache(FileCacheStore(rgb_tile_cache_dir, ".png"),
-                                           capacity=WEBAPI_WORKSPACE_FILE_TILE_CACHE_CAPACITY,
-                                           threshold=0.75)
+                    rgb_tile_cache_dir = os.path.join(
+                        workspace.base_dir,
+                        WORKSPACE_CACHE_DIR_NAME,
+                        'v%s' % __version__,
+                        'tiles'
+                    )
+                    rgb_tile_cache = Cache(
+                        FileCacheStore(rgb_tile_cache_dir, ".png"),
+                        capacity=WEBAPI_WORKSPACE_FILE_TILE_CACHE_CAPACITY,
+                        threshold=0.75
+                    )
                 else:
                     mem_tile_cache = MEM_TILE_CACHE
                     rgb_tile_cache = None
@@ -193,35 +223,49 @@ class ResVarTileHandler(WorkspaceResourceHandler):
                 tiling_scheme = get_tiling_scheme(variable)
                 if tiling_scheme is None:
                     self.write_status_error(
-                        message='Internal error: failed to compute tiling scheme for array_id="%s"' % array_id)
+                        message='Internal error:'
+                                ' failed to compute tiling scheme'
+                                ' for array_id="%s"' % array_id)
                     self.finish()
                     return
 
                 # print('tiling_scheme =', repr(tiling_scheme))
-                pyramid = ImagePyramid.create_from_array(array, tiling_scheme,
-                                                         level_image_id_factory=array_image_id_factory)
-                pyramid = pyramid.apply(lambda image, level:
-                                        TransformArrayImage(image,
-                                                            image_id='tra-%s/%d' % (array_id, level),
-                                                            flip_y=tiling_scheme.geo_extent.inv_y,
-                                                            force_masked=True,
-                                                            no_data_value=no_data_value,
-                                                            valid_range=valid_range,
-                                                            tile_cache=mem_tile_cache))
-                pyramid = pyramid.apply(lambda image, level:
-                                        ColorMappedRgbaImage(image,
-                                                             image_id='rgb-%s/%d' % (image_id, level),
-                                                             value_range=(cmap_min, cmap_max),
-                                                             cmap_name=cmap_name,
-                                                             encode=True,
-                                                             format='PNG',
-                                                             tile_cache=rgb_tile_cache))
+                pyramid = ImagePyramid.create_from_array(
+                    array,
+                    tiling_scheme,
+                    level_image_id_factory=array_image_id_factory
+                )
+                pyramid = pyramid.apply(
+                    lambda image, level:
+                    TransformArrayImage(image,
+                                        image_id='tra-%s/%d'
+                                                 % (array_id, level),
+                                        flip_y=tiling_scheme.geo_extent.inv_y,
+                                        force_masked=True,
+                                        no_data_value=no_data_value,
+                                        valid_range=valid_range,
+                                        tile_cache=mem_tile_cache)
+                )
+                pyramid = pyramid.apply(
+                    lambda image, level:
+                    ColorMappedRgbaImage(image,
+                                         image_id='rgb-%s/%d'
+                                                  % (image_id, level),
+                                         value_range=(cmap_min, cmap_max),
+                                         cmap_name=cmap_name,
+                                         encode=True,
+                                         format='PNG',
+                                         tile_cache=rgb_tile_cache)
+                )
                 ResVarTileHandler.PYRAMIDS[pyramid_id] = pyramid
                 if TRACE_PERF:
                     print('Created pyramid "%s":' % pyramid_id)
-                    print('  tile_size:', pyramid.tile_size)
-                    print('  num_level_zero_tiles:', pyramid.num_level_zero_tiles)
-                    print('  num_levels:', pyramid.num_levels)
+                    print('  tile_size:',
+                          pyramid.tile_size)
+                    print('  num_level_zero_tiles:',
+                          pyramid.num_level_zero_tiles)
+                    print('  num_levels:',
+                          pyramid.num_levels)
 
             if TRACE_PERF:
                 print('PERF: >>> Tile:', image_id, z, y, x)
@@ -234,7 +278,8 @@ class ResVarTileHandler(WorkspaceResourceHandler):
             self.write(tile)
 
             if TRACE_PERF:
-                print('PERF: <<< Tile:', image_id, z, y, x, 'took', t2 - t1, 'seconds')
+                print('PERF: <<< Tile:', image_id, z, y, x,
+                      'took', t2 - t1, 'seconds')
 
             # GLOBAL_LOCK.release()
 
@@ -245,12 +290,14 @@ class ResVarTileHandler(WorkspaceResourceHandler):
 
 # noinspection PyAbstractClass,PyBroadException
 class ResourcePlotHandler(WorkspaceResourceHandler):
-    def get(self, base_dir, res_name):
+    def get(self, workspace_id: str, res_name: str):
         try:
             # noinspection PyUnresolvedReferences
-            workspace_manager: WorkspaceManager = self.application.workspace_manager
+            workspace_manager: WorkspaceManager = \
+                self.application.workspace_manager
             var_name = self.get_query_argument('var_name', default=None)
             file_path = self.get_query_argument('file_path', default=None)
+            base_dir = Workspace.get_base_dir_from_id(workspace_id)
             with cwd(base_dir):
                 workspace_manager.plot_workspace_resource(base_dir, res_name,
                                                           var_name=var_name,
@@ -268,19 +315,27 @@ class GeoJSONHandler(WebAPIRequestHandler):
         super().__init__(application, request, **kwargs)
         self._shapefile_path = shapefile_path
 
-    # see http://stackoverflow.com/questions/20018684/tornado-streaming-http-response-as-asynchttpclient-receives-chunks
+    # see
+    # http://stackoverflow.com/questions/20018684/tornado-streaming-http-response-as-asynchttpclient-receives-chunks
     @tornado.gen.coroutine
     def get(self):
         try:
-            level = int(self.get_query_argument('level', default=str(_NUM_GEOM_SIMP_LEVELS)))
+            level = int(self.get_query_argument('level',
+                                                default=str(
+                                                    _NUM_GEOM_SIMP_LEVELS)))
             collection = fiona.open(self._shapefile_path)
             self.set_header('Content-Type', 'application/json')
 
             def job():
-                conservation_ratio = _level_to_conservation_ratio(level, _NUM_GEOM_SIMP_LEVELS)
-                write_feature_collection(collection, self,
-                                         num_features=len(collection),
-                                         conservation_ratio=conservation_ratio)
+                conservation_ratio = _level_to_conservation_ratio(
+                    level,
+                    _NUM_GEOM_SIMP_LEVELS
+                )
+                write_feature_collection(
+                    collection, self,
+                    num_features=len(collection),
+                    conservation_ratio=conservation_ratio
+                )
                 self.finish()
 
             yield [THREAD_POOL.submit(job)]
@@ -296,9 +351,11 @@ DEFAULT_COUNTRIES_RESOLUTION = '50m'
 class CountriesGeoJSONHandler(WebAPIRequestHandler):
     def get(self, resolution: str = DEFAULT_COUNTRIES_RESOLUTION):
         """
-        :param resolution: '10m', '50m', or '110m' (default), refer to https://geojson-maps.ash.ms/
+        :param resolution: '10m', '50m', or '110m' (default),
+            refer to https://geojson-maps.ash.ms/
         """
-        filename = f'countries-{resolution or DEFAULT_COUNTRIES_RESOLUTION}.geojson'
+        filename = f'countries' \
+                   f'-{resolution or DEFAULT_COUNTRIES_RESOLUTION}.geojson'
         try:
             path = os.path.join(os.path.dirname(__file__),
                                 '..', 'ds', 'data', 'countries', filename)
@@ -311,12 +368,16 @@ class CountriesGeoJSONHandler(WebAPIRequestHandler):
 
 # noinspection PyAbstractClass,PyBroadException
 class ResFeatureCollectionHandler(WorkspaceResourceHandler):
-    # see http://stackoverflow.com/questions/20018684/tornado-streaming-http-response-as-asynchttpclient-receives-chunks
+    # see
+    # http://stackoverflow.com/questions/20018684/tornado-streaming-http-response-as-asynchttpclient-receives-chunks
     @tornado.gen.coroutine
-    def get(self, base_dir, res_id):
+    def get(self, workspace_id, res_id):
         try:
-            _, res_id, res_name, resource = self.get_workspace_resource(base_dir, res_id)
-            level = self.get_query_argument_int('level', default=_NUM_GEOM_SIMP_LEVELS)
+            _, res_id, res_name, resource = self.get_workspace_resource(
+                workspace_id, res_id
+            )
+            level = self.get_query_argument_int('level',
+                                                default=_NUM_GEOM_SIMP_LEVELS)
 
             if isinstance(resource, fiona.Collection):
                 features = resource
@@ -334,26 +395,38 @@ class ResFeatureCollectionHandler(WorkspaceResourceHandler):
                 features = None
                 crs = None
                 num_features = 0
-                self.write_status_error(message='Resource "%s" is not a GeoDataFrame' % res_name)
+                self.write_status_error(
+                    message='Resource "%s" is not a GeoDataFrame' % res_name
+                )
 
             if features is not None:
                 if TRACE_PERF:
                     print('ResFeatureCollectionHandler: features CRS:', crs)
-                    print('ResFeatureCollectionHandler: streaming started at ', datetime.datetime.now())
+                    print(
+                        'ResFeatureCollectionHandler: streaming started at ',
+                        datetime.datetime.now()
+                    )
                 self.set_header('Content-Type', 'application/json')
 
                 def job():
-                    conservation_ratio = _level_to_conservation_ratio(level, _NUM_GEOM_SIMP_LEVELS)
-                    write_feature_collection(features, self,
-                                             crs=crs,
-                                             res_id=res_id,
-                                             num_features=num_features,
-                                             max_num_display_geometries=1000,
-                                             max_num_display_geometry_points=100,
-                                             conservation_ratio=conservation_ratio)
+                    conservation_ratio = _level_to_conservation_ratio(
+                        level, _NUM_GEOM_SIMP_LEVELS
+                    )
+                    write_feature_collection(
+                        features,
+                        self,
+                        crs=crs,
+                        res_id=res_id,
+                        num_features=num_features,
+                        max_num_display_geometries=1000,
+                        max_num_display_geometry_points=100,
+                        conservation_ratio=conservation_ratio
+                    )
                     self.finish()
                     if TRACE_PERF:
-                        print('ResFeatureCollectionHandler: streaming done at ', datetime.datetime.now())
+                        print('ResFeatureCollectionHandler:'
+                              ' streaming done at ',
+                              datetime.datetime.now())
 
                 yield [THREAD_POOL.submit(job)]
         except Exception:
@@ -363,26 +436,33 @@ class ResFeatureCollectionHandler(WorkspaceResourceHandler):
 
 # noinspection PyAbstractClass,PyBroadException
 class ResFeatureHandler(WorkspaceResourceHandler):
-    # see http://stackoverflow.com/questions/20018684/tornado-streaming-http-response-as-asynchttpclient-receives-chunks
+    # see
+    # http://stackoverflow.com/questions/20018684/tornado-streaming-http-response-as-asynchttpclient-receives-chunks
     @tornado.gen.coroutine
-    def get(self, base_dir, res_id, feature_index):
+    def get(self, workspace_id, res_id, feature_index):
         try:
-            _, res_id, res_name, resource = self.get_workspace_resource(base_dir, res_id)
+            _, res_id, res_name, resource = self.get_workspace_resource(
+                workspace_id, res_id
+            )
             feature_index = self.to_int('feature_index', feature_index)
-            level = self.get_query_argument_int('level', default=_NUM_GEOM_SIMP_LEVELS)
+            level = self.get_query_argument_int('level',
+                                                default=_NUM_GEOM_SIMP_LEVELS)
 
             if isinstance(resource, fiona.Collection):
-                if not self._check_feature_index(feature_index, len(resource)):
+                if not self._check_feature_index(feature_index,
+                                                 len(resource)):
                     return
                 feature = resource[feature_index]
                 crs = resource.crs
             elif isinstance(resource, GeoDataFrame):
-                if not self._check_feature_index(feature_index, len(resource)):
+                if not self._check_feature_index(feature_index,
+                                                 len(resource)):
                     return
                 feature = resource.features[feature_index]
                 crs = resource.features.crs
             elif isinstance(resource, gpd.GeoDataFrame):
-                if not self._check_feature_index(feature_index, len(resource)):
+                if not self._check_feature_index(feature_index,
+                                                 len(resource)):
                     return
                 row = resource.iloc[feature_index]
                 geometry = None
@@ -399,15 +479,21 @@ class ResFeatureHandler(WorkspaceResourceHandler):
             else:
                 feature = None
                 crs = None
-                self.write_status_error(message='Resource "%s" is not a GeoDataFrame' % res_name)
+                self.write_status_error(
+                    message='Resource "%s" is not a GeoDataFrame' % res_name
+                )
                 self.finish()
 
             if feature is not None:
                 if TRACE_PERF:
                     print('ResFeatureHandler: feature CRS:', crs)
-                    print('ResFeatureHandler: streaming started at ', datetime.datetime.now())
+                    print('ResFeatureHandler: streaming started at ',
+                          datetime.datetime.now())
                 self.set_header('Content-Type', 'application/json')
-                conservation_ratio = _level_to_conservation_ratio(level, _NUM_GEOM_SIMP_LEVELS)
+                conservation_ratio = _level_to_conservation_ratio(
+                    level,
+                    _NUM_GEOM_SIMP_LEVELS
+                )
 
                 def job():
                     try:
@@ -421,7 +507,8 @@ class ResFeatureHandler(WorkspaceResourceHandler):
                         self.write_status_error(exc_info=sys.exc_info())
                     self.finish()
                     if TRACE_PERF:
-                        print('ResFeatureHandler: streaming done at ', datetime.datetime.now())
+                        print('ResFeatureHandler: streaming done at ',
+                              datetime.datetime.now())
 
                 yield [THREAD_POOL.submit(job)]
         except Exception:
@@ -431,17 +518,21 @@ class ResFeatureHandler(WorkspaceResourceHandler):
     def _check_feature_index(self, feature_index, num_features):
         ok = feature_index < num_features
         if not ok:
-            self.write_status_error(message='feature_index {} out of bounds, num_features={}'
-                                    .format(feature_index, num_features))
+            self.write_status_error(
+                message='feature_index {} out of bounds,'
+                        ' num_features={}'.format(feature_index, num_features)
+            )
             self.finish()
         return ok
 
 
 # noinspection PyAbstractClass,PyBroadException
 class ResVarCsvHandler(WorkspaceResourceHandler):
-    def get(self, base_dir, res_id):
+    def get(self, workspace_id, res_id):
         try:
-            _, _, _, resource = self.get_workspace_resource(base_dir, res_id)
+            _, _, _, resource = self.get_workspace_resource(
+                workspace_id, res_id
+            )
             var_name = self.get_query_argument('var', default=None)
 
             var_data = resource
@@ -484,9 +575,11 @@ class ResVarCsvHandler(WorkspaceResourceHandler):
 
 # noinspection PyAbstractClass,PyBroadException
 class ResVarHtmlHandler(WorkspaceResourceHandler):
-    def get(self, base_dir, res_id):
+    def get(self, workspace_id, res_id):
         try:
-            _, _, _, resource = self.get_workspace_resource(base_dir, res_id)
+            _, _, _, resource = self.get_workspace_resource(
+                workspace_id, res_id
+            )
             self.set_header('Content-Type', 'text/html')
             self.write(resource)
             self.finish()
@@ -545,19 +638,25 @@ class FilesUploadHandler(WebAPIRequestHandler):
         def receiver(chunk):
             nonlocal index
             # noinspection PyUnresolvedReferences
-            workspace_manager: WorkspaceManager = self.application.workspace_manager
-            # Unfortunately we have to parse the header from the first chunk ourselves as we are streaming.
+            workspace_manager: WorkspaceManager = \
+                self.application.workspace_manager
+            # Unfortunately we have to parse the header
+            # from the first chunk ourselves as we are streaming.
             if index == 0:
                 index += 1
                 split_chunk = chunk.split(separate)
-                self.meta['boundary'] = separate + split_chunk[0] + b'--' + separate
+                self.meta['boundary'] = separate + split_chunk[
+                    0] + b'--' + separate
                 self.meta['header'] = separate.join(split_chunk[0:7])
                 self.meta['header'] += separate * 2
                 self.meta['dir'] = split_chunk[3].decode()
-                self.meta['filename'] = split_chunk[5].split(b'=')[-1].replace(b'"', b'').decode()
+                self.meta['filename'] = split_chunk[5].split(b'=')[
+                    -1].replace(b'"', b'').decode()
 
                 chunk = chunk[len(self.meta['header']):]  # Stream
-                fn = workspace_manager.resolve_path(os.path.join(self.meta['dir']))
+                fn = workspace_manager.resolve_path(
+                    os.path.join(self.meta['dir'])
+                )
                 if not os.path.isdir(fn):
                     os.mkdir(fn)
 
@@ -577,13 +676,15 @@ class FilesUploadHandler(WebAPIRequestHandler):
 
     def post(self):
         # Stream
-        self.meta['content_length'] = int(self.request.headers.get('Content-Length')) - \
-                                      len(self.meta['header']) - \
-                                      len(self.meta['boundary'])
+        self.meta['content_length'] = \
+            int(self.request.headers.get('Content-Length')) - \
+            len(self.meta['header']) - \
+            len(self.meta['boundary'])
 
         self.truncate_fp()
         megabytes = int(self.meta['content_length'] / 2 ** 20)
-        self.finish(json.dumps({'status': 'success', 'message': str(megabytes) + 'MBs uploaded.'}))
+        self.finish(json.dumps({'status': 'success',
+                                'message': str(megabytes) + 'MBs uploaded.'}))
 
 
 # noinspection PyAbstractClass
@@ -606,7 +707,8 @@ class FilesDownloadHandler(WebAPIRequestHandler):
             return
 
         self.set_header('Content-Type', 'application/zip')
-        # self.set_header("Content-Disposition", "attachment; filename=%s" % target_dir + '.zip')
+        # self.set_header("Content-Disposition",
+        #                 "attachment; filename=%s" % target_dir + '.zip')
 
         self._stream_file_content(result, process_id)
         os.remove(result.filename)
@@ -629,7 +731,27 @@ class FilesDownloadHandler(WebAPIRequestHandler):
         zip_file = self._zip_files(target_files)
         self._return_zip_file(zip_file, process_id)
 
-        self.finish(json.dumps({'status': 'success', 'error': '', 'message': 'Done'}))
+        self.finish(
+            json.dumps({'status': 'success', 'error': '', 'message': 'Done'}))
+
+
+def get_app_resources_path() -> Optional[str]:
+    app_path = os.environ.get("CATE_APP_PATH")
+    if app_path:
+        _LOG.warning(f"Endpoint '/app' will be served from {app_path}")
+        return app_path
+    try:
+        with importlib.resources.files("cate.webapi") as path:
+            app_path = path / "app"
+            if (app_path / "index.html").is_file():
+                return str(app_path)
+    except ImportError:
+        pass
+    _LOG.warning(f"Cannot find 'cate/webapi/app,"
+                 f" consider setting environment variable"
+                 f" CATE_APP_PATH",
+                 exc_info=True)
+    return None
 
 
 def _new_monitor() -> Monitor:

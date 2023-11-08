@@ -1,0 +1,28 @@
+{
+  "name": "Cate App",
+  "short_name": "Cate App",
+  "description": "Graphical user interface of Cate, the ESA CCI Toolbox",
+  "lang": "en-GB",
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "landscape",
+  "theme_color": "#394B59",
+  "background_color": "#394B59",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "type": "image/x-icon",
+      "sizes": "256x256"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}

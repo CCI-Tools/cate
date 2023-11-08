@@ -1,4 +1,26 @@
-## Version 3.1.7 (in development)
+## Version 4.0.0 (in development)
+
+* Cate is now designed to work inside of Jupyter Lab and standalone.
+  For this reason, the Cate App UI is now bundled with the Cate server
+  and served via the endpoint "/app". 
+  
+  Current Cate App version is 4.0.0-dev.6. 
+
+* Now using workspace identifiers instead of base directories in resource 
+  URLs of the WebAPI. This way we no longer need to URL-encode workspace 
+  directories in WebAPI URLs, which did not work with 
+  [jupyter-server-proxy](https://jupyter-server-proxy.readthedocs.io/).
+
+* The "local" data store is now configured to use a given 
+  server root path.
+
+* Cached data is now written into a sub-folder `cate-local/{data_store_id}` 
+  within Cate server's root path unless another folder is specified. 
+
+* Removed the `cate upd` CLI command.
+
+* Added support of environment variable `CATE_DATA_PATH` to set path where to
+  find basic cate configuration files.
 
 ## Version 3.1.6
 

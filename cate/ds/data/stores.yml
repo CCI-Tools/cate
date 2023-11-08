@@ -24,6 +24,10 @@ local:
   store_id: "file"
   store_params:
     root: null
+    max_depth: 4
+    excludes:
+      - ".*"
+      - "*/.*"
   title: "File Data Sources"
   description: >
     This data store represents
