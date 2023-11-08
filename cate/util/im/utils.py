@@ -70,7 +70,8 @@ def get_chunk_size(array):
         # xarray DataArray with dask, returns the size of each individual tile
         chunk_size = array.chunks
         if chunk_size:
-            chunk_size = tuple([c[0] if isinstance(c, tuple) else c for c in chunk_size])
+            chunk_size = tuple([c[int(len(c)/2)] if isinstance(c, tuple)
+                                else c for c in chunk_size])
     except Exception:
         pass
     if not chunk_size:
